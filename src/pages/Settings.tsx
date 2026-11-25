@@ -14,6 +14,8 @@ import { showOnboardingAgain } from './Onboarding';
 import { useAccount } from '../lib/account';
 import { AccountPage, AccountTile, DeleteAccountPage, DevicesPage, PasswordPage, RecoverPage, RecoveryKeyPage } from './Account';
 import { AdminPage } from './Admin';
+import { TwoFactorPage } from './TwoFactor';
+import { useWide } from '../hooks/useWide';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
    there): on a phone, the three groups as a list of tiles, each opening its
@@ -125,18 +127,6 @@ const CAT_STYLE_SWATCHES: { id: CatStyle; background: string }[] = [
     { id: 'blue', background: 'var(--pixel-blue)' },
     { id: 'pink', background: 'var(--pixel-pink)' },
 ];
-
-function useWide() {
-    const q = '(min-width: 768px)';
-    const [wide, setWide] = useState(() => window.matchMedia(q).matches);
-    useEffect(() => {
-        const mq = window.matchMedia(q);
-        const on = () => setWide(mq.matches);
-        mq.addEventListener('change', on);
-        return () => mq.removeEventListener('change', on);
-    }, []);
-    return wide;
-}
 
 export function Settings({ sub }: { sub?: SettingsSub }) {
     const { choice, setChoice } = useTheme();
@@ -362,14 +352,16 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
 
     const catContent = (id: Cat) => (id === 'general' ? renderGeneral() : id === 'data' ? renderData() : renderAbout());
 
-    // The account and its pages (pages/Account.tsx).
-    if (sub === 'account') return <AccountPage />;
+    // The account and its pages (pages/Account.tsx), two-step sign-in
+    // (pages/TwoFactor.tsx), and the admin's (pages/Admin.tsx).
+    if (sub === 'account' || sub === 'sync' || sub === 'security') return <AccountPage sub={sub} />;
+    if (sub === 'devices') return <DevicesPage />;
     if (sub === 'password') return <PasswordPage />;
     if (sub === 'recovery-key') return <RecoveryKeyPage />;
-    if (sub === 'devices') return <DevicesPage />;
+    if (sub === 'two-factor') return <TwoFactorPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;
     if (sub === 'recover') return <RecoverPage />;
-    if (sub === 'admin') return <AdminPage />;
+    if (sub === 'admin' || sub === 'admin-overview' || sub === 'admin-accounts') return <AdminPage sub={sub} />;
 
     // A choice is its own page: the appearance.
     if (sub === 'appearance') {
