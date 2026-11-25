@@ -8,6 +8,7 @@ import {
     fetchAccount,
     newRecoveryKey,
     recover,
+    refreshUser,
     signIn,
     signOut,
     signOutDevice,
@@ -43,6 +44,7 @@ import {
     Monitor,
     Password,
     Phone,
+    Server,
     Trash,
 } from '../components/icons';
 
@@ -506,7 +508,11 @@ function SignedIn({ s }: { s: AccountState }) {
     useEffect(() => {
         let live = true;
         fetchAccount()
-            .then(i => live && setInfo(i))
+            .then(i => {
+                if (!live) return;
+                setInfo(i);
+                refreshUser(i.user);
+            })
             .catch(() => {});
         return () => {
             live = false;
@@ -541,6 +547,20 @@ function SignedIn({ s }: { s: AccountState }) {
                     <p className={`mt-0.5 text-xs ${muted}`}>{`Account since ${since}`}</p>
                 </div>
             </div>
+
+            {account.user.admin && (
+                <section>
+                    <span className={sectionLabel}>{'Admin'}</span>
+                    <div className={settingsSection}>
+                        <SettingsListItem
+                            icon={Server}
+                            title={'Admin'}
+                            description={'Accounts, devices, storage and sign-ups'}
+                            onClick={() => go({ page: 'settings', sub: 'admin' })}
+                        />
+                    </div>
+                </section>
+            )}
 
             <section>
                 <span className={sectionLabel}>{'Sync'}</span>

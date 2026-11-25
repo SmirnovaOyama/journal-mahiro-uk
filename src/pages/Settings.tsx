@@ -13,6 +13,7 @@ import { ChevronRight, Database, External, Info, Sliders } from '../components/i
 import { showOnboardingAgain } from './Onboarding';
 import { useAccount } from '../lib/account';
 import { AccountPage, AccountTile, DeleteAccountPage, DevicesPage, PasswordPage, RecoverPage, RecoveryKeyPage } from './Account';
+import { AdminPage } from './Admin';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
    there): on a phone, the three groups as a list of tiles, each opening its
@@ -367,6 +368,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     if (sub === 'devices') return <DevicesPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;
     if (sub === 'recover') return <RecoverPage />;
+    if (sub === 'admin') return <AdminPage />;
 
     // A choice is its own page: the appearance.
     if (sub === 'appearance') {
