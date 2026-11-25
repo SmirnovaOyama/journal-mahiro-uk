@@ -105,11 +105,43 @@ const BANDS = [
     { v: 113, name: 'Common', tone: 'text-[var(--accent-ink)]' },
     { v: 225, name: 'Strong', tone: 'text-[var(--warning)]' },
 ];
+const bandFor = (v: number) => (v >= 150 ? BANDS[2] : v >= 75 ? BANDS[1] : BANDS[0]);
 
-/** LSD's dose, read off its rail, rolling from band to band. */
+const GLIDE_MS = 1100;
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+
+/** A value that glides to each new target, slow in and slow out, frame by frame. */
+function useGlide(target: number, ms = GLIDE_MS) {
+    const [v, setV] = useState(target);
+    const at = useRef(target);
+    useEffect(() => {
+        if (still()) {
+            at.current = target;
+            setV(target);
+            return;
+        }
+        const from = at.current;
+        const t0 = performance.now();
+        let raf = 0;
+        const step = (now: number) => {
+            const t = Math.min(1, (now - t0) / ms);
+            at.current = from + (target - from) * easeInOut(t);
+            setV(at.current);
+            if (t < 1) raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(raf);
+    }, [target, ms]);
+    return v;
+}
+
+/** LSD's dose, read off its rail: the tick glides from band to band and the
+ *  number rolls with it, both easing in and out over the same time. */
 function DoseStage({ active }: { active: boolean }) {
-    const k = useCycle(BANDS.length, 1800, active, 1);
-    const b = BANDS[k];
+    const k = useCycle(BANDS.length, 2800, active, 1);
+    const target = BANDS[k].v;
+    const v = useGlide(target);
+    const b = bandFor(v);
     return (
         <div className="w-full max-w-[22rem]">
             <div className="flex items-center gap-3">
@@ -120,11 +152,11 @@ function DoseStage({ active }: { active: boolean }) {
                 </div>
             </div>
             <div className="mt-4 flex items-baseline gap-2 font-display font-light leading-none tracking-[-0.035em] text-[3.25rem] text-[var(--text)]">
-                <Odometer value={b.v} decimals={0} places={3} />
+                <Odometer value={target} decimals={0} places={3} rollMs={GLIDE_MS} gentle />
                 <span className="text-sm font-normal tracking-normal text-[var(--text-muted)]">{'µg'}</span>
             </div>
             <div className="mt-1">
-                <LevelRail value={b.v} band={{ low: 75, high: 150 }} domain={[12, 405]} label={b.name} tone={b.tone} />
+                <LevelRail value={v} band={{ low: 75, high: 150 }} domain={[12, 405]} label={b.name} tone={b.tone} />
             </div>
         </div>
     );
@@ -144,14 +176,40 @@ const TONE: Record<string, string> = {
     neutral: 'var(--text-muted)',
 };
 
+/** One state giving way to the next: the old one drifts up and fades out
+ *  while the new one rises into its place, each easing out, after `delay`. */
+function Crossfade({ k, delay = 0, render, className = '' }: { k: number; delay?: number; render: (k: number) => ReactNode; className?: string }) {
+    const [leaving, setLeaving] = useState<number | null>(null);
+    const shown = useRef(k);
+    useEffect(() => {
+        if (shown.current === k) return;
+        setLeaving(shown.current);
+        shown.current = k;
+        const t = window.setTimeout(() => setLeaving(null), 900 + delay);
+        return () => window.clearTimeout(t);
+    }, [k, delay]);
+    const style = { '--delay': `${delay}ms` } as CSSProperties;
+    return (
+        <div className={`relative ${className}`}>
+            {leaving !== null && (
+                <div key={`out${leaving}`} className="ob-leave absolute inset-x-0 top-0" style={style} aria-hidden="true">
+                    {render(leaving)}
+                </div>
+            )}
+            <div key={`in${k}`} className={leaving !== null ? 'ob-enter' : ''} style={style}>
+                {render(k)}
+            </div>
+        </div>
+    );
+}
+
 /** The mix checker, answering for one pair after another. */
 function MixStage({ active }: { active: boolean }) {
-    const k = useCycle(PAIRS.length, 2200, active);
-    const [a, an, b, bn, verdict] = PAIRS[k];
-    const v = VERDICT[verdict];
-    return (
-        <div className="w-full max-w-[22rem] text-center">
-            <div key={`p${k}`} className="m-appear flex flex-wrap items-center justify-center gap-2">
+    const k = useCycle(PAIRS.length, 3000, active);
+    const chips = (i: number) => {
+        const [a, an, b, bn] = PAIRS[i];
+        return (
+            <div className="flex flex-wrap items-center justify-center gap-2">
                 <span className="chip chip-static text-[var(--text)]">
                     <Molecule id={a} form="capsule" size="xs" />
                     {an}
@@ -162,15 +220,27 @@ function MixStage({ active }: { active: boolean }) {
                     {bn}
                 </span>
             </div>
-            <div key={`v${k}`} className="ob-pop mt-6 flex items-center justify-center gap-2">
+        );
+    };
+    const word = (i: number) => {
+        const v = VERDICT[PAIRS[i][4]];
+        return (
+            <div className="flex items-center justify-center gap-2">
                 {v.tone === 'positive' && <Clover size={34} />}
                 <span className="font-display font-light text-[2.75rem] leading-none tracking-[-0.03em]" style={{ color: TONE[v.tone] }}>
                     {v.label}
                 </span>
             </div>
-            <p key={`m${k}`} className="m-appear mx-auto mt-3 max-w-[18rem] text-xs leading-relaxed text-[var(--text-muted)]">
-                {v.meaning}
-            </p>
+        );
+    };
+    const meaning = (i: number) => (
+        <p className="mx-auto max-w-[18rem] text-xs leading-relaxed text-[var(--text-muted)]">{VERDICT[PAIRS[i][4]].meaning}</p>
+    );
+    return (
+        <div className="w-full max-w-[22rem] text-center">
+            <Crossfade k={k} render={chips} />
+            <Crossfade k={k} delay={110} render={word} className="mt-6" />
+            <Crossfade k={k} delay={220} render={meaning} className="mt-3 min-h-[2.5rem]" />
         </div>
     );
 }
@@ -188,8 +258,8 @@ function JournalStage({ active }: { active: boolean }) {
         spans: {},
     });
     const doses: ChartDose[] = [
-        { id: 'a', time: now - 150 * 60_000, color: PALETTE[0], course: course(40, 90, 210, 330), strength: 1 },
-        { id: 'b', time: now - 50 * 60_000, color: PALETTE[1], course: course(10, 30, 100, 200), strength: 0.7 },
+        { id: 'a', time: now - 150 * 60_000, color: PALETTE[0], course: course(40, 90, 210, 330), strength: 1, label: 'MDMA' },
+        { id: 'b', time: now - 50 * 60_000, color: PALETTE[1], course: course(10, 30, 100, 200), strength: 0.7, label: 'Cannabis' },
     ];
     return (
         <div className="w-full max-w-[24rem]">
