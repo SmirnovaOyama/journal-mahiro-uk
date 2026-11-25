@@ -383,7 +383,7 @@ export function Onboarding() {
                                 {s.stage(k === step)}
                             </div>
                             <div className="pt-7 pb-4">
-                                <p className="ob-rise text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-ink)]" style={{ '--i': 0 } as CSSProperties}>
+                                <p className="ob-rise text-sm font-semibold text-[var(--accent-ink)]" style={{ '--i': 0 } as CSSProperties}>
                                     {s.kicker}
                                 </p>
                                 <h1 className="ob-rise mt-2 font-display text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em]" style={{ '--i': 1 } as CSSProperties}>

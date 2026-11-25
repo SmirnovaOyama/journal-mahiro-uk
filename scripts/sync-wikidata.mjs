@@ -488,17 +488,70 @@ const NOT_SUBSTANCE = /pharmaceutical product|brand|trade name|mixture|combinati
 
 const kindText = d => [...d.kinds, ...(d.hints ?? [])].join(' | ').toLowerCase();
 
+/* When Wikidata doesn't say what kind of drug a compound is, its name
+   often does: new psychoactive substances are named by family (…PINACA,
+   NBOMe, …azolam, …fentanyl). Parent rings and plain chemicals don't count. */
+const NAME_KINDS = [
+    [/mitragyn|akuamm|\bnormeperidine\b/i, 'Opioid'],
+    [/coronaridine|iboga|tabernanth|harm(?:ine|aline|alol|an)\b|tetrahydroharmine|\b(?:lampa|etfela|eipla|mipla|lsm-775|lsz)\b|\bidnna\b|t-tris\b|\bemdt\b|methylserotonin|trimethylserotonin/i, 'Psychedelic'],
+    [/aminopropyl\)?benzofuran|\bapb\b|\bapdb\b|homarylamine|methylenedioxy/i, 'Empathogen'],
+    [/benzofuranylpropylaminopentane|\bbpap\b|\bppap\b|phenylmorpholine|phenmetrazine|tametraline|phacetoperane|nicotine|anatabine|anabasine|n-methylphenethylamine|dimethyl-2-phenethylamine|hordenine|etafedrine|clofenciclan/i, 'Stimulant'],
+    [/gabalin|baclofen|diplon\b|zolpidem|zaleplon|zopiclone|pellotine|anhalinine|lophophorine|anhalonidine/i, 'Depressant'],
+    [/neramexane|memantine|amantadine/i, 'Dissociative'],
+    [/lysergic acid [\w-]+ ?amide|fly\b|nbome|nboh|\bnbf\b|\b2c-|^2c[a-z]|\bdo[a-z]{1,3}\b|^25[a-z]{1,2}-|mescaline|escaline|proscaline/i, 'Psychedelic'],
+    [/pinaca|\bpica\b|fubinaca|chmica|chminaca|jwh-?\d|\bam-?\d{3,4}\b|\bcp\s?-?(?:47,?497|55,?940|55,?244|50,?556)|\bhu-?\d{3}\b|ur-144|xlr-11|mdmb|\badb-|apinaca|pb-22|cumyl|^5f-/i, 'Cannabinoid'],
+    [/\bpc[epy]\b|phencyclidine|pcp|\bmx[ep]\b|methoxetamine|ketamine|\bdck\b|deschloro|dizocilpine|\bmk-?801\b/i, 'Dissociative'],
+    [/fentanyl|nitazene|\bu-?4\d{4}\b|ah-?7921|\bmt-?45\b|tilidine|morphin|codeine|oxycod|hydrocod|methadon|\bbuprenorph/i, 'Opioid'],
+    [/azepam|azolam|zolam|benzodiazepin|barbit|qualone|\bsl-164\b|hydroxyvaleric|hydroxybutyr|valerolactone|butyrolactone|\bgh[bv]\b|\bgbl\b|\bgvl\b|-2-ol\b/i, 'Depressant'],
+    [/\bmda\b|mdma|mdea|\bapb\b|apdb|mapb|mapdb|\bedma\b|mbdb|methylone|ethylone|butylone/i, 'Empathogen'],
+    [/cocaine|tropane|\brti-?\d|\bwin\s?\d{2}|piperazine|\bbzp\b|tfmpp|mcpp|meopp|cathinone|drone\b|hexen|\bpvp\b|\bphp\b|mdpv|mdphp|phenidate|aminorex|amphetamine/i, 'Stimulant'],
+    [/baeocystin|aeruginascin|psilocin|psilocybin|bufotenin|\bpyr-t\b|indol-3-yl|tryptamine|\bdmt\b|\bdpt\b|\bdipt\b|\bmipt\b|\bamt\b|\d-ho-|\d-meo-|lysergamide|\blsd\b|\blsa\b|\blad\b|eth-lad|al-lad|\b1p-|\b1cp-|\b1v-/i, 'Psychedelic'],
+];
+// Plain chemicals some list or role brings in: not drugs, however they're filed.
+const NOT_DRUGS = /^(butyric acid|piperazine|carnosine|anserine|estrane|benzocyclobutene|glycine|taurine)$/i;
+const PARENTS = /^(1h-)?(piperazine|indole|pyrrolidine|morpholine|benzofuran|indane|tetralin|thiophene|piperidine|tropane|ergoline|phenethylamine|tryptamine|amphetamine|cathinone|indazole|oxazolidine|lysergic acid)$/i;
+
+function kindByName(d) {
+    const names = [d.en, ...d.aliasEn].filter(Boolean);
+    if (names.some(n => PARENTS.test(n.trim()))) return 'Other';
+    for (const [re, k] of NAME_KINDS) if (names.some(n => re.test(n))) return k;
+    return 'Other';
+}
+
+/** What the Wikipedia article's first sentence says it is ("…is a dissociative anaesthetic"). */
+const firstSentence = d => (enText[d.enwiki] ?? '').split(/(?<=[.!?])\s/)[0].toLowerCase();
+
+/** What a compound does, when nothing says what kind of drug it is. */
+const MECHANISMS = [
+    [/[μµ]-opioid|mu-opioid|[κk]appa-opioid|κ-opioid|δ-opioid|opioid receptor/, 'Opioid'],
+    [/nmda/, 'Dissociative'],
+    [/5-ht2a|serotonin 2a|5-ht 2a/, 'Psychedelic'],
+    [/cb1|cannabinoid/, 'Cannabinoid'],
+    [/monoamine oxidase|\bmaoi\b|serotonin reuptake/, 'Antidepressant'],
+    [/dopamine reuptake|dopamine transporter|norepinephrine.{0,24}dopamine|dopamine.{0,24}norepinephrine|dopamine releas|monoamine releas|catecholaminergic|psychostimulant|anorectic/, 'Stimulant'],
+    [/gaba[- ]?a\b|gabaa|gaba-b|gabab|gaba receptor|anticonvulsant|antiepileptic|sedative|hypnotic/, 'Depressant'],
+];
+const byMechanism = text => MECHANISMS.find(([re]) => re.test(text))?.[1] ?? 'Other';
+
 function kindOf(d) {
     const own = kindFrom(d.kinds.join(' | ').toLowerCase(), d);
-    return own !== 'Other' ? own : kindFrom(kindText(d), d);
+    if (own !== 'Other') return own;
+    const byName = kindByName(d);
+    if (byName !== 'Other') return byName;
+    const sentence = firstSentence(d);
+    const bySentence = sentence ? kindFrom(sentence, d) : 'Other';
+    if (bySentence !== 'Other') return bySentence;
+    const byHint = kindFrom(kindText(d), d);
+    if (byHint !== 'Other') return byHint;
+    return byMechanism(`${d.kinds.join(' | ')} ${sentence}`.toLowerCase());
 }
 
 function kindFrom(k, d) {
     if (/local anesthetic|local anaesthetic/.test(k) && !/cocaine/i.test(d.en ?? '')) return 'Other';
     const atc = d.atc.join(' ');
     const a = p => d.atc.some(c => c.startsWith(p));
-    if (/opioid|opiate|nitazene|fentanyl|morphinan|morphine/.test(k) || a('N02A') || a('N07BC') || a('R05DA')) return 'Opioid';
-    if (/dissociative|nmda receptor antagonist|arylcyclohexylamine/.test(k) || /N01AX03|N01AX14/.test(atc)) return 'Dissociative';
+    if (/(?<!non-)opioid|opiate|nitazene|fentanyl|morphinan|morphine/.test(k) || a('N02A') || a('N07BC') || a('R05DA')) return 'Opioid';
+    if (/dissociative|nmda receptor antagonist|nmda receptor|arylcyclohexylamine/.test(k) || /N01AX03|N01AX14/.test(atc)) return 'Dissociative';
     if (/entactogen|empathogen|methylenedioxyphenethylamine/.test(k)) return 'Empathogen';
     if (/psychedelic|hallucinogen|entheogen|lysergamide|psychotomimetic|serotonin 2a|5-ht2a/.test(k)) return 'Psychedelic';
     if (/cannabinoid|cannabis/.test(k)) return 'Cannabinoid';
@@ -586,8 +639,11 @@ function displayName(d) {
     // "lecozotan hydrochloride" is lecozotan.
     const base = plain.replace(SALT, '').replace(/\s{2,}/g, ' ').trim();
     if (base.length >= 3 && base !== plain && !/[(,]$/.test(base)) plain = base;
+    plain = plain.replace(/\s+free base$/i, '');
+    // "ORPHENADRINE" as a word, Orphenadrine; a code (MDMA) keeps its capitals.
+    if (/^[A-Z]{8,}$/.test(plain)) plain = plain.charAt(0) + plain.slice(1).toLowerCase();
     // "aad-2004" as people write it, AAD-2004.
-    const cased = d.aliasEn.find(a => a.toLowerCase() === plain.toLowerCase() && a !== plain && /[A-Z]/.test(a));
+    const cased = /^[a-z0-9-]+$/.test(plain) ? d.aliasEn.find(a => a.toLowerCase() === plain.toLowerCase() && a !== plain && /[A-Z]/.test(a) && !/^[A-Z]{7,}$/.test(a)) : undefined;
     if (cased) plain = cased;
     if (plain.length <= 36) return /^[a-z]/.test(plain) ? plain.charAt(0).toUpperCase() + plain.slice(1) : plain;
     const short = d.aliasEn.filter(a => a.length <= 24 && /[A-Za-z]/.test(a) && !SALT.test(a)).sort((x, y) => x.length - y.length)[0];
@@ -622,7 +678,7 @@ for (const [q, hints] of Object.entries(listHints))
 const controlledSet = new Set(lawItems);
 const kindSet = new Set(byKind);
 // Words that say a compound acts on the mind, or is taken as a drug.
-const DRUGGY = /\b(drugs?|psychedelic|hallucinogen\w*|opioid|opiate|analgesic|stimulant|depressant|sedative|hypnotic|anxiolytic|antidepressant|antipsychotic|neuroleptic|entactogen|empathogen|dissociative|cannabinoid|deliriant|agonist|antagonist|reuptake|recreational|designer|medication|anaesthetic|anesthetic|narcotic|psychoactive|research chemical|nootropic|anticonvulsant|antiepileptic|benzodiazepine|barbiturate|psychotropic|euphori\w*|serotonergic|dopaminergic)\b/i;
+const DRUGGY = /\b(drugs?|psychedelic|hallucinogen\w*|opioid|opiate|analgesic|stimulant|depressant|sedative|hypnotic|anxiolytic|antidepressant|antipsychotic|neuroleptic|entactogen|empathogen|dissociative|cannabinoid|deliriant|agonist|antagonist|reuptake|recreational|designer|medication|anaesthetic|anesthetic|narcotic|psychoactive|research chemical|nootropic|anticonvulsant|antiepileptic|benzodiazepine|barbiturate|psychotropic|euphori\w*|serotonergic|dopaminergic|cannabis|nmda)\b/i;
 const onlyFamily = new Set(await cached('family-only', familyOnly));
 const keyOf = await cached('existing-keys', () => existingKeys(structures));
 
@@ -749,13 +805,19 @@ for (const f of await fs.readdir(SUBS)) {
 }
 
 const newEntries = [];
+const excluded = {};
 for (const { id, name, d } of added) {
     const kind = kindOf(d);
-    if (kind === 'Other' && !d.atc.length && !controlledSet.has(d.q)) continue;
-    if (onlyFamily.has(d.q) && !d.atc.length && !d.listed) continue;
+    if (NOT_DRUGS.test(name)) continue;
+    const drop = why => {
+        (excluded[why] ??= []).push(name);
+        return true;
+    };
+    if (kind === 'Other' && !d.atc.length && !controlledSet.has(d.q) && drop(kindSet.has(d.q) ? 'other-kind' : 'other-list')) continue;
+    if (onlyFamily.has(d.q) && !d.atc.length && !d.listed && drop('family-only')) continue;
     // Its description, its kinds, or the sentence that says what it is ("Thiophene is a heterocyclic compound" doesn't).
     const says = `${d.dEn ?? ''} ${d.kinds.join(' ')} ${(enText[d.enwiki] ?? '').split(/(?<=[.!?])\s/)[0]}`;
-    if (!kindSet.has(d.q) && !d.atc.length && !DRUGGY.test(says)) continue;
+    if (!kindSet.has(d.q) && !d.atc.length && !DRUGGY.test(says) && kindByName(d) === 'Other' && drop('not-druggy')) continue;
     const family = familyOf(d);
     const groups = groupsOf(d, kind, family);
     const aliases = plainAliases(d, name);
@@ -808,9 +870,12 @@ for (const { id, name, d } of added) {
 // The old entries gain Wikipedia's opening lines and links. Anything an
 // earlier run wrote in another language comes out.
 const CJK = /[\u3000-\u9fff\uff00-\uffef]/;
+// Names a source wrote in capitals that are words, not codes.
+const RENAME = { 'yerba-mate': 'Yerba mate', 'huperzine-a': 'Huperzine A' };
 let linked = 0;
 for (const e of index) {
     delete e.zh;
+    if (RENAME[e.id]) e.name = RENAME[e.id];
     e.aliases = e.aliases
         .split(',')
         .map(a => a.trim())
@@ -823,6 +888,7 @@ for (const e of index) {
     } catch {
         continue;
     }
+    if (RENAME[e.id]) detail.name = RENAME[e.id];
     delete detail.zh;
     delete detail.summaryZh;
     delete detail.zhAliases;
@@ -853,3 +919,5 @@ const added_ = {};
 for (const e of newEntries) added_[e.category] = (added_[e.category] ?? 0) + 1;
 console.log(`${index.length} entries kept, ${linked} linked to Wikidata, ${newEntries.length} added: ${all.length} in all`);
 console.log(added_);
+for (const [why, names] of Object.entries(excluded)) console.log(`left out (${why}): ${names.length}, e.g. ${names.slice(0, 14).join('; ')}`);
+if (process.env.LIST_LEFT_OUT) await fs.writeFile(process.env.LIST_LEFT_OUT, JSON.stringify(excluded, null, 1));
