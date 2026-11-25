@@ -96,7 +96,7 @@ function AppContent() {
             ['settings', 'Settings'],
         ] as const
     ).map(([id, label]) => ({ id, label, icon: TAB_DOODLES[id] }));
-    const select = (id: string) => go(TAB_ROUTE[id as Tab], { move: 'none' });
+    const select = (id: string) => go(TAB_ROUTE[id as Tab], { move: 'none', via: 'tab' });
 
     return (
         <div className="h-[100dvh] w-full bg-[var(--bg)] flex flex-col md:flex-row font-sans text-[var(--text)] overflow-hidden">

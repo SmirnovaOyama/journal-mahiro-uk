@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { search, type IndexEntry } from '../lib/data';
-import { go } from '../lib/router';
+import { go, useOpenedFromLink } from '../lib/router';
 import { useRecent } from '../lib/store';
 import { Link } from '../components/Link';
 import PixelCat from '../components/PixelCat';
@@ -14,6 +14,7 @@ const QUICK = ['alcohol', 'cannabis', 'mdma', 'lsd', 'ketamine', 'cocaine', 'caf
 /** Search: a field, and under it what was looked at lately. Typing replaces
  *  that with answers. */
 export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry> }) {
+    const fromLink = useOpenedFromLink();
     const [q, setQ] = useState('');
     const [active, setActive] = useState(0);
     const [limit, setLimit] = useState(20);
@@ -52,6 +53,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
         <>
             <PageHeader
                 title={'Search'}
+                backTo={fromLink}
                 subtitle={index ? `${index.length} substances` : undefined}
                 actions={
                     // The cats sit by the page's title, as they sit by the reading on hrt's Overview.

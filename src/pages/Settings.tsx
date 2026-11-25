@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { usePixelCats, type CatStyle } from '../contexts/PixelCatContext';
-import { go, type SettingsSub } from '../lib/router';
+import { go, useOpenedFromLink, type SettingsSub } from '../lib/router';
 import { useRecent, useSaved, useTheme, type ThemeChoice } from '../lib/store';
 import { exportFile, merge, parseImport, useJournal } from '../lib/journal';
 import { loadIndex, resolveName } from '../lib/data';
@@ -145,6 +145,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     const saved = useSaved();
     const journal = useJournal();
     const { account } = useAccount();
+    const fromLink = useOpenedFromLink();
     const [importNote, setImportNote] = useState<string | null>(null);
     const wide = useWide();
 
@@ -420,7 +421,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     // On a wide window: the groups as tabs under the title.
     if (wide) {
         const cat: Cat = sub === 'data' || sub === 'about' ? sub : 'general';
-        return <WideSettings title={'Settings'} cats={cats} cat={cat} content={catContent} />;
+        return <WideSettings title={'Settings'} cats={cats} cat={cat} content={catContent} backTo={fromLink} />;
     }
 
     // On a phone: the list of groups, or the group opened from it.
@@ -434,7 +435,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     }
     return (
         <div className="relative">
-            <PageHeader title={'Settings'} />
+            <PageHeader title={'Settings'} backTo={fromLink} />
             <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
                 <AccountTile />
             </div>
@@ -468,16 +469,18 @@ function WideSettings({
     cats,
     cat,
     content,
+    backTo,
 }: {
     title: string;
     cats: { id: Cat; label: string }[];
     cat: Cat;
     content: (c: Cat) => React.ReactNode;
+    backTo?: boolean;
 }) {
     const anim = useSwitchAnimation(cat, CAT_ORDER);
     return (
         <div className="md:pb-32">
-            <PageHeader title={title} />
+            <PageHeader title={title} backTo={backTo} />
             <div className={`${PAGE_COLUMN} mt-3`}>
                 <div className={`${settingsSection} mb-6`}>
                     <AccountTile />
