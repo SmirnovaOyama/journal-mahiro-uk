@@ -1,0 +1,564 @@
+/* Colour is hrt.mahiro.uk's own (oyama-tokens.css): the terracotta accent,
+   unchanged. These are only the few values the substance pages add on top. */
+:root {
+  /* How strong a dose is, on Oyama's clay ramp: the light end pale, the
+     common band in the accent (as Oyama's level rail marks its target band),
+     strong a deep clay, and heavy in the danger colour. */
+  --band-below: var(--neutral-100);
+  --band-light: var(--clay-200);
+  --band-common: var(--clay-400);
+  --band-strong: var(--clay-700);
+  --band-heavy: var(--danger);
+  --band-ink-light: var(--clay-500);
+  --band-ink-common: var(--accent-ink);
+  --band-ink-strong: var(--clay-800);
+  --band-ink-heavy: var(--danger);
+  /* The dial's day and night. */
+  --dial-day: var(--neutral-50);
+  --dial-night: var(--neutral-200);
+  /* PAGE_COLUMN's side padding, for things that run edge to edge. */
+  --gutter: 1.5rem;
+}
+@media (min-width: 768px) {
+  :root {
+    --gutter: 2rem;
+  }
+}
+.dark {
+  --band-below: var(--neutral-800);
+  --band-light: var(--clay-800);
+  --band-common: var(--clay-500);
+  --band-strong: var(--clay-300);
+  --band-heavy: var(--danger);
+  --band-ink-light: var(--clay-600);
+  --band-ink-common: var(--accent-ink);
+  --band-ink-strong: var(--clay-200);
+  --band-ink-heavy: var(--danger);
+  --dial-day: var(--neutral-800);
+  --dial-night: var(--neutral-1000);
+}
+.footnote {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+
+.fact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding-block: 12px;
+}
+.fact-row > :first-child {
+  color: var(--text-muted);
+  flex: none;
+  max-width: 48%;
+}
+.fact-row > :last-child {
+  text-align: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.fact-sub {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+
+/* ── molecules: skeletal formulas in one ink ── */
+.molecule {
+  flex: none;
+  display: grid;
+  /* One cell exactly the box's size, so a tall drawing (LSD) is scaled down
+     to fit it instead of the row growing to the drawing's height. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  color: var(--illustration-line);
+}
+.molecule-xs {
+  width: 22px;
+  height: 22px;
+}
+.molecule-sm {
+  width: 40px;
+  height: 40px;
+}
+.molecule-lg {
+  width: 112px;
+  height: 112px;
+}
+.molecule-ink,
+.molecule-ink svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* However small the drawing, a bond stays a visible line. */
+.molecule-ink :is(line, path, circle, polygon) {
+  vector-effect: non-scaling-stroke;
+}
+.molecule-xs .molecule-ink line {
+  stroke-width: 1px;
+}
+.molecule-sm .molecule-ink line {
+  stroke-width: 1.2px;
+}
+.molecule-lg .molecule-ink line {
+  stroke-width: 1.5px;
+}
+/* The labels keep the size the drawer laid them out for (set on each one,
+   Molecule.tsx) and its regular weight, so they sit in the gaps left for them. */
+.molecule-ink text {
+  font-family: var(--font-sans);
+}
+.warning-line {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  color: var(--warning);
+  background: color-mix(in oklch, var(--warning) 10%, var(--bg));
+}
+
+/* Fills, for the dots in the list of bands. */
+.band-below {
+  background: var(--band-below);
+}
+.band-light {
+  background: var(--band-light);
+}
+.band-common {
+  background: var(--band-common);
+}
+.band-strong {
+  background: var(--band-strong);
+}
+.band-heavy {
+  background: var(--band-heavy);
+}
+
+/* the timeline */
+.dial {
+  position: relative;
+  width: min(100%, 288px);
+  margin: 0 auto 8px;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.dial-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: none;
+  cursor: grab;
+}
+.dial[data-dragging] .dial-svg {
+  cursor: grabbing;
+}
+.dial-day,
+.dial-night,
+.dial-effect,
+.dial-peak,
+.dial-after {
+  fill: none;
+}
+.dial-day {
+  stroke: var(--dial-day);
+}
+.dial-night {
+  stroke: var(--dial-night);
+}
+.dial-tick {
+  stroke: var(--text-disabled);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.dial-hour {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.dial-effect {
+  stroke: var(--chart-line);
+  stroke-linecap: round;
+  opacity: 0.38;
+}
+.dial-peak {
+  stroke: var(--chart-line);
+  stroke-linecap: round;
+}
+.dial-after {
+  stroke: var(--chart-line);
+  stroke-linecap: round;
+  stroke-dasharray: 0.5 7;
+  opacity: 0.7;
+}
+.dial-knob {
+  outline: none;
+  cursor: grab;
+}
+.dial-knob-hit {
+  fill: transparent;
+}
+.dial-knob-face {
+  fill: var(--bg);
+  stroke: var(--text);
+  stroke-width: 2;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.18));
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--duration-quick) var(--ease-out);
+}
+.dial-knob-dot {
+  fill: var(--text);
+}
+.dial[data-dragging] .dial-knob-face {
+  transform: scale(1.15);
+}
+.dial-knob:focus-visible .dial-knob-face {
+  stroke: var(--focus-ring);
+  stroke-width: 3;
+}
+.dial-centre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.dial-label {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+.dial-time {
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+.dial-now {
+  pointer-events: auto;
+}
+
+/* The timeline, in the hues of hrt's hormone chart. */
+.tl-grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+.tl-axis {
+  fill: var(--chart-axis);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.tl-peak {
+  fill: var(--chart-line);
+  opacity: 0.06;
+}
+.tl-peak-edge {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  opacity: 0.6;
+}
+.tl-peak-label {
+  fill: var(--chart-axis);
+  font-size: 12px;
+}
+.tl-line {
+  fill: none;
+  stroke: var(--chart-line);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tl-tail {
+  fill: none;
+  stroke: var(--chart-line);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.tl-dose {
+  fill: var(--chart-dot);
+  stroke: var(--chart-line);
+  stroke-width: 2;
+}
+.tl-now {
+  stroke: var(--text);
+  stroke-width: 1;
+  stroke-dasharray: 1 3;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.tl-now-dot {
+  fill: var(--chart-line);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+.timeline-facts {
+  margin-top: 12px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color var(--duration-quick) var(--ease-standard);
+  --c: var(--text-muted);
+  color: var(--c);
+  background: color-mix(in oklch, var(--c) 9%, transparent);
+}
+.chip-static {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--c) 25%, transparent);
+}
+.chip-danger {
+  --c: var(--danger);
+}
+.chip-warning {
+  --c: var(--warning);
+}
+.chip-info {
+  --c: var(--status-info);
+}
+.chip-positive {
+  --c: var(--status-positive);
+}
+.tone-danger {
+  color: var(--danger);
+}
+.tone-warning {
+  color: var(--warning);
+}
+.tone-info {
+  color: var(--status-info);
+}
+.tone-positive {
+  color: var(--status-positive);
+}
+.tone-neutral {
+  color: var(--text-muted);
+}
+.facts .fact-row dd {
+  max-width: 60%;
+}
+.effect-list {
+  columns: 2 12rem;
+  column-gap: 24px;
+  font-size: 13px;
+  line-height: 18px;
+}
+.effect-list li {
+  break-inside: avoid;
+  padding: 4px 0;
+}
+.cites-head {
+  margin: 20px 0 8px;
+}
+.cites {
+  list-style: decimal;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.verdict {
+  margin-top: 40px;
+}
+.verdict-word {
+  font-size: 52px;
+  line-height: 1.05;
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  margin-top: 6px;
+}
+@media (max-width: 420px) {
+  .verdict-word {
+    font-size: 40px;
+  }
+}
+.verdict-says {
+  margin-top: 10px;
+  font-size: 20px;
+  line-height: 26px;
+  letter-spacing: -0.01em;
+  max-width: 34rem;
+}
+.verdict-clover {
+  display: block;
+  margin: 8px 0 -2px -6px;
+}
+/* Ink: a drawing writes itself on, stroke by stroke, then its wash fills in. */
+.ink-draw path {
+  stroke-dasharray: 1;
+  animation: sweep var(--duration-ink) var(--ease-ink) both;
+}
+.ink-draw path:nth-child(n + 5) {
+  animation-delay: 80ms;
+}
+.ink-draw path:nth-child(n + 7) {
+  animation-delay: 160ms;
+}
+.ink-draw path:nth-child(n + 9) {
+  animation-delay: 300ms;
+}
+.ink-draw path:last-child {
+  animation-delay: 380ms;
+}
+.ink-draw path[fill-opacity] {
+  animation: wash-in var(--duration-slow) var(--ease-out) 420ms both;
+}
+@keyframes wash-in {
+  from {
+    fill-opacity: 0;
+  }
+}
+
+/* ── kind ──────────────────────────────────────────────────────────────── */
+
+.letters {
+  position: sticky;
+  top: var(--header-h, 64px);
+  z-index: 5;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 20px calc(-1 * var(--gutter)) 0;
+  padding: 8px var(--gutter);
+  background: color-mix(in oklch, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.letters::-webkit-scrollbar,
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+.letters a {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+@media (hover: hover) {
+  .letters a:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+}
+
+/* ── the odometer ──────────────────────────────────────────────────────── */
+
+.odo {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+.odo-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.odo-group {
+  display: inline-flex;
+  align-items: baseline;
+}
+/* One place: a window one digit wide (1ch: every figure is that wide, set
+   tabular) and one line tall onto its reel, fading at top and bottom like a
+   drum seen through a slot. Odometer.tsx opens and folds a leading place by
+   its width, frame by frame, in step with the roll. */
+.odo-slot {
+  position: relative;
+  display: inline-block;
+  width: 1ch;
+  height: 1em;
+  line-height: 1;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+}
+.odo-reel {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.odo-digit {
+  display: block;
+  height: 1em;
+  line-height: 1;
+  text-align: center;
+}
+.odo-point {
+  width: 0.28em;
+  text-align: center;
+}
+@keyframes sweep {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+.chart-sweep {
+  animation: sweep var(--duration-sweep) var(--ease-ink) both;
+}
+/* ── small things the pages above lean on ── */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+input[type='search']::-webkit-search-cancel-button {
+  display: none;
+}
+/* The letter index on a kind's page sticks under the page header. */
+.letters {
+  top: 4.75rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-sweep,
+  .ink-draw path,
+  .roll-in,
+  .roll-out {
+    animation: none !important;
+  }
+}
+
+/* A chip's molecule sits close in, a little into the chip's own padding. */
+.chip {
+  gap: 4px;
+}
+.chip .molecule {
+  margin-inline-start: -4px;
+}
+
+/* A band's colour, as a dot at the head of its row. */
+.band-dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+}

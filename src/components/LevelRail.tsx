@@ -1,221 +1,117 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
+import { useElementSize } from '../hooks/useElementSize';
 
-export interface LevelRailProps {
-  value: number;
-  band: { low: number; high: number };
-  domain: [number, number];
-  label?: string;
-  tone?: 'accent' | 'positive' | 'warning' | 'danger';
-  onChange?: (nextValue: number) => void;
-  unit?: string;
+interface LevelRailProps {
+    value: number;
+    /** The reference band, in the reading's own unit. Same band the chart shades. */
+    band: { low: number; high: number };
+    /** Ends of the scale. Spaced logarithmically, so both must be above zero. */
+    domain: [number, number];
+    /** Status text flown from the top of the current tick. */
+    label?: string;
+    /** Text colour class for the current tick and its label, from currentStatus. */
+    tone?: string;
 }
 
-const STEP_PX = 7;
-const DELAY_MS = 7;
+// Roughly one tick per this many pixels, so the scale keeps the same grain on
+// a phone and across a wide desktop column.
+const TICK_PITCH = 7;
+// Delay between neighbouring ticks as the scale rises in, left to right — the
+// same direction the chart below draws its line on.
+const WAVE_MS = 7;
 
-function roundSmart(v: number, maxDomain: number): number {
-  if (maxDomain <= 12) return Math.round(v * 4) / 4;
-  if (maxDomain <= 60) return Math.round(v);
-  return Math.round(v / 5) * 5;
-}
+// "You are here" on a fine tick scale, read like an instrument rather than a
+// progress bar: the target band is the run of ticks tinted terracotta, the
+// ticks up to the current reading are inked in, and the reading itself is the
+// one tall tick in the status colour with the status flown from its top. The
+// status used to sit on its own in the header's corner, disconnected from the
+// number it described and hidden on phones.
+//
+// Log-spaced because hormone levels are read in ratios: 50 → 100 is as big a
+// move as 400 → 800, and a linear scale let a single high reading squash the
+// whole target band against the left edge.
+// The ticks rise once per visit to the app, like the chart under them, not
+// every time the Overview is come back to.
+let entrancePlayed = false;
 
-export const LevelRail: React.FC<LevelRailProps> = ({
-  value,
-  band,
-  domain,
-  label,
-  tone = 'accent',
-  onChange,
-  unit = '',
-}) => {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone = '' }) => {
+    const [still] = React.useState(() => entrancePlayed);
+    React.useEffect(() => {
+        entrancePlayed = true;
+    }, []);
+    const [row, setRow] = React.useState<HTMLDivElement | null>(null);
+    const { width } = useElementSize(row);
+    const count = width ? Math.min(96, Math.max(24, Math.round(width / TICK_PITCH))) : 48;
+    const last = count - 1;
 
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const update = () => setWidth(el.clientWidth);
-    update();
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+    const [lo, hi] = [Math.log10(domain[0]), Math.log10(domain[1])];
+    const at = (v: number) => Math.min(1, Math.max(0, (Math.log10(Math.max(v, domain[0])) - lo) / (hi - lo)));
+    const cur = Math.round(at(value) * last);
+    const bandL = Math.ceil(at(band.low) * last);
+    const bandR = Math.floor(at(band.high) * last);
 
-  const count = width ? Math.min(96, Math.max(24, Math.round(width / STEP_PX))) : 48;
-  const maxIdx = count - 1;
-  const logMin = Math.log10(Math.max(domain[0], 0.0001));
-  const logMax = Math.log10(Math.max(domain[1], domain[0] * 1.1));
+    // Centre of tick i. Each tick sits in a 2px slot spread edge to edge.
+    const x = (i: number) => `calc(1px + ${(i / last).toFixed(4)} * (100% - 2px))`;
 
-  const project = (v: number) =>
-    Math.min(1, Math.max(0, (Math.log10(Math.max(v, domain[0])) - logMin) / (logMax - logMin)));
-
-  const unproject = (norm: number) => {
-    const clamped = Math.min(1, Math.max(0, norm));
-    const raw = Math.pow(10, logMin + clamped * (logMax - logMin));
-    return Math.min(domain[1], Math.max(domain[0], roundSmart(raw, domain[1])));
-  };
-
-  const currentIdx = Math.round(project(value) * maxIdx);
-  const lowIdx = Math.ceil(project(band.low) * maxIdx);
-  const highIdx = Math.floor(project(band.high) * maxIdx);
-
-  const posLeft = (idx: number) => `calc(1px + ${(idx / maxIdx).toFixed(4)} * (100% - 2px))`;
-
-  const clientXToNorm = (clientX: number): number | null => {
-    if (!trackRef.current) return null;
-    const rect = trackRef.current.getBoundingClientRect();
-    if (rect.width <= 0) return null;
-    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-  };
-
-  const updateFromClientX = (clientX: number) => {
-    if (!onChange) return;
-    const norm = clientXToNorm(clientX);
-    if (norm === null) return;
-    onChange(unproject(norm));
-  };
-
-  const showHoverPreview =
-    Boolean(onChange) &&
-    !isDragging &&
-    hoverIdx !== null &&
-    Math.abs(hoverIdx - currentIdx) >= 2;
-  const hoverValue = showHoverPreview && hoverIdx !== null ? unproject(hoverIdx / maxIdx) : null;
-
-  return (
-    <div
-      dir="ltr"
-      className={`level-rail ${onChange ? 'level-rail-interactive' : ''} ${
-        isDragging ? 'level-rail-dragging' : ''
-      }`}
-      role={onChange ? 'slider' : undefined}
-      tabIndex={onChange ? 0 : undefined}
-      aria-valuemin={onChange ? domain[0] : undefined}
-      aria-valuemax={onChange ? domain[1] : undefined}
-      aria-valuenow={onChange ? value : undefined}
-      aria-valuetext={onChange ? `${value} ${unit} ${label ?? ''}`.trim() : undefined}
-      aria-label={onChange ? 'Interactive dose level rail' : undefined}
-      onPointerDown={(e) => {
-        if (!onChange) return;
-        e.currentTarget.setPointerCapture(e.pointerId);
-        setIsDragging(true);
-        setHoverIdx(null);
-        updateFromClientX(e.clientX);
-      }}
-      onPointerMove={(e) => {
-        if (!onChange) return;
-        if (isDragging) {
-          updateFromClientX(e.clientX);
-        } else {
-          const norm = clientXToNorm(e.clientX);
-          if (norm !== null) {
-            setHoverIdx(Math.round(norm * maxIdx));
-          }
-        }
-      }}
-      onPointerLeave={() => {
-        if (!isDragging) setHoverIdx(null);
-      }}
-      onPointerUp={(e) => {
-        if (!onChange) return;
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        }
-        setIsDragging(false);
-      }}
-      onPointerCancel={() => setIsDragging(false)}
-      onKeyDown={(e) => {
-        if (!onChange) return;
-        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-          e.preventDefault();
-          onChange(unproject((currentIdx + 1) / maxIdx));
-        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-          e.preventDefault();
-          onChange(unproject((currentIdx - 1) / maxIdx));
-        } else if (e.key === 'PageUp') {
-          e.preventDefault();
-          onChange(unproject((currentIdx + 4) / maxIdx));
-        } else if (e.key === 'PageDown') {
-          e.preventDefault();
-          onChange(unproject((currentIdx - 4) / maxIdx));
-        } else if (e.key === 'Home') {
-          e.preventDefault();
-          onChange(domain[0]);
-        } else if (e.key === 'End') {
-          e.preventDefault();
-          onChange(domain[1]);
-        }
-      }}
-    >
-      {label && (
-        <span
-          className={`rail-label rail-top-label rail-tone-${tone}`}
-          style={{
-            left: posLeft(currentIdx),
-            transform: `translateX(-${((currentIdx / maxIdx) * 100).toFixed(2)}%)`,
-          }}
+    return (
+        // A scale reads left to right whatever the page direction.
+        <div
+            dir="ltr"
+            className={`relative select-none pt-5 pb-[18px] ${still ? 'rail-still' : ''}`}
+            aria-hidden="true"
         >
-          {label}
-        </span>
-      )}
-      {showHoverPreview && hoverIdx !== null && hoverValue !== null && (
-        <span
-          className="rail-label rail-hover-label tabular-nums"
-          style={{
-            left: posLeft(hoverIdx),
-            transform: `translateX(-${((hoverIdx / maxIdx) * 100).toFixed(2)}%)`,
-          }}
-        >
-          {hoverValue}
-          {unit ? ` ${unit}` : ''}
-        </span>
-      )}
-      <div ref={trackRef} className="rail-track">
-        {Array.from({ length: count }, (_, idx) => {
-          const isReached = idx <= currentIdx;
-          const isCurrent = idx === currentIdx;
-          const isHovered = showHoverPreview && idx === hoverIdx;
-          const inBand = idx >= lowIdx && idx <= highIdx;
+            {/* The label's own anchor slides from its left edge to its right edge
+                along the scale, so it always sits over the current tick and never
+                runs off either end. Lands once the wave has reached its tick. */}
+            {label && (
+                <span
+                    className={`rail-label absolute top-0 whitespace-nowrap text-xs font-semibold leading-none ${tone}`}
+                    style={{
+                        left: x(cur),
+                        transform: `translateX(-${((cur / last) * 100).toFixed(2)}%)`,
+                        animationDelay: `${cur * WAVE_MS + 180}ms`,
+                    }}
+                >
+                    {label}
+                </span>
+            )}
 
-          let tickClass = 'rail-tick-outside';
-          if (isCurrent) {
-            tickClass = `rail-tick-current rail-tone-${tone}`;
-          } else if (isHovered) {
-            tickClass = 'rail-tick-hovered';
-          } else if (inBand) {
-            tickClass = isReached ? 'rail-tick-band-reached' : 'rail-tick-band';
-          } else if (isReached) {
-            tickClass = 'rail-tick-reached';
-          }
+            <div ref={setRow} className="flex h-[18px] items-end justify-between">
+                {Array.from({ length: count }, (_, i) => {
+                    const reached = i <= cur;
+                    const look =
+                        i === cur
+                            ? `h-[18px] w-[3px] bg-current ${tone}`
+                            : i >= bandL && i <= bandR
+                              ? `h-[11px] w-[1.5px] ${reached ? 'bg-[var(--accent-ink)]' : 'bg-[var(--accent-ink)]/40'}`
+                              : `h-2 w-[1.5px] ${reached ? 'bg-[var(--text-muted)]' : 'bg-[var(--border)]'}`;
+                    return (
+                        <span key={i} className="flex w-0.5 justify-center">
+                            <span
+                                className={`rail-tick rounded-full ${look}`}
+                                style={{ animationDelay: `${i * WAVE_MS}ms` }}
+                            />
+                        </span>
+                    );
+                })}
+            </div>
 
-          return (
-            <span key={idx} className="rail-slot">
-              <span
-                className={`rail-tick ${tickClass}`}
-                style={{ animationDelay: `${idx * DELAY_MS}ms` }}
-              />
-            </span>
-          );
-        })}
-      </div>
-      {[
-        [lowIdx, band.low],
-        [highIdx, band.high],
-      ].map(([idx, num]) => (
-        <span
-          key={`${idx}-${num}`}
-          className="rail-label rail-bound-label tabular-nums"
-          style={{
-            left: posLeft(idx),
-            animationDelay: `${idx * DELAY_MS + 120}ms`,
-          }}
-        >
-          {num}
-        </span>
-      ))}
-    </div>
-  );
+            {(
+                [
+                    [bandL, band.low],
+                    [bandR, band.high],
+                ] as const
+            ).map(([i, v]) => (
+                <span
+                    key={v}
+                    className="rail-label absolute bottom-0 -translate-x-1/2 text-xs font-medium leading-none tabular-nums text-[var(--text-muted)]"
+                    style={{ left: x(i), animationDelay: `${i * WAVE_MS + 120}ms` }}
+                >
+                    {v}
+                </span>
+            ))}
+        </div>
+    );
 };
+
+export default LevelRail;
