@@ -14,7 +14,8 @@ import {
     type Session,
 } from '../lib/journal';
 import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
-import { go } from '../lib/router';
+import { go, useOpenedFromLink } from '../lib/router';
+import { useAccount } from '../lib/account';
 import { courseOf, formatMinutes } from '../lib/time';
 import Doodle from '../components/Doodle';
 import { IngestionForm } from '../components/IngestionForm';
@@ -313,6 +314,9 @@ export function Journal({
 function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry>; view?: 'stats' }) {
     const { data, add } = useJournal();
     const now = useNow();
+    // Opened from a substance's Log: the way back to it.
+    const fromLink = useOpenedFromLink();
+    const { account } = useAccount();
     const [prefill] = useState<Prefill | null>(() => peekPrefill());
     useEffect(() => clearPrefill(), []);
     const [adding, setAdding] = useState(!!prefill);
@@ -345,7 +349,8 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
         <div className="md:pb-32">
             <PageHeader
                 title={'Journal'}
-                subtitle={count ? (count === 1 ? '1 session' : `${count} sessions`) : 'Only on this device'}
+                backTo={fromLink}
+                subtitle={count ? (count === 1 ? '1 session' : `${count} sessions`) : account ? 'Kept in sync with your account' : 'Only on this device'}
                 actions={
                     <>
                         {count > 0 && view !== 'stats' && (

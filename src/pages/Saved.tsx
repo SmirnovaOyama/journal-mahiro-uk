@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { IndexEntry } from '../lib/data';
 import { useSaved } from '../lib/store';
+import { useOpenedFromLink } from '../lib/router';
 import Doodle from '../components/Doodle';
 import { Link } from '../components/Link';
 import PixelCat from '../components/PixelCat';
@@ -12,6 +13,7 @@ import { SubstanceRow } from '../components/SubstanceRow';
 export function Saved({ byId }: { byId: Map<string, IndexEntry> }) {
     const saved = useSaved();
     const { showCats } = usePixelCats();
+    const fromLink = useOpenedFromLink();
     useEffect(() => {
         document.title = 'Saved';
     }, []);
@@ -21,6 +23,7 @@ export function Saved({ byId }: { byId: Map<string, IndexEntry> }) {
         <>
             <PageHeader
                 title={'Saved'}
+                backTo={fromLink}
                 subtitle={list.length ? (list.length === 1 ? '1 substance' : `${list.length} substances`) : undefined}
             />
             <div className={`${PAGE_COLUMN} pb-8`}>
