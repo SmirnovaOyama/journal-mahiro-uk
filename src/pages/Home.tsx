@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { search, type IndexEntry } from '../lib/data';
 import { go, useOpenedFromLink } from '../lib/router';
+import { isHrtSearch } from '../lib/eggs';
+import { HrtEgg } from '../components/HrtEgg';
 import { useRecent } from '../lib/store';
 import { Link } from '../components/Link';
 import PixelCat from '../components/PixelCat';
@@ -76,6 +78,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     autoFocus={!('ontouchstart' in window)}
                 />
 
+                {isHrtSearch(q) && <HrtEgg q={q} />}
                 {q.trim() ? (
                     <section className="m-appear mt-6" aria-live="polite">
                         {hits.length === 0 ? (

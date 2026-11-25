@@ -61,7 +61,11 @@ export interface IndexEntry {
 
 export interface DoseRow {
   roa: string;
-  bioavailability?: string;
+  /** How much of a dose taken this way gets into the blood, in percent
+   *  (scripts/absorption.mjs). A `min` of 0 means "up to `max`". */
+  absorbed?: { min: number; max: number; source?: string; page?: string; note?: string };
+  /** Anything else known about this route ("higher unmetabolized serum P4"). */
+  note?: string;
   source?: string;
   unit: string;
   threshold?: string;
@@ -246,4 +250,19 @@ export function describe(e: Pick<IndexEntry, 'category' | 'chemicalClass'>): str
   const kind = e.category === 'Other' ? 'A substance' : `${/^[aeiou]/.test(word) ? 'An' : 'A'} ${word}`;
   if (!family) return `${kind}.`;
   return `${kind} in the ${familyText} family.`;
+}
+
+/** Units of mass, in micrograms. */
+const MASS: Record<string, number> = { g: 1e6, mg: 1e3, μg: 1, µg: 1, ug: 1, mcg: 1, ng: 1e-3 };
+
+/** An amount in another unit: the same number in the same unit, converted
+ *  between units of mass (0.1 mg is 100 µg), or null when they don't
+ *  convert (mL to mg). */
+export function convertAmount(value: number, from: string, to: string): number | null {
+  const a = from.trim().replace('µ', 'μ');
+  const b = to.trim().replace('µ', 'μ');
+  if (a === b) return value;
+  const f = MASS[a];
+  const t = MASS[b];
+  return f && t ? (value * f) / t : null;
 }

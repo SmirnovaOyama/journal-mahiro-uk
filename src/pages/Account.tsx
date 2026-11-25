@@ -1,5 +1,5 @@
-import React, { useEffect, useId, useState } from 'react';
-import { go } from '../lib/router';
+import React, { useCallback, useEffect, useId, useState } from 'react';
+import { go, type SettingsSub } from '../lib/router';
 import {
     ApiError,
     changePassword,
@@ -21,255 +21,80 @@ import {
     type AccountState,
     type SyncStatus,
 } from '../lib/account';
-import { newPasswordLevel, type NewPasswordLevel } from '../lib/password';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import Point from '../components/Point';
 import { SettingsListItem, rowBleed, settingsSection } from '../components/SettingsListItem';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
+import { MemberCard } from '../components/MemberCard';
 import {
-    Account as PersonIcon,
+    Avatar,
+    CodeField,
+    ErrorLine,
+    Field,
+    RecoveryKeyShow,
+    StrengthHint,
+    Submit,
+    USERNAME,
+    ago,
+    message,
+    muted,
+    newPasswordProblem,
+    on,
+    rowBase,
+    useTicking,
+} from '../components/AccountParts';
+import { useWide } from '../hooks/useWide';
+import {
     Alert,
     Busy,
     CheckCircle,
     ChevronRight,
-    Cloud,
     Close,
+    Cloud,
     CloudOff,
     Codes,
-    Copy,
     Devices,
-    Download,
     Lock,
     Logout,
     Monitor,
     Password,
     Phone,
     Server,
+    Shield,
     Trash,
 } from '../components/icons';
 
-/* The account, laid out as hrt.mahiro.uk lays out its own (pages/Account.tsx
-   there). Signed out: why one might want an account, then the forms to sign
-   in or make one. Signed in: the sync line, the security rows, signing out,
-   and deleting it last. Each of the rest is its own page under Settings. */
+export { ago } from '../components/AccountParts';
 
-const muted = 'text-[var(--text-muted)]';
-const on = 'text-[var(--text)]';
+/* The account, laid out as Settings is: on a phone, the card and then a tile
+   for each part, each opening its own page; on a wide window, the card and
+   the same parts as tabs under it. Signing out, and deleting the account,
+   come last. Signed out: the card it would be, filling in as a name is
+   typed, and the forms. (After hrt.mahiro.uk's pages/Account.tsx.) */
+
 const sectionLabel = 'text-xs font-semibold mb-2 block text-[var(--text-muted)]';
-const labelCls = 'block text-xs font-semibold text-[var(--text-muted)]';
-const inputCls = 'input-base text-sm w-full';
-const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
-const message = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : 'Something went wrong. Try again.');
+/** The parts of the account, as tiles on a phone and tabs on a wide window. */
+type Part = 'sync' | 'security' | 'devices';
+const PARTS: readonly Part[] = ['sync', 'security', 'devices'];
 
-/** "just now", "5 min ago", "3 h ago", "on 4 Nov". */
-export function ago(t: number, now = Date.now()): string {
-    const s = Math.max(0, (now - t) / 1000);
-    if (s < 45) return 'just now';
-    if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
-    if (s < 86400) return `${Math.round(s / 3600)} h ago`;
-    const d = new Date(t);
-    const sameYear = d.getFullYear() === new Date(now).getFullYear();
-    return `on ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) })}`;
-}
-
-/** Re-renders every half minute, so "5 min ago" moves on. */
-function useTicking() {
-    const [, setT] = useState(0);
+/** What the server says about the account: its devices, its copy, two-step sign-in. */
+function useAccountInfo(token: string | undefined) {
+    const [info, setInfo] = useState<AccountInfo | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const load = useCallback(() => {
+        if (!token) return Promise.resolve();
+        return fetchAccount()
+            .then(i => {
+                setInfo(i);
+                setError(null);
+                refreshUser(i.user);
+            })
+            .catch(e => setError(message(e)));
+    }, [token]);
     useEffect(() => {
-        const id = window.setInterval(() => setT(t => t + 1), 30_000);
-        return () => window.clearInterval(id);
-    }, []);
-}
-
-/* ── pieces ─────────────────────────────────────────────────────────── */
-
-function Field({
-    label,
-    value,
-    onChange,
-    type = 'text',
-    autoComplete,
-    describedBy,
-    mono,
-    autoFocus,
-    placeholder,
-}: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    type?: 'text' | 'password';
-    autoComplete?: string;
-    describedBy?: string;
-    mono?: boolean;
-    autoFocus?: boolean;
-    placeholder?: string;
-}) {
-    const id = useId();
-    return (
-        <div className="space-y-1.5">
-            <label htmlFor={id} className={labelCls}>
-                {label}
-            </label>
-            <input
-                id={id}
-                type={type}
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                className={`${inputCls} ${mono ? 'font-mono tracking-wide uppercase' : ''}`}
-                style={{ fontSize: '16px' }}
-                autoComplete={autoComplete}
-                autoCapitalize={mono ? 'characters' : 'none'}
-                autoCorrect="off"
-                spellCheck={false}
-                aria-describedby={describedBy}
-                autoFocus={autoFocus}
-                placeholder={placeholder}
-                required
-            />
-        </div>
-    );
-}
-
-const LEVEL_TEXT: Record<NewPasswordLevel, string> = {
-    tooLong: 'Too long: at most 256 letters and digits.',
-    weak: 'Easy to guess: try something longer or less regular.',
-    fair: 'Okay. A little longer would be safer.',
-    strong: 'Strong password.',
-};
-const LEVEL_TONE: Record<NewPasswordLevel, string> = {
-    tooLong: 'text-[var(--danger)]',
-    weak: 'text-[var(--danger)]',
-    fair: muted,
-    strong: 'text-[var(--accent-ink)]',
-};
-
-/** The line under a new password. Mounted all along, so a screen reader
- *  hears it change. */
-function StrengthHint({ id, password }: { id: string; password: string }) {
-    const level = newPasswordLevel(password);
-    return (
-        <p id={id} className={`text-xs ${level ? LEVEL_TONE[level] : muted}`} aria-live="polite">
-            {level ? LEVEL_TEXT[level] : password ? 'At least 8 characters.' : ''}
-        </p>
-    );
-}
-
-/** Why a new password can't be used, or null. */
-function newPasswordProblem(password: string): string | null {
-    const level = newPasswordLevel(password);
-    if (!level) return 'A password is at least 8 characters.';
-    if (level === 'tooLong' || level === 'weak') return LEVEL_TEXT[level];
-    return null;
-}
-
-function ErrorLine({ id, error }: { id?: string; error: string | null }) {
-    if (!error) return null;
-    return (
-        <p id={id} role="alert" className="m-appear text-sm text-[var(--danger)]">
-            {error}
-        </p>
-    );
-}
-
-function Submit({ busy, busyLabel, children, danger, disabled }: { busy: boolean; busyLabel: string; children: React.ReactNode; danger?: boolean; disabled?: boolean }) {
-    return (
-        <button type="submit" disabled={busy || disabled} className={`${danger ? 'btn-danger' : 'btn-primary'} w-full`}>
-            {busy ? (
-                <span className="inline-flex items-center gap-2">
-                    <Busy size={16} className="animate-spin" />
-                    {busyLabel}
-                </span>
-            ) : (
-                children
-            )}
-        </button>
-    );
-}
-
-/** A circle with the name's first letter. */
-function Avatar({ name, size = 'md' }: { name?: string; size?: 'md' | 'lg' }) {
-    const box = size === 'lg' ? 'size-14 text-[1.5rem]' : 'size-9 text-base';
-    return (
-        <span className={`${box} grid shrink-0 place-items-center rounded-full bg-[var(--surface-muted)] font-light ${muted}`} aria-hidden>
-            {name ? name.charAt(0).toUpperCase() : <PersonIcon size={18} />}
-        </span>
-    );
-}
-
-/* ── the recovery key, shown once ───────────────────────────────────── */
-
-function RecoveryKeyShow({ code, username, fresh, onDone }: { code: string; username: string; fresh?: boolean; onDone: () => void }) {
-    const [copied, setCopied] = useState(false);
-    const [kept, setKept] = useState(false);
-    const checkId = useId();
-    const copy = async () => {
-        try {
-            await navigator.clipboard.writeText(code);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1800);
-        } catch {
-            /* the key is on screen to copy by hand */
-        }
-    };
-    const save = () => {
-        const text = [
-            'Oyama Journal recovery key',
-            '',
-            `Username: ${username}`,
-            `Recovery key: ${code}`,
-            '',
-            'If you forget your password, this sets a new one at journal.mahiro.uk, in',
-            'Settings, Account, Forgot your password. Keep it somewhere safe and private.',
-            'Without your password or this key, nobody can open your journal, not even',
-            'the server.',
-            '',
-        ].join('\n');
-        const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `oyama-journal-recovery-key-${username}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-    };
-    return (
-        <div className="m-appear space-y-4">
-            <div>
-                <h2 className={`text-base font-semibold ${on}`}>{fresh ? 'Your new recovery key' : 'Your recovery key'}</h2>
-                <p className={`mt-1 text-sm leading-relaxed ${muted}`}>
-                    {'If you forget your password, this sets a new one. Keep it somewhere safe, away from this device: it’s shown only now.'}
-                    {fresh && ' The one before it no longer works.'}
-                </p>
-            </div>
-            <p
-                className="grid grid-cols-4 gap-x-3 gap-y-2 rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-4 py-4 text-center font-mono text-[1.0625rem] font-medium tracking-[0.08em] text-[var(--text)] select-all max-[360px]:grid-cols-2"
-                aria-label={`Recovery key: ${code.split('-').join(' ')}`}
-            >
-                {code.split('-').map((g, i) => (
-                    <span key={i}>{g}</span>
-                ))}
-            </p>
-            <div className="flex gap-2">
-                <button type="button" className="btn-secondary btn-sm flex-1" onClick={copy}>
-                    {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
-                    {copied ? 'Copied' : 'Copy'}
-                </button>
-                <button type="button" className="btn-secondary btn-sm flex-1" onClick={save}>
-                    <Download size={16} />
-                    {'Save as a file'}
-                </button>
-            </div>
-            <label htmlFor={checkId} className="flex cursor-pointer items-start gap-2.5 text-sm">
-                <input id={checkId} type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={kept} onChange={e => setKept(e.target.checked)} />
-                <span>{'I’ve kept it somewhere safe'}</span>
-            </label>
-            <button type="button" className="btn-primary w-full" disabled={!kept} onClick={onDone}>
-                {'Done'}
-            </button>
-        </div>
-    );
+        void load();
+    }, [load]);
+    return { info, error, reload: load };
 }
 
 /* ── the sync line ──────────────────────────────────────────────────── */
@@ -319,7 +144,7 @@ export function AccountTile() {
         <button
             onClick={() => go({ page: 'settings', sub: 'account' })}
             style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-            className={`w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start ${rowBleed}`}
+            className={`${rowBase} ${rowBleed}`}
         >
             <div className="flex min-w-0 items-center gap-3">
                 <Avatar name={name} />
@@ -363,29 +188,306 @@ function UnlockForm() {
     );
 }
 
+/* ── the parts ──────────────────────────────────────────────────────── */
+
+function SyncPart({ s, info }: { s: AccountState; info: AccountInfo | null }) {
+    const account = s.account!;
+    const status = s.status;
+    const desc =
+        status === 'error' ? (
+            <span className="text-[var(--danger)]">{s.error}</span>
+        ) : status === 'offline' ? (
+            'It syncs when you’re back online.'
+        ) : status === 'locked' ? undefined : account.synced ? (
+            `Last synced ${ago(account.synced)}`
+        ) : (
+            'Not synced yet'
+        );
+    const copy = info?.vault;
+    return (
+        <div className="space-y-8">
+            <section>
+                <div className={settingsSection}>
+                    <SettingsListItem
+                        icon={<SyncIcon status={status} />}
+                        title={STATUS_TITLE[status]}
+                        description={desc}
+                        showChevron={false}
+                        trailing={
+                            status === 'locked' ? null : (
+                                <button type="button" className="link-button shrink-0 text-xs font-medium" disabled={status === 'syncing'} onClick={() => void syncNow()}>
+                                    {'Sync now'}
+                                </button>
+                            )
+                        }
+                    />
+                    {status === 'locked' && <UnlockForm />}
+                </div>
+                <p className={`mt-2 text-xs leading-relaxed ${muted}`}>
+                    {'It syncs on its own: a moment after a change, when you come back to the page, and every two minutes while it’s open.'}
+                </p>
+            </section>
+            <section>
+                <span className={sectionLabel}>{'In your account'}</span>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+                    <dt className={muted}>{'What syncs'}</dt>
+                    <dd className={on}>{'Your journal, its notes and ratings, and your saved substances'}</dd>
+                    <dt className={muted}>{'Kept as'}</dt>
+                    <dd className={on}>{copy ? `${(copy.size / 1024).toFixed(copy.size < 10240 ? 1 : 0)} KB, encrypted on this device` : 'Nothing yet'}</dd>
+                    {copy && (
+                        <>
+                            <dt className={muted}>{'Written'}</dt>
+                            <dd className={`${on} tabular-nums`}>{`${copy.version.toLocaleString('en-GB')} ${copy.version === 1 ? 'time' : 'times'}, last ${ago(copy.updated)}`}</dd>
+                        </>
+                    )}
+                </dl>
+            </section>
+        </div>
+    );
+}
+
+function SecurityPart({ info }: { info: AccountInfo | null }) {
+    const tf = info?.twoFactor;
+    return (
+        <div className={settingsSection}>
+            <SettingsListItem icon={Password} title={'Change password'} description={'Signs your other devices out'} onClick={() => go({ page: 'settings', sub: 'password' })} />
+            <SettingsListItem
+                icon={Shield}
+                title={'Two-step sign-in'}
+                description={tf?.on ? `On, ${tf.backupCodes} backup ${tf.backupCodes === 1 ? 'code' : 'codes'} left` : 'A code from an app as well as your password'}
+                onClick={() => go({ page: 'settings', sub: 'two-factor' })}
+                trailing={tf ? <span className={`shrink-0 text-xs ${tf.on ? 'text-[var(--accent-ink)] font-medium' : muted}`}>{tf.on ? 'On' : 'Off'}</span> : null}
+            />
+            <SettingsListItem icon={Codes} title={'Recovery key'} description={'Make a new one if yours is lost'} onClick={() => go({ page: 'settings', sub: 'recovery-key' })} />
+        </div>
+    );
+}
+
+function DevicesPart({ info, reload }: { info: AccountInfo | null; reload: () => Promise<void> }) {
+    const [error, setError] = useState<string | null>(null);
+    const [busy, setBusy] = useState<string | null>(null);
+    const run = async (what: string, f: () => Promise<void>) => {
+        setBusy(what);
+        try {
+            await f();
+            await reload();
+            setError(null);
+        } catch (e) {
+            setError(message(e));
+        } finally {
+            setBusy(null);
+        }
+    };
+    // This device first, then the rest by when they were last used.
+    const sessions = [...(info?.sessions ?? [])].sort((a, b) => Number(b.current) - Number(a.current) || b.used - a.used);
+    return (
+        <div className="space-y-4">
+            <p className={`text-sm leading-relaxed ${muted}`}>{'Every device signed in to your account. One signed out stops syncing; its journal stays on it.'}</p>
+            <ErrorLine error={error} />
+            {!info && !error && (
+                <p className={`flex items-center gap-2 text-sm ${muted}`}>
+                    <Busy size={16} className="animate-spin" />
+                    {'Loading…'}
+                </p>
+            )}
+            {sessions.length > 0 && (
+                <div className={settingsSection}>
+                    {sessions.map(d => (
+                        <SettingsListItem
+                            key={d.id}
+                            icon={/iPhone|Android|iPad/.test(d.device) ? Phone : Monitor}
+                            title={d.device}
+                            description={d.current ? 'This device' : `Last used ${ago(d.used)}`}
+                            showChevron={false}
+                            trailing={
+                                d.current ? null : (
+                                    <button type="button" className="link-button shrink-0 text-xs font-medium" disabled={!!busy} onClick={() => void run(d.id, () => signOutDevice(d.id))}>
+                                        {busy === d.id ? 'Signing out…' : 'Sign out'}
+                                    </button>
+                                )
+                            }
+                        />
+                    ))}
+                </div>
+            )}
+            {sessions.length > 1 && (
+                <button className="btn-secondary w-full" disabled={!!busy} onClick={() => void run('all', signOutOtherDevices)}>
+                    {busy === 'all' ? 'Signing them out…' : 'Sign out every other device'}
+                </button>
+            )}
+        </div>
+    );
+}
+
 /* ── the account page ───────────────────────────────────────────────── */
 
-export function AccountPage() {
+const PART_INFO: Record<Part, { label: string; Icon: React.ElementType }> = {
+    sync: { label: 'Sync', Icon: Cloud },
+    security: { label: 'Security', Icon: Shield },
+    devices: { label: 'Devices', Icon: Devices },
+};
+
+/** The account, or one part of it (`sub`): /settings/account, /settings/sync,
+ *  /settings/security, /settings/devices. */
+export function AccountPage({ sub = 'account' }: { sub?: SettingsSub }) {
     const s = useAccount();
     // Making an account signs in before its recovery key is shown: the form
     // stays until the key is in hand, then the key, then the account.
     const [making, setMaking] = useState(false);
     const [made, setMade] = useState<{ code: string; username: string } | null>(null);
-    return (
-        <div className="relative md:pb-32">
-            <PageHeader backTo title={made ? 'Recovery key' : 'Account'} />
-            {made ? (
+    if (made)
+        return (
+            <div className="relative md:pb-32">
+                <PageHeader backTo title={'Recovery key'} />
                 <div className={`${PAGE_COLUMN} mt-3 [&>*]:mx-auto [&>*]:max-w-sm`}>
                     <RecoveryKeyShow code={made.code} username={made.username} onDone={() => setMade(null)} />
                 </div>
-            ) : s.account && !making ? (
-                <SignedIn s={s} />
-            ) : (
+            </div>
+        );
+    if (!s.account || making)
+        return (
+            <div className="relative md:pb-32">
+                <PageHeader backTo title={'Account'} />
                 <SignedOut note={s.error} onMaking={setMaking} onMade={setMade} />
+            </div>
+        );
+    return <SignedIn s={s} sub={sub} />;
+}
+
+function SignedIn({ s, sub }: { s: AccountState; sub: SettingsSub }) {
+    const account = s.account!;
+    const wide = useWide();
+    const { info, reload } = useAccountInfo(account.token);
+    useTicking();
+    const part: Part | null = (PARTS as readonly string[]).includes(sub) ? (sub as Part) : null;
+    const anim = useSwitchAnimation(part ?? 'sync', PARTS);
+
+    const content = (p: Part) =>
+        p === 'sync' ? <SyncPart s={s} info={info} /> : p === 'security' ? <SecurityPart info={info} /> : <DevicesPart info={info} reload={reload} />;
+
+    // A phone opened on one part: that part, as its own page.
+    if (!wide && part)
+        return (
+            <div className="relative md:pb-32">
+                <PageHeader backTo title={PART_INFO[part].label} />
+                <div className={`${PAGE_COLUMN} mt-3 pb-8`}>{content(part)}</div>
+            </div>
+        );
+
+    const devices = info?.sessions.length;
+    const hints: Record<Part, string> = {
+        sync: syncLine(s),
+        security: info?.twoFactor.on ? 'Two-step sign-in is on' : 'Password, two-step sign-in, recovery key',
+        devices: devices ? `${devices} signed in` : 'Where you’re signed in',
+    };
+
+    return (
+        <div className="relative md:pb-32">
+            <PageHeader backTo title={'Account'} />
+            <div className={`${PAGE_COLUMN} mt-8 space-y-8 pb-8`}>
+                <MemberCard name={account.user.username} since={account.user.created} devices={devices} />
+
+                {wide ? (
+                    <div>
+                        <Tabs
+                            tabs={PARTS.map(id => ({ id, label: PART_INFO[id].label }))}
+                            value={part ?? 'sync'}
+                            onChange={p => go({ page: 'settings', sub: p }, { replace: true })}
+                            className="mb-4"
+                        />
+                        <div key={part ?? 'sync'} className={anim}>
+                            {content(part ?? 'sync')}
+                        </div>
+                    </div>
+                ) : (
+                    <div className={settingsSection}>
+                        {PARTS.map(id => {
+                            const { label, Icon } = PART_INFO[id];
+                            return (
+                                <button
+                                    key={id}
+                                    onClick={() => go({ page: 'settings', sub: id })}
+                                    style={{ '--divider-inset': '3rem' } as React.CSSProperties}
+                                    className={`${rowBase} ${rowBleed}`}
+                                >
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
+                                            <Icon size={20} strokeWidth={1.75} className={muted} />
+                                        </div>
+                                        <div className="min-w-0 text-start">
+                                            <p className={`text-sm font-medium ${on}`}>{label}</p>
+                                            <p className={`mt-0.5 truncate text-xs ${id === 'sync' && s.status === 'error' ? 'text-[var(--warning)]' : muted}`}>{hints[id]}</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {account.user.admin && (
+                    <div className={settingsSection}>
+                        <SettingsListItem
+                            icon={Server}
+                            title={'Admin'}
+                            description={'Accounts, devices, storage and sign-ups'}
+                            onClick={() => go({ page: 'settings', sub: 'admin' })}
+                        />
+                    </div>
+                )}
+
+                <SignOutRow />
+
+                <section>
+                    <span className={`${sectionLabel} !text-[var(--danger)]`}>{'Danger zone'}</span>
+                    <div className={settingsSection}>
+                        <SettingsListItem
+                            icon={Trash}
+                            title={'Delete account'}
+                            description={'Deletes the account and the copy it keeps'}
+                            onClick={() => go({ page: 'settings', sub: 'delete-account' })}
+                            danger
+                        />
+                    </div>
+                </section>
+            </div>
+        </div>
+    );
+}
+
+function SignOutRow() {
+    const [asking, setAsking] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const out = async (keepHere: boolean) => {
+        setBusy(true);
+        await signOut(keepHere);
+        setBusy(false);
+    };
+    return (
+        <div className={settingsSection}>
+            <SettingsListItem icon={Logout} title={'Sign out'} onClick={() => setAsking(a => !a)} showChevron={false} />
+            {asking && (
+                <div className="m-appear space-y-3 ps-8 pb-4">
+                    <p className="text-sm">{'Your journal stays in your account. And on this device?'}</p>
+                    <div className="flex flex-wrap gap-2">
+                        <button className="btn-secondary btn-sm" disabled={busy} onClick={() => void out(true)} autoFocus>
+                            {'Keep it here'}
+                        </button>
+                        <button className="btn-danger btn-sm" disabled={busy} onClick={() => void out(false)}>
+                            {'Remove it from this device'}
+                        </button>
+                        <button className="link-button btn-sm text-sm" onClick={() => setAsking(false)}>
+                            {'Cancel'}
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
 }
+
+/* ── signed out ─────────────────────────────────────────────────────── */
 
 type AuthTab = 'sign-in' | 'sign-up';
 const AUTH_TABS: readonly AuthTab[] = ['sign-in', 'sign-up'];
@@ -402,6 +504,8 @@ function SignedOut({
     const [tab, setTab] = useState<AuthTab>('sign-in');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [code, setCode] = useState('');
+    const [needCode, setNeedCode] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const anim = useSwitchAnimation(tab, AUTH_TABS);
@@ -417,14 +521,19 @@ function SignedOut({
             const problem = newPasswordProblem(password);
             if (problem) return setError(problem);
         }
+        if (needCode && !code.trim()) return setError('Enter the code from your authenticator app.');
         setBusy(true);
         if (!isLogin) onMaking(true);
         try {
-            if (isLogin) await signIn(name, password);
+            if (isLogin) await signIn(name, password, needCode ? code : undefined);
             else onMade({ code: await signUp(name, password), username: name });
             dismissNote();
         } catch (err) {
-            setError(message(err));
+            if (err instanceof ApiError && err.code === 'CODE_REQUIRED') {
+                // The password was right: now the second step.
+                setNeedCode(true);
+                setCode('');
+            } else setError(message(err));
         } finally {
             setBusy(false);
             onMaking(false);
@@ -432,22 +541,20 @@ function SignedOut({
     };
 
     return (
-        <div className={`${PAGE_COLUMN} mt-3 [&>*]:mx-auto [&>*]:max-w-sm`}>
+        <div className={`${PAGE_COLUMN} mt-8 [&>*]:mx-auto [&>*]:max-w-sm`}>
             {note && (
-                <div className="callout m-appear mb-4 flex items-start gap-2" role="status">
+                <div className="callout m-appear mb-6 flex items-start gap-2" role="status">
                     <p className="flex-1">{note}</p>
                     <button type="button" className="-m-1 p-1 opacity-70 hover:opacity-100" aria-label={'Dismiss'} onClick={dismissNote}>
                         <Close size={16} />
                     </button>
                 </div>
             )}
-            <div className="mb-4">
-                <Point mark="lock" title={'It stays on this device'} desc={'Your journal is kept in this browser. Without an account, nothing is sent anywhere.'} />
-                <Point
-                    mark="cloud"
-                    title={'An account is optional'}
-                    desc={'With one, your journal and saved list are the same on every device you sign in on, encrypted on each before it’s sent.'}
-                />
+            <div className="mb-8">
+                <MemberCard name={username.trim()} preview />
+                <p className={`mt-4 text-xs leading-relaxed ${muted}`}>
+                    {'An account is optional. Your journal is kept in this browser either way; with an account it’s the same on every device you sign in on, locked on each before it’s sent.'}
+                </p>
             </div>
             <Tabs
                 tabs={[
@@ -458,13 +565,23 @@ function SignedOut({
                 onChange={t => {
                     setTab(t);
                     setError(null);
+                    setNeedCode(false);
                 }}
                 className="mb-5"
             />
             <div key={tab} className={anim}>
                 <form onSubmit={submit} className="space-y-4" noValidate>
                     <ErrorLine id={`${formId}-error`} error={error} />
-                    <Field label={'Username'} value={username} onChange={setUsername} autoComplete="username" describedBy={error ? `${formId}-error` : undefined} />
+                    <Field
+                        label={'Username'}
+                        value={username}
+                        onChange={v => {
+                            setUsername(v);
+                            setNeedCode(false);
+                        }}
+                        autoComplete="username"
+                        describedBy={error ? `${formId}-error` : undefined}
+                    />
                     <div className="space-y-1.5">
                         <Field
                             label={'Password'}
@@ -476,8 +593,14 @@ function SignedOut({
                         />
                         {!isLogin && <StrengthHint id={`${formId}-strength`} password={password} />}
                     </div>
+                    {isLogin && needCode && (
+                        <div className="m-appear space-y-3">
+                            <p className="callout">{'Two-step sign-in is on for this account.'}</p>
+                            <CodeField value={code} onChange={setCode} />
+                        </div>
+                    )}
                     {isLogin ? (
-                        <p className={`text-xs leading-relaxed ${muted}`}>{'What’s in this browser’s journal is added to your account’s.'}</p>
+                        !needCode && <p className={`text-xs leading-relaxed ${muted}`}>{'What’s in this browser’s journal is added to your account’s.'}</p>
                     ) : (
                         <p id={`${formId}-key`} className="callout">
                             {'Your password is also the key to your journal’s copy in the account. If you forget it, only your recovery key opens it again: the server can’t.'}
@@ -499,162 +622,10 @@ function SignedOut({
     );
 }
 
-function SignedIn({ s }: { s: AccountState }) {
-    const account = s.account!;
-    const [info, setInfo] = useState<AccountInfo | null>(null);
-    const [asking, setAsking] = useState(false);
-    const [busy, setBusy] = useState(false);
-    useTicking();
-    useEffect(() => {
-        let live = true;
-        fetchAccount()
-            .then(i => {
-                if (!live) return;
-                setInfo(i);
-                refreshUser(i.user);
-            })
-            .catch(() => {});
-        return () => {
-            live = false;
-        };
-    }, [account.token]);
-
-    const out = async (keepHere: boolean) => {
-        setBusy(true);
-        await signOut(keepHere);
-        setBusy(false);
-    };
-    const since = new Date(account.user.created).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-    const status = s.status;
-    const desc =
-        status === 'error' ? (
-            <span className="text-[var(--danger)]">{s.error}</span>
-        ) : status === 'offline' ? (
-            'It syncs when you’re back online.'
-        ) : status === 'locked' ? undefined : account.synced ? (
-            `Last synced ${ago(account.synced)}`
-        ) : (
-            'Not synced yet'
-        );
-    const devices = info?.sessions.length;
-
-    return (
-        <div className={`${PAGE_COLUMN} mt-3 space-y-8`}>
-            <div className="flex items-center gap-4 pt-2">
-                <Avatar name={account.user.username} size="lg" />
-                <div className="min-w-0">
-                    <p className={`truncate text-sm font-semibold ${on}`}>{account.user.username}</p>
-                    <p className={`mt-0.5 text-xs ${muted}`}>{`Account since ${since}`}</p>
-                </div>
-            </div>
-
-            {account.user.admin && (
-                <section>
-                    <span className={sectionLabel}>{'Admin'}</span>
-                    <div className={settingsSection}>
-                        <SettingsListItem
-                            icon={Server}
-                            title={'Admin'}
-                            description={'Accounts, devices, storage and sign-ups'}
-                            onClick={() => go({ page: 'settings', sub: 'admin' })}
-                        />
-                    </div>
-                </section>
-            )}
-
-            <section>
-                <span className={sectionLabel}>{'Sync'}</span>
-                <div className={settingsSection}>
-                    <SettingsListItem
-                        icon={<SyncIcon status={status} />}
-                        title={STATUS_TITLE[status]}
-                        description={desc}
-                        showChevron={false}
-                        trailing={
-                            status === 'locked' ? null : (
-                                <button
-                                    type="button"
-                                    className="link-button shrink-0 text-xs font-medium"
-                                    disabled={status === 'syncing'}
-                                    onClick={() => void syncNow()}
-                                >
-                                    {'Sync now'}
-                                </button>
-                            )
-                        }
-                    />
-                    {status === 'locked' && <UnlockForm />}
-                </div>
-                <p className={`mt-2 text-xs leading-relaxed ${muted}`}>
-                    {'Your journal and saved list are encrypted on this device before they’re sent. The server keeps a copy it can’t read.'}
-                </p>
-            </section>
-
-            <section>
-                <span className={sectionLabel}>{'Security'}</span>
-                <div className={settingsSection}>
-                    <SettingsListItem
-                        icon={Password}
-                        title={'Change password'}
-                        description={'Signs your other devices out'}
-                        onClick={() => go({ page: 'settings', sub: 'password' })}
-                    />
-                    <SettingsListItem
-                        icon={Codes}
-                        title={'Recovery key'}
-                        description={'Make a new one if yours is lost'}
-                        onClick={() => go({ page: 'settings', sub: 'recovery-key' })}
-                    />
-                    <SettingsListItem
-                        icon={Devices}
-                        title={'Devices'}
-                        description={'Where you’re signed in'}
-                        onClick={() => go({ page: 'settings', sub: 'devices' })}
-                        trailing={devices ? <span className={`shrink-0 text-xs tabular-nums ${muted}`}>{devices === 1 ? '1 device' : `${devices} devices`}</span> : null}
-                    />
-                </div>
-            </section>
-
-            <div className={settingsSection}>
-                <SettingsListItem icon={Logout} title={'Sign out'} onClick={() => setAsking(a => !a)} showChevron={false} />
-                {asking && (
-                    <div className="m-appear space-y-3 ps-8 pb-4">
-                        <p className="text-sm">{'Your journal stays in your account. And on this device?'}</p>
-                        <div className="flex flex-wrap gap-2">
-                            <button className="btn-secondary btn-sm" disabled={busy} onClick={() => void out(true)} autoFocus>
-                                {'Keep it here'}
-                            </button>
-                            <button className="btn-danger btn-sm" disabled={busy} onClick={() => void out(false)}>
-                                {'Remove it from this device'}
-                            </button>
-                            <button className="link-button btn-sm text-sm" onClick={() => setAsking(false)}>
-                                {'Cancel'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <section>
-                <span className={`${sectionLabel} !text-[var(--danger)]`}>{'Danger zone'}</span>
-                <div className={settingsSection}>
-                    <SettingsListItem
-                        icon={Trash}
-                        title={'Delete account'}
-                        description={'Deletes the account and the copy it keeps'}
-                        onClick={() => go({ page: 'settings', sub: 'delete-account' })}
-                        danger
-                    />
-                </div>
-            </section>
-        </div>
-    );
-}
-
 /* ── its own pages ──────────────────────────────────────────────────── */
 
 /** A page that needs an account: signed out, it says so. */
-function NeedsAccount({ title, hold, children }: { title: string; hold?: boolean; children: React.ReactNode }) {
+export function NeedsAccount({ title, hold, children }: { title: string; hold?: boolean; children: React.ReactNode }) {
     const s = useAccount();
     return (
         <div className="relative md:pb-32">
@@ -708,7 +679,7 @@ export function PasswordPage() {
                         <CheckCircle size={18} className="text-[var(--accent-ink)]" />
                         {'Password changed. Your other devices were signed out.'}
                     </p>
-                    <button className="btn-primary w-full" onClick={() => go({ page: 'settings', sub: 'account' }, { replace: true })}>
+                    <button className="btn-primary w-full" onClick={() => go({ page: 'settings', sub: 'security' }, { replace: true })}>
                         {'Done'}
                     </button>
                 </div>
@@ -752,7 +723,7 @@ export function RecoveryKeyPage() {
     return (
         <NeedsAccount title={'Recovery key'}>
             {code ? (
-                <RecoveryKeyShow code={code} username={s.account?.user.username ?? ''} fresh onDone={() => go({ page: 'settings', sub: 'account' }, { replace: true })} />
+                <RecoveryKeyShow code={code} username={s.account?.user.username ?? ''} fresh onDone={() => go({ page: 'settings', sub: 'security' }, { replace: true })} />
             ) : (
                 <form onSubmit={submit} className="space-y-4" noValidate>
                     <p className="text-sm leading-relaxed">
@@ -769,87 +740,9 @@ export function RecoveryKeyPage() {
     );
 }
 
+/** /settings/devices on a phone is the Devices part as its own page. */
 export function DevicesPage() {
-    const s = useAccount();
-    const [info, setInfo] = useState<AccountInfo | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [busy, setBusy] = useState<string | null>(null);
-    useTicking();
-    const load = () =>
-        fetchAccount()
-            .then(i => {
-                setInfo(i);
-                setError(null);
-            })
-            .catch(e => setError(message(e)));
-    useEffect(() => {
-        if (s.account) void load();
-    }, [s.account?.token]);
-    const outOne = async (id: string) => {
-        setBusy(id);
-        try {
-            await signOutDevice(id);
-            await load();
-        } catch (e) {
-            setError(message(e));
-        } finally {
-            setBusy(null);
-        }
-    };
-    const outOthers = async () => {
-        setBusy('all');
-        try {
-            await signOutOtherDevices();
-            await load();
-        } catch (e) {
-            setError(message(e));
-        } finally {
-            setBusy(null);
-        }
-    };
-    // This device first, then the rest by when they were last used.
-    const sessions = [...(info?.sessions ?? [])].sort((a, b) => Number(b.current) - Number(a.current) || b.used - a.used);
-    return (
-        <NeedsAccount title={'Devices'}>
-            <div className="space-y-4">
-                <p className={`text-sm leading-relaxed ${muted}`}>
-                    {'Every device signed in to your account. One signed out stops syncing; its journal stays on it.'}
-                </p>
-                <ErrorLine error={error} />
-                {!info && !error && (
-                    <p className={`flex items-center gap-2 text-sm ${muted}`}>
-                        <Busy size={16} className="animate-spin" />
-                        {'Loading…'}
-                    </p>
-                )}
-                {sessions.length > 0 && (
-                    <div className={settingsSection}>
-                        {sessions.map(d => (
-                            <SettingsListItem
-                                key={d.id}
-                                icon={/iPhone|Android|iPad/.test(d.device) ? Phone : Monitor}
-                                title={d.device}
-                                description={d.current ? 'This device' : `Last used ${ago(d.used)}`}
-                                showChevron={false}
-                                trailing={
-                                    d.current ? null : (
-                                        <button type="button" className="link-button shrink-0 text-xs font-medium" disabled={!!busy} onClick={() => void outOne(d.id)}>
-                                            {busy === d.id ? 'Signing out…' : 'Sign out'}
-                                        </button>
-                                    )
-                                }
-                            />
-                        ))}
-                    </div>
-                )}
-                {sessions.length > 1 && (
-                    <button className="btn-secondary w-full" disabled={!!busy} onClick={() => void outOthers()}>
-                        {busy === 'all' ? 'Signing them out…' : 'Sign out every other device'}
-                    </button>
-                )}
-            </div>
-        </NeedsAccount>
-    );
+    return <AccountPage sub="devices" />;
 }
 
 export function DeleteAccountPage() {
@@ -906,6 +799,8 @@ export function RecoverPage() {
     const [username, setUsername] = useState('');
     const [code, setCode] = useState('');
     const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [needOtp, setNeedOtp] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [made, setMade] = useState<{ code: string; username: string } | null>(null);
@@ -916,11 +811,13 @@ export function RecoverPage() {
         if (!USERNAME.test(username.trim())) return setError('That username and recovery key don’t go together.');
         const problem = newPasswordProblem(password);
         if (problem) return setError(problem);
+        if (needOtp && !otp.trim()) return setError('Enter the code from your authenticator app, or a backup code.');
         setBusy(true);
         try {
-            setMade({ code: await recover(username.trim(), code, password), username: username.trim() });
+            setMade({ code: await recover(username.trim(), code, password, needOtp ? otp : undefined), username: username.trim() });
         } catch (err) {
-            setError(message(err));
+            if (err instanceof ApiError && err.code === 'CODE_REQUIRED') setNeedOtp(true);
+            else setError(message(err));
         } finally {
             setBusy(false);
         }
@@ -948,6 +845,12 @@ export function RecoverPage() {
                             <Field label={'New password'} type="password" value={password} onChange={setPassword} autoComplete="new-password" describedBy={`${id}-strength`} />
                             <StrengthHint id={`${id}-strength`} password={password} />
                         </div>
+                        {needOtp && (
+                            <div className="m-appear space-y-3">
+                                <p className="callout">{'Two-step sign-in is on for this account: the code from your app, or a backup code, as well.'}</p>
+                                <CodeField value={otp} onChange={setOtp} />
+                            </div>
+                        )}
                         <p className="callout">{'Every device signed in to your account is signed out. You get a new recovery key, and this one stops working.'}</p>
                         <Submit busy={busy} busyLabel={'Setting it…'}>
                             {'Set the new password'}

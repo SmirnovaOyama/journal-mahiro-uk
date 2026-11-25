@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { loadCombos, loadDetail, type ComboMatrix, type Detail, type IndexEntry } from '../lib/data';
+import { loadCombos, loadDetail, type ComboMatrix, type Detail, type IndexEntry, convertAmount } from '../lib/data';
 import {
     RATINGS,
     clearPrefill,
@@ -16,7 +16,8 @@ import {
 import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
 import { go, useOpenedFromLink } from '../lib/router';
 import { useAccount } from '../lib/account';
-import { courseOf, formatMinutes } from '../lib/time';
+import { isHrt, sparkleFrom, toast } from '../lib/eggs';
+import { courseFor, courseOf, formatMinutes } from '../lib/time';
 import Doodle from '../components/Doodle';
 import { IngestionForm } from '../components/IngestionForm';
 import { Link } from '../components/Link';
@@ -104,7 +105,9 @@ function chartDoses(s: Session, details: Record<string, Detail>, colors: (id: st
         const course = courseOf(d?.durationRows.find(r => r.roa === i.route) ?? (d?.durationRows.length === 1 ? d.durationRows[0] : undefined));
         const row = d?.doseRows.find(r => r.roa === i.route);
         const common = row?.segments?.common;
-        const strength = i.dose != null && common && row && row.unit.replace('µ', 'μ') === i.unit.replace('µ', 'μ') ? i.dose / ((common[0] + common[1]) / 2) : 1;
+        // In the row's own unit: 0.1 mg of LSD is 100 µg against its µg doses.
+        const amount = i.dose != null && row ? convertAmount(i.dose, i.unit, row.unit) : null;
+        const strength = amount != null && common ? amount / ((common[0] + common[1]) / 2) : 1;
         return { id: i.id, time: i.time, color: colors(i.substance), course, strength, label: d?.name ?? i.name };
     });
 }
@@ -114,8 +117,10 @@ function sessionEnd(s: Session, details: Record<string, Detail>) {
     return Math.max(
         ...s.ingestions.map(i => {
             const d = details[i.substance];
-            const c = courseOf(d?.durationRows.find(r => r.roa === i.route) ?? d?.durationRows[0]);
-            return i.time + (c ? c.over : 360) * 60_000;
+            // By its own route, or the longest any route lasts: never another
+            // route's shorter timing.
+            const c = courseFor(d?.durationRows, i.route);
+            return i.time + (c ? c.course.over : 360) * 60_000;
         }),
     );
 }
@@ -383,6 +388,10 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     initial={prefill ?? undefined}
                                     onSave={i => {
                                         add(i);
+                                        if (isHrt(i.substance)) {
+                                            sparkleFrom(document.activeElement);
+                                            toast('Logged. Proud of you.');
+                                        }
                                         setAdding(false);
                                     }}
                                     onCancel={() => setAdding(false)}
@@ -546,6 +555,10 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                                     initial={{ time: live ? Date.now() : s.end + 30 * 60_000 }}
                                     onSave={i => {
                                         add(i);
+                                        if (isHrt(i.substance)) {
+                                            sparkleFrom(document.activeElement);
+                                            toast('Logged. Proud of you.');
+                                        }
                                         setAdding(false);
                                     }}
                                     onCancel={() => setAdding(false)}
@@ -835,8 +848,20 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
     const color = colorOf(data, id);
     const units = new Set(doses.filter(i => i.dose != null).map(i => i.unit));
     const amounts = doses.filter(i => i.dose != null).map(i => i.dose!);
-    const sameUnit = units.size === 1 ? [...units][0] : null;
+    // Amounts taken different ways aren't added up: a different share of
+    // each gets in. With more than one route, each has its own totals.
+    const routes = [...new Set(doses.map(i => i.route))];
+    const oneRoute = routes.length === 1;
+    const sameUnit = oneRoute && units.size === 1 ? [...units][0] : null;
     const total = amounts.reduce((a, b) => a + b, 0);
+    const byRoute = routes.map(r => {
+        const ds = doses.filter(i => i.route === r);
+        const measured = ds.filter(i => i.dose != null);
+        const u = new Set(measured.map(i => i.unit));
+        const unit = u.size === 1 ? [...u][0] : null;
+        const sum = measured.reduce((a, i) => a + i.dose!, 0);
+        return { route: r, n: ds.length, unit, sum, avg: unit && measured.length ? sum / measured.length : null };
+    });
     const buckets = useMemo(() => bucketsOf(sessions, '365', now, () => color, [id]), [sessions, now, color, id]);
 
     return (
@@ -871,6 +896,29 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
                                 </div>
                             ))}
                         </div>
+
+                        {!oneRoute && (
+                            <section className="mb-9">
+                                <h2 className="group-heading mb-1">{'By route'}</h2>
+                                <div className="settings-section">
+                                    {byRoute.map(r => (
+                                        <div key={r.route} className="flex min-h-12 items-center justify-between gap-3 py-2.5 text-sm">
+                                            <span className={on}>{r.route}</span>
+                                            <span className={`text-xs tabular-nums ${muted}`}>
+                                                {[
+                                                    r.n === 1 ? '1 dose' : `${r.n} doses`,
+                                                    r.unit ? `${fmtDose(r.sum)} ${r.unit} in all` : null,
+                                                    r.avg != null && r.n > 1 ? `${fmtDose(r.avg)} ${r.unit} on average` : null,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className={`mt-2 text-xs ${muted}`}>{'Kept apart, as a different share of a dose gets in each way.'}</p>
+                            </section>
+                        )}
 
                         <section className="mb-9">
                             <h2 className="group-heading mb-3">{'Sessions in the last 12 months'}</h2>
