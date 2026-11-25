@@ -17,6 +17,7 @@ import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
 import { go } from '../lib/router';
 import { courseOf, formatMinutes } from '../lib/time';
 import Doodle from '../components/Doodle';
+import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
 import { Link } from '../components/Link';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
@@ -302,7 +303,7 @@ export function Journal({
     index: IndexEntry[] | null;
     byId: Map<string, IndexEntry>;
     session?: string;
-    view?: 'stats';
+    view?: 'stats' | 'weight';
     substance?: string;
 }) {
     if (substance) return <SubstanceHistory id={substance} byId={byId} />;
@@ -310,7 +311,7 @@ export function Journal({
     return <JournalHome index={index} byId={byId} view={view} />;
 }
 
-function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry>; view?: 'stats' }) {
+function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry>; view?: 'stats' | 'weight' }) {
     const { data, add } = useJournal();
     const now = useNow();
     const [prefill] = useState<Prefill | null>(() => peekPrefill());
@@ -348,7 +349,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                 subtitle={count ? (count === 1 ? '1 session' : `${count} sessions`) : 'Only on this device'}
                 actions={
                     <>
-                        {count > 0 && view !== 'stats' && (
+                        {count > 0 && !view && (
                             <button
                                 type="button"
                                 className={`${onlyStarred ? headerActionAccent : headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
@@ -360,10 +361,12 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                 <span className="max-sm:hidden">{'Favourites'}</span>
                             </button>
                         )}
-                        <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
-                            <Plus size={16} />
-                            {adding ? 'Close' : 'Log'}
-                        </button>
+                        {view !== 'weight' && (
+                            <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
+                                <Plus size={16} />
+                                {adding ? 'Close' : 'Log'}
+                            </button>
+                        )}
                     </>
                 }
             />
@@ -393,12 +396,15 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                     options={[
                         { id: 'log', label: 'Log' },
                         { id: 'stats', label: 'Stats' },
+                        { id: 'weight', label: 'Weight' },
                     ]}
-                    value={view === 'stats' ? 'stats' : 'log'}
-                    onChange={v => go(v === 'stats' ? { page: 'journal', view: 'stats' } : { page: 'journal' }, { replace: true })}
+                    value={view ?? 'log'}
+                    onChange={v => go(v === 'log' ? { page: 'journal' } : { page: 'journal', view: v }, { replace: true })}
                 />
 
-                {view === 'stats' ? (
+                {view === 'weight' ? (
+                    <WeightLog />
+                ) : view === 'stats' ? (
                     <Stats byId={byId} now={now} />
                 ) : count === 0 ? (
                     adding ? null : (

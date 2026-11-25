@@ -174,3 +174,28 @@ export function useTheme() {
   }, []);
   return { theme, choice, setChoice };
 }
+
+/* The unit weights are shown and typed in. They're always kept in kg. */
+export type WeightUnit = 'kg' | 'lb';
+const WEIGHT_UNIT = 'journal.weight.unit.v1';
+export const LB_PER_KG = 2.20462262;
+const unitSubs = new Set<() => void>();
+let weightUnit: WeightUnit = read<WeightUnit>(WEIGHT_UNIT, 'kg') === 'lb' ? 'lb' : 'kg';
+
+export function useWeightUnit() {
+    const unit = useSyncExternalStore(
+        (f: () => void) => {
+            unitSubs.add(f);
+            return () => {
+                unitSubs.delete(f);
+            };
+        },
+        () => weightUnit,
+    );
+    const setUnit = useCallback((u: WeightUnit) => {
+        weightUnit = u;
+        write(WEIGHT_UNIT, u);
+        unitSubs.forEach((f) => f());
+    }, []);
+    return { unit, setUnit };
+}
