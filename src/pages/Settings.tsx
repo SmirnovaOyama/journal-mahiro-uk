@@ -16,6 +16,7 @@ import { AccountPage, AccountTile, DeleteAccountPage, DevicesPage, PasswordPage,
 import { AdminPage } from './Admin';
 import { TwoFactorPage } from './TwoFactor';
 import { useWide } from '../hooks/useWide';
+import { SettingsTile } from '../components/SettingsTile';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
    there): on a phone, the three groups as a list of tiles, each opening its
@@ -30,7 +31,6 @@ const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 
 const rowLabel = 'text-sm text-[var(--text)]';
 const rowValue = 'flex items-center gap-1 text-sm text-[var(--text-muted)]';
 const muted = 'text-[var(--text-muted)]';
-const on = 'text-[var(--text)]';
 const section = settingsSection;
 
 const SectionHeading: React.FC<{ title: string }> = ({ title }) => <h2 className="group-heading mb-1">{title}</h2>;
@@ -428,28 +428,11 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     return (
         <div className="relative">
             <PageHeader title={'Settings'} backTo={fromLink} />
+            {/* The account first, then the groups: one list of the same tiles. */}
             <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
                 <AccountTile />
-            </div>
-            <div className={`${PAGE_COLUMN} mt-6 ${section}`}>
                 {cats.map(({ id, label, Icon, hint }) => (
-                    <button
-                        key={id}
-                        onClick={() => open(id)}
-                        style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-                        className={`${rowBase} ${rowBleed}`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
-                                <Icon size={20} strokeWidth={1.75} className={muted} />
-                            </div>
-                            <div className="text-start">
-                                <p className={`text-sm font-medium ${on}`}>{label}</p>
-                                <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
-                    </button>
+                    <SettingsTile key={id} Icon={Icon} label={label} hint={hint} onClick={() => open(id)} />
                 ))}
             </div>
         </div>

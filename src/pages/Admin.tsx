@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { go, type SettingsSub } from '../lib/router';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { useWide } from '../hooks/useWide';
+import { SettingsTile } from '../components/SettingsTile';
 import {
     ApiError,
     adminDelete,
@@ -17,7 +18,7 @@ import {
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
 import { StackedBars, type Bucket } from '../components/StackedBars';
 import { rowBleed, settingsSection } from '../components/SettingsListItem';
-import { Busy, ChevronDown, ChevronRight, Gauge, Lock, Retry, Search, Users } from '../components/icons';
+import { Busy, ChevronDown, Gauge, Lock, Retry, Search, Users } from '../components/icons';
 import { ago } from './Account';
 
 /* The admin's page, after hrt.mahiro.uk's (pages/Admin.tsx there), for the
@@ -506,28 +507,15 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
                     </div>
                 ) : (
                     <div className={settingsSection}>
-                        {PARTS.map(id => {
-                            const Icon = icons[id];
-                            return (
-                                <button
-                                    key={id}
-                                    onClick={() => go({ page: 'settings', sub: id === 'overview' ? 'admin-overview' : 'admin-accounts' })}
-                                    style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-                                    className={`${rowBase} ${rowBleed}`}
-                                >
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
-                                            <Icon size={20} strokeWidth={1.75} className={muted} />
-                                        </div>
-                                        <div className="min-w-0 text-start">
-                                            <p className={`text-sm font-medium ${on}`}>{PART_LABEL[id]}</p>
-                                            <p className={`mt-0.5 truncate text-xs ${muted}`}>{hints[id]}</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
-                                </button>
-                            );
-                        })}
+                        {PARTS.map(id => (
+                            <SettingsTile
+                                key={id}
+                                Icon={icons[id]}
+                                label={PART_LABEL[id]}
+                                hint={hints[id]}
+                                onClick={() => go({ page: 'settings', sub: id === 'overview' ? 'admin-overview' : 'admin-accounts' })}
+                            />
+                        ))}
                     </div>
                 )}
             </div>
