@@ -22,11 +22,11 @@ import {
     type SyncStatus,
 } from '../lib/account';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { SettingsListItem, rowBleed, settingsSection } from '../components/SettingsListItem';
+import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
+import { SettingsTile } from '../components/SettingsTile';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { MemberCard } from '../components/MemberCard';
 import {
-    Avatar,
     CodeField,
     ErrorLine,
     Field,
@@ -39,15 +39,14 @@ import {
     muted,
     newPasswordProblem,
     on,
-    rowBase,
     useTicking,
 } from '../components/AccountParts';
 import { useWide } from '../hooks/useWide';
 import {
+    Account as PersonIcon,
     Alert,
     Busy,
     CheckCircle,
-    ChevronRight,
     Close,
     Cloud,
     CloudOff,
@@ -129,32 +128,25 @@ function SyncIcon({ status }: { status: SyncStatus }) {
 
 /** What the sync is doing, in a few words: for the row in Settings. */
 export function syncLine(s: AccountState): string {
-    if (!s.account) return s.error ? 'Signed out: sign in to keep syncing' : 'Keep your journal in sync across devices';
+    if (!s.account) return s.error ? 'Signed out: sign in to keep syncing' : 'Sync your journal across devices';
     if (s.status === 'synced' || s.status === 'waiting' || s.status === 'syncing')
         return s.account.synced ? `${STATUS_TITLE[s.status === 'syncing' ? 'syncing' : 'synced']}, ${ago(s.account.synced)}` : STATUS_TITLE[s.status];
     return STATUS_TITLE[s.status];
 }
 
-/** The account's row at the top of Settings. */
+/** Settings' tile for the account, like its General, Data and About. */
 export function AccountTile() {
     const s = useAccount();
     useTicking();
     const name = s.account?.user.username;
     return (
-        <button
+        <SettingsTile
+            Icon={PersonIcon}
+            label={'Account'}
+            hint={name ? `${name}, ${syncLine(s).replace(/^./, c => c.toLowerCase())}` : syncLine(s)}
+            hintTone={s.status === 'error' || (!s.account && s.error) ? 'text-[var(--warning)]' : undefined}
             onClick={() => go({ page: 'settings', sub: 'account' })}
-            style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-            className={`${rowBase} ${rowBleed}`}
-        >
-            <div className="flex min-w-0 items-center gap-3">
-                <Avatar name={name} />
-                <div className="min-w-0 text-start">
-                    <p className={`truncate text-sm font-medium ${on}`}>{name ?? 'Account'}</p>
-                    <p className={`mt-0.5 truncate text-xs ${s.status === 'error' || (!s.account && s.error) ? 'text-[var(--warning)]' : muted}`}>{syncLine(s)}</p>
-                </div>
-            </div>
-            <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
-        </button>
+        />
     );
 }
 
@@ -377,7 +369,7 @@ function SignedIn({ s, sub }: { s: AccountState; sub: SettingsSub }) {
     const devices = info?.sessions.length;
     const hints: Record<Part, string> = {
         sync: syncLine(s),
-        security: info?.twoFactor.on ? 'Two-step sign-in is on' : 'Password, two-step sign-in, recovery key',
+        security: info?.twoFactor.on ? 'Two-step sign-in is on' : 'Password, two-step sign-in',
         devices: devices ? `${devices} signed in` : 'Where you’re signed in',
     };
 
@@ -401,62 +393,39 @@ function SignedIn({ s, sub }: { s: AccountState; sub: SettingsSub }) {
                     </div>
                 ) : (
                     <div className={settingsSection}>
-                        {PARTS.map(id => {
-                            const { label, Icon } = PART_INFO[id];
-                            return (
-                                <button
-                                    key={id}
-                                    onClick={() => go({ page: 'settings', sub: id })}
-                                    style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-                                    className={`${rowBase} ${rowBleed}`}
-                                >
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
-                                            <Icon size={20} strokeWidth={1.75} className={muted} />
-                                        </div>
-                                        <div className="min-w-0 text-start">
-                                            <p className={`text-sm font-medium ${on}`}>{label}</p>
-                                            <p className={`mt-0.5 truncate text-xs ${id === 'sync' && s.status === 'error' ? 'text-[var(--warning)]' : muted}`}>{hints[id]}</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
-                                </button>
-                            );
-                        })}
+                        {PARTS.map(id => (
+                            <SettingsTile
+                                key={id}
+                                Icon={PART_INFO[id].Icon}
+                                label={PART_INFO[id].label}
+                                hint={hints[id]}
+                                hintTone={id === 'sync' && s.status === 'error' ? 'text-[var(--warning)]' : undefined}
+                                onClick={() => go({ page: 'settings', sub: id })}
+                            />
+                        ))}
+                        {account.user.admin && (
+                            <SettingsTile Icon={Server} label={'Admin'} hint={'Accounts, devices, storage and sign-ups'} onClick={() => go({ page: 'settings', sub: 'admin' })} />
+                        )}
                     </div>
                 )}
 
-                {account.user.admin && (
+                {/* On a wide window the parts are tabs; the admin's is a tile of its own. */}
+                {wide && account.user.admin && (
                     <div className={settingsSection}>
-                        <SettingsListItem
-                            icon={Server}
-                            title={'Admin'}
-                            description={'Accounts, devices, storage and sign-ups'}
-                            onClick={() => go({ page: 'settings', sub: 'admin' })}
-                        />
+                        <SettingsTile Icon={Server} label={'Admin'} hint={'Accounts, devices, storage and sign-ups'} onClick={() => go({ page: 'settings', sub: 'admin' })} />
                     </div>
                 )}
 
-                <SignOutRow />
-
-                <section>
-                    <span className={`${sectionLabel} !text-[var(--danger)]`}>{'Danger zone'}</span>
-                    <div className={settingsSection}>
-                        <SettingsListItem
-                            icon={Trash}
-                            title={'Delete account'}
-                            description={'Deletes the account and the copy it keeps'}
-                            onClick={() => go({ page: 'settings', sub: 'delete-account' })}
-                            danger
-                        />
-                    </div>
-                </section>
+                <LeaveTiles />
             </div>
         </div>
     );
 }
 
-function SignOutRow() {
+/** Signing out, and deleting the account: the last tiles, as Settings would
+ *  have them. Signing out asks, under its tile, what to do with the journal
+ *  on this device. */
+function LeaveTiles() {
     const [asking, setAsking] = useState(false);
     const [busy, setBusy] = useState(false);
     const out = async (keepHere: boolean) => {
@@ -466,9 +435,16 @@ function SignOutRow() {
     };
     return (
         <div className={settingsSection}>
-            <SettingsListItem icon={Logout} title={'Sign out'} onClick={() => setAsking(a => !a)} showChevron={false} />
+            <SettingsTile
+                Icon={Logout}
+                label={'Sign out'}
+                hint={'Your journal stays in your account'}
+                onClick={() => setAsking(a => !a)}
+                chevron={false}
+                expanded={asking}
+            />
             {asking && (
-                <div className="m-appear space-y-3 ps-8 pb-4">
+                <div className="m-appear space-y-3 ps-12 pb-4">
                     <p className="text-sm">{'Your journal stays in your account. And on this device?'}</p>
                     <div className="flex flex-wrap gap-2">
                         <button className="btn-secondary btn-sm" disabled={busy} onClick={() => void out(true)} autoFocus>
@@ -483,6 +459,13 @@ function SignOutRow() {
                     </div>
                 </div>
             )}
+            <SettingsTile
+                Icon={Trash}
+                label={'Delete account'}
+                hint={'It and the copy it keeps, for good'}
+                onClick={() => go({ page: 'settings', sub: 'delete-account' })}
+                danger
+            />
         </div>
     );
 }
