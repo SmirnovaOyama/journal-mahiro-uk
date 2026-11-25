@@ -11,9 +11,33 @@ export type Route =
     | { page: 'journal'; session?: string; view?: 'stats'; substance?: string }
     | { page: 'settings'; sub?: SettingsSub };
 
-/** Settings' own pages: its three groups, and the pages a row opens. */
-export type SettingsSub = 'general' | 'data' | 'about' | 'appearance' | 'disclaimer';
-const SETTINGS_SUBS: readonly SettingsSub[] = ['general', 'data', 'about', 'appearance', 'disclaimer'];
+/** Settings' own pages: its three groups, the pages a row opens, and the
+ *  account's. */
+export type SettingsSub =
+    | 'general'
+    | 'data'
+    | 'about'
+    | 'appearance'
+    | 'disclaimer'
+    | 'account'
+    | 'password'
+    | 'recovery-key'
+    | 'devices'
+    | 'delete-account'
+    | 'recover';
+const SETTINGS_SUBS: readonly SettingsSub[] = [
+    'general',
+    'data',
+    'about',
+    'appearance',
+    'disclaimer',
+    'account',
+    'password',
+    'recovery-key',
+    'devices',
+    'delete-account',
+    'recover',
+];
 
 export function parse(path: string): Route {
     const parts = path.replace(/^[#/]+/, '').split('/').map(decodeURIComponent);

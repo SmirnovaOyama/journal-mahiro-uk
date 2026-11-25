@@ -292,7 +292,7 @@ function PrivateStage() {
                 <Doodle name="lock" size={5.5} />
             </span>
             <ul className="mt-5 flex w-full flex-col gap-2.5">
-                {['No account to make', 'Nothing uploaded, ever', 'Export your journal any time'].map(t => (
+                {['No account needed', 'Kept on this device', 'Encrypted sync, if you want it'].map(t => (
                     <li key={t} className="flex items-center gap-2.5 text-sm text-[var(--text)]">
                         <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-ink)]">
                             <Check size={13} strokeWidth={2.4} />
@@ -318,7 +318,7 @@ const SCREENS: Screen[] = [
     {
         kicker: 'Oyama Journal',
         title: 'Know what you take.',
-        body: 'Look up over 3,000 substances, check what doesn’t mix, and keep a journal. Free, and all on this device.',
+        body: 'Look up over 3,000 substances, check what doesn’t mix, and keep a journal. Free, and kept on this device.',
         stage: () => <WelcomeStage />,
     },
     {
@@ -341,7 +341,7 @@ const SCREENS: Screen[] = [
     },
     {
         kicker: 'Yours',
-        title: 'Nothing leaves this device.',
+        title: 'Private by default.',
         body: (
             <>
                 {'Information, not advice: start low, test what you have, don’t use alone. '}

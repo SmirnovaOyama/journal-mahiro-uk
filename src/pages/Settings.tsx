@@ -11,6 +11,8 @@ import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import Tick from '../components/Tick';
 import { ChevronRight, Database, External, Info, Sliders } from '../components/icons';
 import { showOnboardingAgain } from './Onboarding';
+import { useAccount } from '../lib/account';
+import { AccountPage, AccountTile, DeleteAccountPage, DevicesPage, PasswordPage, RecoverPage, RecoveryKeyPage } from './Account';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
    there): on a phone, the three groups as a list of tiles, each opening its
@@ -71,11 +73,12 @@ const SwitchRow: React.FC<{ label: string; desc: string; checked: boolean; onCha
 };
 
 /** A row that clears something, asking first in a line under itself. */
-const ClearRow: React.FC<{ label: string; count: number; countText: string; onClear: () => void }> = ({
+const ClearRow: React.FC<{ label: string; count: number; countText: string; onClear: () => void; warn?: string }> = ({
     label,
     count,
     countText,
     onClear,
+    warn,
 }) => {
     const [asking, setAsking] = useState(false);
     return (
@@ -90,7 +93,7 @@ const ClearRow: React.FC<{ label: string; count: number; countText: string; onCl
             </button>
             {asking && count > 0 && (
                 <div className="m-appear flex items-center justify-between gap-3 pb-3.5">
-                    <span className="text-sm">{'This can’t be undone.'}</span>
+                    <span className="text-sm">{warn ?? 'This can’t be undone.'}</span>
                     <span className="flex gap-2">
                         <button className="btn-secondary btn-sm" onClick={() => setAsking(false)} autoFocus>
                             {'Keep it'}
@@ -140,6 +143,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     const recent = useRecent();
     const saved = useSaved();
     const journal = useJournal();
+    const { account } = useAccount();
     const [importNote, setImportNote] = useState<string | null>(null);
     const wide = useWide();
 
@@ -280,6 +284,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         count={count}
                         countText={count === 1 ? '1 dose' : `${count} doses`}
                         onClear={journal.clear}
+                        warn={account ? 'From every device signed in to your account too. This can’t be undone.' : undefined}
                     />
                 </div>
                 {importNote && (
@@ -288,7 +293,9 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                     </p>
                 )}
                 <p className={`text-xs ${muted} mt-2`}>
-                    {'The journal is kept in this browser only. Export it to keep a copy or to move it to another device.'}
+                    {account
+                        ? 'The journal is kept in this browser and, encrypted, in your account, so it’s the same on each device you sign in on.'
+                        : 'The journal is kept in this browser only. Export it to keep a copy, or make an account to keep it in sync across devices.'}
                 </p>
             </div>
             <div>
@@ -305,10 +312,13 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         count={saved.ids.length}
                         countText={`${saved.ids.length} substances`}
                         onClear={saved.clear}
+                        warn={account ? 'On every device signed in to your account too.' : undefined}
                     />
                 </div>
                 <p className={`text-xs ${muted} mt-2`}>
-                    {'Everything stays in this browser. Nothing is ever sent anywhere.'}
+                    {account
+                        ? 'Saved substances sync with your account. What you looked at stays in this browser.'
+                        : 'Everything stays in this browser. Nothing is ever sent anywhere.'}
                 </p>
             </div>
         </div>
@@ -349,6 +359,14 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     );
 
     const catContent = (id: Cat) => (id === 'general' ? renderGeneral() : id === 'data' ? renderData() : renderAbout());
+
+    // The account and its pages (pages/Account.tsx).
+    if (sub === 'account') return <AccountPage />;
+    if (sub === 'password') return <PasswordPage />;
+    if (sub === 'recovery-key') return <RecoveryKeyPage />;
+    if (sub === 'devices') return <DevicesPage />;
+    if (sub === 'delete-account') return <DeleteAccountPage />;
+    if (sub === 'recover') return <RecoverPage />;
 
     // A choice is its own page: the appearance.
     if (sub === 'appearance') {
@@ -416,6 +434,9 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
         <div className="relative">
             <PageHeader title={'Settings'} />
             <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
+                <AccountTile />
+            </div>
+            <div className={`${PAGE_COLUMN} mt-6 ${section}`}>
                 {cats.map(({ id, label, Icon, hint }) => (
                     <button
                         key={id}
@@ -456,6 +477,9 @@ function WideSettings({
         <div className="md:pb-32">
             <PageHeader title={title} />
             <div className={`${PAGE_COLUMN} mt-3`}>
+                <div className={`${settingsSection} mb-6`}>
+                    <AccountTile />
+                </div>
                 <Tabs
                     tabs={cats}
                     value={cat}

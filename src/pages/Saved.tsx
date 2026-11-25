@@ -21,7 +21,7 @@ export function Saved({ byId }: { byId: Map<string, IndexEntry> }) {
         <>
             <PageHeader
                 title={'Saved'}
-                subtitle={list.length ? `${list.length} substances` : undefined}
+                subtitle={list.length ? (list.length === 1 ? '1 substance' : `${list.length} substances`) : undefined}
             />
             <div className={`${PAGE_COLUMN} pb-8`}>
                 {list.length === 0 ? (

@@ -143,7 +143,7 @@ export function pagePreview(page: 'browse' | 'saved' | 'settings' | 'journal', c
         return {
             ...base,
             title: 'Journal',
-            description: 'Log what you take and when. Kept on your device only, never uploaded.',
+            description: 'Log what you take and when. Kept on your device, and synced encrypted if you want.',
         };
     if (page === 'saved') return { ...base, title: 'Saved' };
     return { ...base, title: 'Settings' };

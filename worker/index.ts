@@ -1,7 +1,8 @@
 /* The site's Worker. Files (scripts, data, pictures) are served straight
-   from the build; this only runs for the pages (wrangler.jsonc,
-   run_worker_first), so a link shared to a chat app or found by a search
-   engine says what that page is: its title, the line under it and its card.
+   from the build; this only runs for the pages and for accounts under /api/
+   (wrangler.jsonc, run_worker_first). The accounts are in worker/api.ts.
+   For the pages, a link shared to a chat app or found by a search engine
+   says what that page is: its title, the line under it and its card.
    Link previewers don't run the app's JavaScript, so this is the only way
    they can learn that /s/lsd is about LSD.
 
@@ -12,8 +13,9 @@ import { categoryInfo, type ComboMatrix, type Detail, type IndexEntry } from '..
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
 import { SITE, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, type Preview } from '../src/lib/preview';
 import { parse } from '../src/lib/routes';
+import { handleApi, type ApiEnv } from './api';
 
-interface Env {
+interface Env extends ApiEnv {
     ASSETS: { fetch(input: Request | string): Promise<Response> };
 }
 
@@ -101,6 +103,9 @@ async function pageFor(env: Env, url: URL): Promise<Page> {
 export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url);
+
+        // Accounts and their encrypted journals (worker/api.ts).
+        if (url.pathname.startsWith('/api/')) return handleApi(request, env);
 
         // Links from before the paths: ?substance=lsd.
         const legacy = url.searchParams.get('substance');

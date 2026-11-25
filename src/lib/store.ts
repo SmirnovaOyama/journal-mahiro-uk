@@ -1,10 +1,12 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
-/* Small things remembered on this device only: saved substances, the ones
-   looked at lately, and a theme chosen over the system's. Nothing leaves the
-   browser. Every read and write survives storage being unavailable. */
+/* Small things remembered on this device: saved substances, the ones looked
+   at lately, and a theme chosen over the system's. Only the saved list ever
+   leaves it, with an account, encrypted (lib/account.ts). Every read and
+   write survives storage being unavailable. */
 
 const SAVED = 'journal.saved.v2';
+const SAVED_LOG = 'journal.saved.log.v1';
 const RECENT = 'journal.recent.v2';
 const THEME = 'journal.theme.v2';
 
@@ -43,16 +45,75 @@ function listStore(key: string) {
   };
 }
 
-const saved = listStore(SAVED);
 const recent = listStore(RECENT);
 
+/* Saved substances, as each one's last save or unsave and when, so the
+   lists on two devices merge: the later of the two wins, for each one. The
+   list is the ones saved, newest first. */
+
+export type SavedLog = Record<string, { on: boolean; at: number }>;
+
+function firstLog(): SavedLog {
+  const log = read<SavedLog | null>(SAVED_LOG, null);
+  if (log && typeof log === 'object') return log;
+  // From the plain list kept before: in its order, older than any change.
+  const ids = read<string[]>(SAVED, []);
+  return Object.fromEntries(ids.map((id, i) => [id, { on: true, at: ids.length - i }]));
+}
+
+const listOf = (log: SavedLog) =>
+  Object.entries(log)
+    .filter(([, e]) => e.on)
+    .sort((a, b) => b[1].at - a[1].at)
+    .map(([id]) => id);
+
+let savedLog = firstLog();
+let savedIds = listOf(savedLog);
+const savedSubs = new Set<() => void>();
+const savedLocalSubs = new Set<() => void>();
+
+function setSaved(next: SavedLog, merged = false) {
+  savedLog = next;
+  savedIds = listOf(next);
+  write(SAVED_LOG, next);
+  savedSubs.forEach((f) => f());
+  if (!merged) savedLocalSubs.forEach((f) => f());
+}
+
+const subscribeSaved = (f: () => void) => {
+  savedSubs.add(f);
+  return () => {
+    savedSubs.delete(f);
+  };
+};
+
+export const getSavedLog = () => savedLog;
+export const applySavedLog = (next: SavedLog) => setSaved(next, true);
+export function onSavedChange(f: () => void): () => void {
+  savedLocalSubs.add(f);
+  return () => {
+    savedLocalSubs.delete(f);
+  };
+}
+
+/** Two devices' saved lists as one: for each substance, the later change
+ *  (the account's on a tie). */
+export function mergeSaved(local: SavedLog, remote: SavedLog): SavedLog {
+  const out: SavedLog = { ...remote };
+  for (const [id, e] of Object.entries(local)) if (!out[id] || e.at > out[id].at) out[id] = e;
+  return out;
+}
+
 export function useSaved() {
-  const ids = useSyncExternalStore(saved.subscribe, saved.get);
+  const ids = useSyncExternalStore(subscribeSaved, () => savedIds);
   const toggle = useCallback((id: string) => {
-    const cur = saved.get();
-    saved.set(cur.includes(id) ? cur.filter((x) => x !== id) : [id, ...cur]);
+    const on = !savedIds.includes(id);
+    setSaved({ ...savedLog, [id]: { on, at: Date.now() } });
   }, []);
-  const clear = useCallback(() => saved.set([]), []);
+  const clear = useCallback(() => {
+    const t = Date.now();
+    setSaved(Object.fromEntries(Object.keys(savedLog).map((id) => [id, { on: false, at: t }])));
+  }, []);
   return { ids, toggle, clear };
 }
 
