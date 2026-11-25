@@ -3,3 +3,11 @@ dist
 *.tsbuildinfo
 .DS_Store
 .claude/settings.local.json
+
+# Link preview cards, made by npm run og
+public/og/
+
+# Raw Wikidata/PubChem answers, kept between runs of the sync scripts
+scripts/.cache/
+.wrangler/
+phone-preview-qr.svg

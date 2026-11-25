@@ -1,0 +1,38 @@
+// The site on Cloudflare: a Worker that serves the built files in ./dist.
+// Build first (npm run build), then deploy with `npx wrangler deploy`.
+{
+  "name": "journal-mahiro-uk",
+  "compatibility_date": "2026-10-23",
+  // Keep the journal-mahiro-uk.oyamasmirnona.workers.dev address answering too.
+  "workers_dev": true,
+  // Pages go through the Worker first, which writes each one's own title,
+  // description and preview card into the HTML (worker/index.ts). Files
+  // (scripts, data, pictures) are served straight from the build.
+  "main": "./worker/index.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/",
+      "/s/*",
+      "/mix",
+      "/mix/*",
+      "/kind/*",
+      "/browse",
+      "/saved",
+      "/settings",
+      "/settings/*",
+      "/journal",
+      "/journal/*"
+    ]
+  },
+  // Every address the site answers on. Cloudflare makes the DNS records and
+  // the certificates for these itself.
+  "routes": [
+    { "pattern": "journal.mahiro.uk", "custom_domain": true },
+    { "pattern": "n55.mahiro.uk", "custom_domain": true },
+    { "pattern": "od.mahiro.uk", "custom_domain": true },
+    { "pattern": "trip.mahiro.uk", "custom_domain": true }
+  ]
+}
