@@ -65,10 +65,11 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
         >
             {/* The label's own anchor slides from its left edge to its right edge
                 along the scale, so it always sits over the current tick and never
-                runs off either end. Lands once the wave has reached its tick. */}
+                runs off either end. It moves with the tick, frame for frame
+                (.rail-flag), and lands once the wave has reached its tick. */}
             {label && (
                 <span
-                    className={`rail-label absolute top-0 whitespace-nowrap text-xs font-semibold leading-none ${tone}`}
+                    className={`rail-label rail-flag absolute top-0 whitespace-nowrap text-xs font-semibold leading-none ${tone}`}
                     style={{
                         left: x(pos),
                         transform: `translateX(-${((pos / last) * 100).toFixed(2)}%)`,
