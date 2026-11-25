@@ -1,9 +1,12 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { go } from './router';
 
-/* The journal: what was taken, how much, how and when. Kept in this browser
-   only (localStorage), never sent anywhere; it leaves the device only when
-   exported from Settings, as a file the person keeps.
+/* The journal: what was taken, how much, how and when. Kept in this
+   browser (localStorage). With an account it's also kept there, encrypted
+   here before it's sent (lib/account.ts), and the copies on each device are
+   merged: every dose and every session's notes carry when they last
+   changed, and a deleted dose leaves its id behind in `gone`, so a merge
+   keeps the newest of each and never brings a deleted one back.
 
    Ingestions are the record. Sessions are read from them: doses taken
    within SESSION_GAP of the one before are one session (an evening, a
@@ -25,6 +28,8 @@ export interface Ingestion {
     /** When it was taken, ms since 1970. */
     time: number;
     note?: string;
+    /** When it was logged or last changed, ms; for merging copies. */
+    at?: number;
 }
 
 /** What's said of a session as a whole, keyed by the session's id (its first dose's). */
@@ -34,6 +39,9 @@ export interface SessionMeta {
     favorite?: boolean;
     /** On Shulgin's scale: '-', '±', '+', '++', '+++', '++++'. */
     rating?: string;
+    /** When it last changed, ms. Kept when everything else is cleared, so
+     *  the clearing reaches the other devices too. */
+    at?: number;
 }
 
 export interface JournalData {
@@ -42,6 +50,8 @@ export interface JournalData {
     /** Each substance's colour, kept so it never changes once given. */
     colors: Record<string, string>;
     meta?: Record<string, SessionMeta>;
+    /** Deleted doses: id to when, ms. */
+    gone?: Record<string, number>;
 }
 
 export const RATINGS = ['-', '±', '+', '++', '+++', '++++'] as const;
@@ -68,13 +78,28 @@ function empty(): JournalData {
     return { v: 1, ingestions: [], colors: {} };
 }
 
+/** An empty journal, with nothing deleted. */
+export const emptyJournal = (): JournalData => ({ v: 1, ingestions: [], colors: {}, meta: {}, gone: {} });
+
+/** A journal read from storage or from the account, with anything that
+ *  isn't a dose dropped. */
+export function cleanJournal(raw: unknown): JournalData {
+    const d = raw as JournalData;
+    if (!d || typeof d !== 'object' || !Array.isArray(d.ingestions)) return emptyJournal();
+    const obj = (x: unknown) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+    return {
+        v: 1,
+        ingestions: d.ingestions.filter(valid),
+        colors: obj(d.colors) as Record<string, string>,
+        meta: obj(d.meta) as Record<string, SessionMeta>,
+        gone: obj(d.gone) as Record<string, number>,
+    };
+}
+
 function read(): JournalData {
     try {
         const raw = localStorage.getItem(KEY);
-        if (!raw) return empty();
-        const d = JSON.parse(raw) as JournalData;
-        if (!d || !Array.isArray(d.ingestions)) return empty();
-        return { v: 1, ingestions: d.ingestions.filter(valid), colors: d.colors ?? {}, meta: d.meta ?? {} };
+        return raw ? cleanJournal(JSON.parse(raw)) : empty();
     } catch {
         return empty();
     }
@@ -87,8 +112,10 @@ function valid(i: unknown): i is Ingestion {
 
 let data = read();
 const subs = new Set<() => void>();
+/** Told of changes made here, not of ones merged in from the account. */
+const localSubs = new Set<() => void>();
 
-function commit(next: JournalData) {
+function commit(next: JournalData, merged = false) {
     data = next;
     try {
         localStorage.setItem(KEY, JSON.stringify(next));
@@ -96,6 +123,21 @@ function commit(next: JournalData) {
         /* storage full or off: the change still holds until the page closes */
     }
     subs.forEach(f => f());
+    if (!merged) localSubs.forEach(f => f());
+}
+
+/** The journal as it is now. */
+export const getJournal = () => data;
+
+/** Puts in the journal merged with the account's copy. */
+export const applyMerged = (next: JournalData) => commit(next, true);
+
+/** Calls `f` after each change made on this device. */
+export function onLocalChange(f: () => void): () => void {
+    localSubs.add(f);
+    return () => {
+        localSubs.delete(f);
+    };
 }
 
 // Another tab changed it: take theirs.
@@ -125,38 +167,87 @@ function withColor(d: JournalData, substance: string): Record<string, string> {
 export function useJournal() {
     const snapshot = useSyncExternalStore(subscribe, () => data);
     const add = useCallback((i: Omit<Ingestion, 'id'> & { id?: string }) => {
-        const entry: Ingestion = { ...i, id: i.id ?? newId() };
+        const entry: Ingestion = { ...i, id: i.id ?? newId(), at: Date.now() };
         commit({ ...data, ingestions: [...data.ingestions, entry], colors: withColor(data, entry.substance) });
         return entry;
     }, []);
     const update = useCallback((i: Ingestion) => {
         commit({
             ...data,
-            ingestions: data.ingestions.map(x => (x.id === i.id ? i : x)),
+            ingestions: data.ingestions.map(x => (x.id === i.id ? { ...i, at: Date.now() } : x)),
             colors: withColor(data, i.substance),
         });
     }, []);
     const remove = useCallback((id: string) => {
-        commit({ ...data, ingestions: data.ingestions.filter(x => x.id !== id) });
+        commit({ ...data, ingestions: data.ingestions.filter(x => x.id !== id), gone: { ...(data.gone ?? {}), [id]: Date.now() } });
     }, []);
     const setColor = useCallback((substance: string, color: string) => {
         commit({ ...data, colors: { ...data.colors, [substance]: color } });
     }, []);
     const setMeta = useCallback((session: string, patch: SessionMeta) => {
         const prev = data.meta?.[session] ?? {};
-        const next = { ...prev, ...patch };
+        const next: SessionMeta = { ...prev, ...patch };
         for (const k of Object.keys(next) as (keyof SessionMeta)[]) if (!next[k]) delete next[k];
-        const meta = { ...(data.meta ?? {}) };
-        if (Object.keys(next).length) meta[session] = next;
-        else delete meta[session];
-        commit({ ...data, meta });
+        next.at = Date.now();
+        commit({ ...data, meta: { ...(data.meta ?? {}), [session]: next } });
     }, []);
-    const clear = useCallback(() => commit(empty()), []);
+    // Everything goes, and says so, so it goes from the account's copy too.
+    const clear = useCallback(() => {
+        const t = Date.now();
+        const gone = { ...(data.gone ?? {}) };
+        for (const i of data.ingestions) gone[i.id] = t;
+        const meta: Record<string, SessionMeta> = {};
+        for (const k of Object.keys(data.meta ?? {})) meta[k] = { at: t };
+        commit({ ...empty(), meta, gone });
+    }, []);
     const replace = useCallback((next: JournalData) => commit(next), []);
     return { data: snapshot, add, update, remove, setColor, setMeta, clear, replace };
 }
 
 export const colorOf = (d: JournalData, substance: string) => d.colors[substance] ?? PALETTE[0];
+
+/** This device's journal and the account's, as one. The same two give the
+ *  same result on any device, so every copy ends up alike:
+ *  - a dose in either is kept, unless either deleted it;
+ *  - one in both is the version changed last (the account's on a tie);
+ *  - so is each session's name, notes, rating and star;
+ *  - the account's colours stay, and a colour this device gave that the
+ *    account already uses for something else is handed out afresh. */
+export function syncMerge(local: JournalData, remote: JournalData): JournalData {
+    const gone: Record<string, number> = { ...(remote.gone ?? {}) };
+    for (const [id, t] of Object.entries(local.gone ?? {})) gone[id] = Math.max(gone[id] ?? 0, t);
+
+    const byId = new Map<string, Ingestion>();
+    for (const i of remote.ingestions) byId.set(i.id, i);
+    for (const i of local.ingestions) {
+        const r = byId.get(i.id);
+        if (!r || (i.at ?? 0) > (r.at ?? 0)) byId.set(i.id, i);
+    }
+    const ingestions = [...byId.values()]
+        .filter(i => !(i.id in gone))
+        .sort((a, b) => a.time - b.time || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+    const meta: Record<string, SessionMeta> = { ...(remote.meta ?? {}) };
+    for (const [k, m] of Object.entries(local.meta ?? {})) {
+        const r = meta[k];
+        if (!r || (m.at ?? 0) > (r.at ?? 0)) meta[k] = m;
+    }
+
+    let next: JournalData = { v: 1, ingestions, colors: { ...remote.colors }, meta, gone };
+    const taken = new Set(Object.values(next.colors));
+    for (const [sub, color] of Object.entries(local.colors)) {
+        if (next.colors[sub]) continue;
+        if (!taken.has(color)) {
+            next = { ...next, colors: { ...next.colors, [sub]: color } };
+            taken.add(color);
+        } else {
+            next = { ...next, colors: withColor(next, sub) };
+            taken.add(next.colors[sub]);
+        }
+    }
+    for (const i of ingestions) if (!next.colors[i.substance]) next = { ...next, colors: withColor(next, i.substance) };
+    return next;
+}
 
 /* ── sessions ───────────────────────────────────────────────────────── */
 
@@ -265,17 +356,27 @@ export function parseImport(text: string, resolve: (name: string) => { id: strin
  *  (same substance, same minute, same amount). */
 export function merge(into: JournalData, from: JournalData): { next: JournalData; added: number } {
     const seen = new Set(into.ingestions.map(i => `${i.substance}|${Math.round(i.time / 60000)}|${i.dose}`));
-    let next = { ...into, ingestions: [...into.ingestions], colors: { ...into.colors, ...from.colors }, meta: { ...(from.meta ?? {}), ...(into.meta ?? {}) } };
+    const ids = new Set(into.ingestions.map(i => i.id));
+    // A dose deleted here and brought back from a file is a new dose, with
+    // a new id, or the deletion would win again at the next sync.
+    const renamed = new Map<string, string>();
+    const t = Date.now();
+    let next = { ...into, ingestions: [...into.ingestions], colors: { ...into.colors, ...from.colors } };
     let added = 0;
     for (const i of from.ingestions) {
         const key = `${i.substance}|${Math.round(i.time / 60000)}|${i.dose}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        next.ingestions.push(i);
+        const id = ids.has(i.id) || into.gone?.[i.id] ? newId() : i.id;
+        if (id !== i.id) renamed.set(i.id, id);
+        ids.add(id);
+        next.ingestions.push({ ...i, id, at: t });
         next = { ...next, colors: withColor(next, i.substance) };
         added++;
     }
-    return { next, added };
+    const meta: Record<string, SessionMeta> = {};
+    for (const [k, m] of Object.entries(from.meta ?? {})) meta[renamed.get(k) ?? k] = { ...m, at: t };
+    return { next: { ...next, meta: { ...meta, ...(into.meta ?? {}) } }, added };
 }
 
 /* ── logging from elsewhere ─────────────────────────────────────────── */

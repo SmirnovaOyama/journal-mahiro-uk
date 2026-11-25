@@ -405,7 +405,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                             <Doodle name="notebook" size={4.5} />
                             <p className={`mt-4 text-sm font-medium ${on}`}>{'Nothing logged yet'}</p>
                             <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                                {'Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix, and never leaves this device.'}
+                                {'Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix. It stays on this device, unless you make an account to sync it.'}
                             </p>
                             <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
                                 {'Log a dose'}
