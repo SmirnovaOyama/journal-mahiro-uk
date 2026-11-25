@@ -42,12 +42,17 @@ interface Nodes {
 const mod10 = (n: number) => ((Math.floor(n) % 10) + 10) % 10;
 const easeOut = (t: number) => 1 - (1 - t) ** 3;
 const easeOutRate = (t: number) => 3 * (1 - t) ** 2;
+/** Slow in, slow out: for a number that moves on its own, not under a finger. */
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+const easeInOutRate = (t: number) => (t < 0.5 ? 12 * t ** 2 : 3 * (-2 * t + 2) ** 2);
 
 export function Odometer({
     value,
     decimals,
     places,
     instant = false,
+    rollMs = ROLL_MS,
+    gentle = false,
     className,
 }: {
     value: number;
@@ -57,6 +62,10 @@ export function Odometer({
     places: number;
     /** Show each change at once (while the value is being dragged). */
     instant?: boolean;
+    /** How long a roll takes. */
+    rollMs?: number;
+    /** Ease in as well as out (for a number that changes by itself, as in the intro). */
+    gentle?: boolean;
     className?: string;
 }) {
     const id = useId().replace(/:/g, '');
@@ -113,9 +122,9 @@ export function Odometer({
     };
 
     const frame = (now: number) => {
-        const t = Math.min(1, Math.max(0, (now - start.current) / ROLL_MS));
-        const e = easeOut(t);
-        const rate = easeOutRate(t) / ROLL_MS;
+        const t = Math.min(1, Math.max(0, (now - start.current) / rollMs));
+        const e = gentle ? easeInOut(t) : easeOut(t);
+        const rate = (gentle ? easeInOutRate(t) : easeOutRate(t)) / rollMs;
         reels.current.forEach((r, k) => {
             r.pos = r.from + (r.to - r.from) * e;
             r.vis = r.vFrom + (r.vTo - r.vFrom) * e;

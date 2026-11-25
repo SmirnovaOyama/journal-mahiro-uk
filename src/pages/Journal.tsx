@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { loadCombos, loadDetail, type ComboMatrix, type Detail, type IndexEntry } from '../lib/data';
 import {
     RATINGS,
@@ -103,7 +103,7 @@ function chartDoses(s: Session, details: Record<string, Detail>, colors: (id: st
         const row = d?.doseRows.find(r => r.roa === i.route);
         const common = row?.segments?.common;
         const strength = i.dose != null && common && row && row.unit.replace('µ', 'μ') === i.unit.replace('µ', 'μ') ? i.dose / ((common[0] + common[1]) / 2) : 1;
-        return { id: i.id, time: i.time, color: colors(i.substance), course, strength };
+        return { id: i.id, time: i.time, color: colors(i.substance), course, strength, label: d?.name ?? i.name };
     });
 }
 
@@ -643,35 +643,105 @@ const SHULGIN: Record<string, string> = {
 
 interface Bucket {
     label: string;
-    title: string;
+    /** What the bucket is: "Nov 2025", "Tue Nov 25 2025". */
+    span: string;
     parts: { key: string; value: number; color: string }[];
+    /** Sessions in it, and each substance's count of them. */
     total: number;
+    counts: { key: string; n: number; color: string }[];
 }
 
-/** Columns, each stacked in the colours of what made it up. */
-function StackedBars({ buckets }: { buckets: Bucket[] }) {
+/** Columns, each stacked in the colours of what made it up. Point at one,
+ *  or press and slide across them, to read it: its span, its sessions and
+ *  what was in them; the rest step back. Arrow keys move along them too. */
+function StackedBars({ buckets, names, idle }: { buckets: Bucket[]; names: (key: string) => string; idle?: ReactNode }) {
+    const [sel, setSel] = useState<number | null>(null);
+    const pressing = useRef(false);
     const max = Math.max(1, ...buckets.map(b => b.total));
     const every = buckets.length > 16 ? Math.ceil(buckets.length / 8) : 1;
+    const indexAt = (e: React.PointerEvent<HTMLDivElement>) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        return Math.min(buckets.length - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * buckets.length)));
+    };
+    const b = sel === null ? null : buckets[sel];
     return (
-        <div aria-hidden="true">
-            <div className="flex items-end gap-[3px] h-28">
-                {buckets.map((b, k) => (
+        <div>
+            <div className="mb-2 min-h-[2.75rem] text-xs" aria-live="polite">
+                {b ? (
+                    <>
+                        <p className="font-medium text-[var(--text)]">{`${b.span}: ${b.total === 1 ? '1 session' : `${b.total} sessions`}`}</p>
+                        <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--text-muted)]">
+                            {b.counts.length
+                                ? b.counts.map(c => (
+                                      <span key={c.key} className="inline-flex items-center gap-1.5">
+                                          <span className="size-2 rounded-full" style={{ background: c.color }} />
+                                          {`${names(c.key)} ${c.n}`}
+                                      </span>
+                                  ))
+                                : 'Nothing logged'}
+                        </p>
+                    </>
+                ) : (
+                    <p className="text-[var(--text-muted)]">{idle ?? 'Tap a bar to read it.'}</p>
+                )}
+            </div>
+            <div
+                role="slider"
+                tabIndex={0}
+                aria-label={'Sessions over time'}
+                aria-valuemin={0}
+                aria-valuemax={buckets.length - 1}
+                aria-valuenow={sel ?? undefined}
+                aria-valuetext={b ? `${b.span}, ${b.total} sessions` : undefined}
+                className="flex items-end gap-[3px] h-28 cursor-pointer rounded-[4px] outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-ink)]"
+                style={{ touchAction: 'pan-y' }}
+                onPointerDown={e => {
+                    pressing.current = true;
+                    const k = indexAt(e);
+                    setSel(cur => (cur === k && e.pointerType !== 'mouse' ? null : k));
+                }}
+                onPointerMove={e => {
+                    if (e.pointerType === 'mouse' || pressing.current) setSel(indexAt(e));
+                }}
+                onPointerUp={() => {
+                    pressing.current = false;
+                }}
+                onPointerLeave={e => {
+                    if (e.pointerType === 'mouse') setSel(null);
+                }}
+                onKeyDown={e => {
+                    if (e.key === 'ArrowRight') setSel(k => Math.min(buckets.length - 1, (k ?? -1) + 1));
+                    else if (e.key === 'ArrowLeft') setSel(k => Math.max(0, (k ?? buckets.length) - 1));
+                    else if (e.key === 'Escape') setSel(null);
+                    else return;
+                    e.preventDefault();
+                }}
+                onBlur={() => setSel(null)}
+            >
+                {buckets.map((bk, k) => (
                     <div
                         key={k}
-                        title={b.title}
-                        className="flex-1 min-w-0 flex flex-col-reverse gap-px overflow-hidden rounded-[3px]"
-                        style={{ height: b.total ? `${Math.max(4, (b.total / max) * 100)}%` : '2px', background: b.total ? undefined : 'var(--chart-grid)' }}
+                        className="flex-1 min-w-0 flex flex-col-reverse gap-px overflow-hidden rounded-[3px] transition-[opacity,transform] duration-300 ease-out"
+                        style={{
+                            height: bk.total ? `${Math.max(4, (bk.total / max) * 100)}%` : '2px',
+                            background: bk.total ? undefined : 'var(--chart-grid)',
+                            opacity: sel === null || sel === k ? 1 : 0.32,
+                            transform: sel === k ? 'scaleX(1.12)' : undefined,
+                        }}
                     >
-                        {b.parts.map(p => (
+                        {bk.parts.map(p => (
                             <div key={p.key} style={{ flex: `${p.value} 1 0%`, background: p.color }} />
                         ))}
                     </div>
                 ))}
             </div>
-            <div className="flex gap-[3px] mt-1.5">
-                {buckets.map((b, k) => (
-                    <span key={k} className="flex-1 min-w-0 text-center text-[10px] leading-none tabular-nums text-[var(--chart-axis)] overflow-visible whitespace-nowrap">
-                        {k % every === 0 ? b.label : ''}
+            <div className="flex gap-[3px] mt-1.5" aria-hidden="true">
+                {buckets.map((bk, k) => (
+                    <span
+                        key={k}
+                        className={`flex-1 min-w-0 text-center text-[10px] leading-none tabular-nums overflow-visible whitespace-nowrap ${sel === k ? 'text-[var(--text)] font-semibold' : 'text-[var(--chart-axis)]'}`}
+                    >
+                        {k % every === 0 || sel === k ? bk.label : ''}
                     </span>
                 ))}
             </div>
@@ -689,7 +759,7 @@ function bucketsOf(sessions: Session[], range: '30' | '365' | 'all', now: number
         for (let k = 29; k >= 0; k--) {
             const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - k);
             const e = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
-            spans.push({ start: d.getTime(), end: e.getTime(), label: String(d.getDate()), title: d.toDateString() });
+            spans.push({ start: d.getTime(), end: e.getTime(), label: String(d.getDate()), title: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) });
         }
     } else {
         const first = range === '365' ? new Date(today.getFullYear(), today.getMonth() - 11, 1) : new Date(Math.min(now, ...sessions.map(s => s.start)));
@@ -716,7 +786,10 @@ function bucketsOf(sessions: Session[], range: '30' | '365' | 'all', now: number
             for (const x of subs) share.set(x, (share.get(x) ?? 0) + 1 / subs.length);
         }
         const parts = order.filter(x => share.has(x)).map(x => ({ key: x, value: share.get(x)!, color: colors(x) }));
-        return { label: sp.label, title: `${sp.title}: ${total} ${total === 1 ? 'session' : 'sessions'}`, parts, total };
+        const counts = order
+            .map(x => ({ key: x, n: sessions.filter(s => s.start >= sp.start && s.start < sp.end && s.ingestions.some(i => i.substance === x)).length, color: colors(x) }))
+            .filter(c => c.n > 0);
+        return { label: sp.label, span: sp.title, parts, total, counts };
     });
 }
 
@@ -783,7 +856,11 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                     <span className={`text-sm ${muted}`}>{`${sessions.length === 1 ? 'session' : 'sessions'} ${RANGE_WORDS[range]}`}</span>
                 </p>
                 <div className="mt-4">
-                    <StackedBars buckets={buckets} />
+                    <StackedBars
+                        buckets={buckets}
+                        names={k => rows.find(([x]) => x === k)?.[1].name ?? k}
+                        idle={range === '30' ? 'A bar a day. Tap one to read it.' : 'A bar a month. Tap one to read it.'}
+                    />
                 </div>
             </section>
 
@@ -793,13 +870,22 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                     <p className="font-display font-light text-[2rem] leading-tight tracking-[-0.02em] text-[var(--text)] truncate">{most[1].name}</p>
                     <div className="mt-3 flex flex-col gap-2.5">
                         {top.map(([k, r]) => (
-                            <div key={k} className="flex items-center gap-3">
-                                <span className={`w-24 shrink-0 truncate text-xs ${muted}`}>{r.name}</span>
+                            <Link
+                                key={k}
+                                to={{ page: 'journal', substance: k }}
+                                className="group -mx-2 flex items-center gap-3 rounded-[var(--radius-sm)] px-2 py-1 no-underline hover:bg-[var(--surface-hover)]"
+                                aria-label={`${r.name}: ${r.sessions} sessions`}
+                            >
+                                <span className={`w-24 shrink-0 truncate text-xs ${muted} group-hover:text-[var(--text)]`}>{r.name}</span>
                                 <div className="flex-1 h-2.5 rounded-full bg-[var(--surface-muted)] overflow-hidden">
-                                    <div className="h-full rounded-full" style={{ width: `${(r.sessions / most[1].sessions) * 100}%`, background: color(k) }} />
+                                    <div
+                                        className="h-full rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                                        style={{ width: `${(r.sessions / most[1].sessions) * 100}%`, background: color(k) }}
+                                    />
                                 </div>
                                 <span className={`w-6 shrink-0 text-end text-xs tabular-nums ${muted}`}>{r.sessions}</span>
-                            </div>
+                                <ChevronRight size={14} className={`${muted} shrink-0 opacity-0 transition-opacity group-hover:opacity-70`} />
+                            </Link>
                         ))}
                     </div>
                 </section>
@@ -890,7 +976,7 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
 
                         <section className="mb-9">
                             <h2 className="group-heading mb-3">{'Sessions in the last 12 months'}</h2>
-                            <StackedBars buckets={buckets} />
+                            <StackedBars buckets={buckets} names={() => name} idle={'A bar a month. Tap one to read it.'} />
                         </section>
 
                         <section>

@@ -13,6 +13,7 @@ import {
 import { ClockDial } from './ClockDial';
 import { headerAction, headerActionAccent } from './PageHeader';
 import { ChevronDown, Clock } from './icons';
+import { useScrub, yOnPieces, type Piece } from './scrub';
 
 /* How long, drawn as hrt.mahiro.uk draws its hormone level timeline
    (components/ResultChart.tsx there): a small title with its control on the
@@ -45,6 +46,17 @@ function nowMinutes() {
     return d.getHours() * 60 + d.getMinutes();
 }
 
+/** Where it is, so many minutes after taking it. */
+function phaseOf(course: Course, m: number): string {
+    const { firstEffects: a, peakStart: b, peakEnd: c, over: d, afterEnd } = course;
+    if (m < a) return 'Before it starts';
+    if (m < b) return 'Coming up';
+    if (m < c) return 'Peak';
+    if (m < d) return 'Wearing off';
+    if (afterEnd != null && m < afterEnd) return 'After-effects';
+    return 'Over';
+}
+
 function Curve({
     course,
     start,
@@ -56,6 +68,7 @@ function Curve({
     W: number;
     relative: boolean;
 }) {
+    const scrub = useScrub();
     // Long after-effects (LSD's run to two days) would squash the night into
     // a corner, so the plot shows at most half as long again after it ends and
     // lets the dashed tail run off the edge; the words give the real time.
@@ -66,6 +79,17 @@ function Curve({
     const y = (lvl: number) => BASE - lvl * (BASE - TOP - 10);
     const { firstEffects: a, peakStart: b, peakEnd: c, over: d } = course;
 
+    // The line as pieces, so a point on it can be found as well as drawn.
+    const pieces: Piece[] = [
+        { line: [[x(0), y(0)], [x(a), y(0.02)]] },
+        { cubic: [[x(a), y(0.02)], [x(a + (b - a) * 0.55), y(0.05)], [x(a + (b - a) * 0.6), y(1)], [x(b), y(1)]] },
+        { line: [[x(b), y(1)], [x(c), y(1)]] },
+        { cubic: [[x(c), y(1)], [x(c + (d - c) * 0.45), y(1)], [x(c + (d - c) * 0.5), y(0.08)], [x(d), y(0.08)]] },
+    ];
+    const tailPiece: Piece | null =
+        tailEnd != null
+            ? { cubic: [[x(d), y(0.08)], [x(d + (tailEnd - d) * 0.5), y(0.06)], [x(tailEnd - (tailEnd - d) * 0.2), y(0.01)], [LEFT + plotW, y(0.01)]] }
+            : null;
     const main = [
         `M${x(0)} ${y(0)}`,
         `L${x(a)} ${y(0.02)}`,
@@ -77,6 +101,7 @@ function Curve({
         tailEnd != null
             ? `M${x(d)} ${y(0.08)} C${x(d + (tailEnd - d) * 0.5)} ${y(0.06)} ${x(tailEnd - (tailEnd - d) * 0.2)} ${y(0.01)} ${LEFT + plotW} ${y(0.01)}`
             : null;
+    const yAt = (px: number) => yOnPieces(tailPiece ? [...pieces, tailPiece] : pieces, px) ?? y(0.01);
 
     // About one label per 64px: whole hours on the clock, or minutes from
     // taking it for something that's over within the hour.
@@ -99,53 +124,79 @@ function Curve({
         const since = (((nowMinutes() - start) % 1440) + 1440) % 1440;
         if (since > 0.5 && since < end) nowAt = since;
     }
-    const levelAt = (m: number) => {
-        if (m <= a) return 0.02;
-        if (m <= b) return 0.02 + 0.98 * ((m - a) / Math.max(b - a, 1e-6));
-        if (m <= c) return 1;
-        if (m <= d) return 1 - 0.92 * ((m - c) / Math.max(d - c, 1e-6));
-        return 0.06;
-    };
+
+    // The moment under the cursor.
+    const cx = scrub.x === null ? null : Math.min(LEFT + plotW, Math.max(LEFT, scrub.x));
+    const m = cx === null ? null : ((cx - LEFT) / plotW) * end;
+    const onRight = cx !== null && cx < W / 2;
+    const when =
+        m === null
+            ? ''
+            : relative
+              ? m < 1
+                  ? `${Math.round(m * 60)} s in`
+                  : `${Math.round(m)} min in`
+              : at(start, m);
 
     const grid = [0, 0.5, 1].map(l => y(l));
 
     return (
-        <svg
-            width={W}
-            height={H}
-            className="block tabular-nums select-none"
-            role="img"
-            aria-label={'How strong it feels over time'}
-        >
-            {grid.map((gy, i) => (
-                <line key={i} x1={LEFT} x2={LEFT + plotW} y1={gy} y2={gy} className="tl-grid" />
-            ))}
-            {/* The peak, as hrt marks its target band: a quiet wash, dashed edges, its name inside. */}
-            <g className="chart-appear" style={{ animationDelay: '120ms' }}>
-                <rect x={x(b)} y={TOP} width={Math.max(x(c) - x(b), 1)} height={BASE - TOP} className="tl-peak" />
-                <line x1={x(b)} x2={x(b)} y1={TOP} y2={BASE} className="tl-peak-edge" />
-                <line x1={x(c)} x2={x(c)} y1={TOP} y2={BASE} className="tl-peak-edge" />
-                <text x={x(b) + 6} y={TOP + 14} className="tl-peak-label">
-                    {'Peak'}
-                </text>
-            </g>
-            {ticks
-                .filter(t => x(t) > LEFT + 14 && x(t) < LEFT + plotW - 14)
-                .map(t => (
-                    <text key={t} x={x(t)} y={H - 10} className="tl-axis" textAnchor="middle">
-                        {label(t)}
-                    </text>
+        <div className="relative cursor-crosshair" style={{ touchAction: 'pan-y' }} {...scrub.handlers}>
+            <svg
+                width={W}
+                height={H}
+                className="block tabular-nums select-none"
+                role="img"
+                aria-label={'How strong it feels over time; press and slide along it to read any moment'}
+            >
+                {grid.map((gy, i) => (
+                    <line key={i} x1={LEFT} x2={LEFT + plotW} y1={gy} y2={gy} className="tl-grid" />
                 ))}
-            <path d={main} className="tl-line chart-sweep" pathLength={1} />
-            {tail && <path d={tail} className="tl-tail" />}
-            <circle cx={x(0)} cy={y(0)} r="4" className="tl-dose" />
-            {nowAt != null && (
-                <g className="chart-appear" style={{ animationDelay: '300ms' }}>
-                    <line x1={x(nowAt)} x2={x(nowAt)} y1={TOP} y2={BASE} className="tl-now" />
-                    <circle cx={x(nowAt)} cy={y(levelAt(nowAt))} r="4.5" className="tl-now-dot" />
+                {/* The peak, as hrt marks its target band: a quiet wash, dashed edges, its name inside. */}
+                <g className="chart-appear" style={{ animationDelay: '120ms' }}>
+                    <rect x={x(b)} y={TOP} width={Math.max(x(c) - x(b), 1)} height={BASE - TOP} className="tl-peak" />
+                    <line x1={x(b)} x2={x(b)} y1={TOP} y2={BASE} className="tl-peak-edge" />
+                    <line x1={x(c)} x2={x(c)} y1={TOP} y2={BASE} className="tl-peak-edge" />
+                    <text x={x(b) + 6} y={TOP + 14} className="tl-peak-label">
+                        {'Peak'}
+                    </text>
                 </g>
+                {ticks
+                    .filter(t => x(t) > LEFT + 14 && x(t) < LEFT + plotW - 14)
+                    .map(t => (
+                        <text key={t} x={x(t)} y={H - 10} className="tl-axis" textAnchor="middle">
+                            {label(t)}
+                        </text>
+                    ))}
+                <path d={main} className="tl-line chart-sweep" pathLength={1} />
+                {tail && <path d={tail} className="tl-tail" />}
+                <circle cx={x(0)} cy={y(0)} r="4" className="tl-dose" />
+                {nowAt != null && cx === null && (
+                    <g className="chart-appear" style={{ animationDelay: '300ms' }}>
+                        <line x1={x(nowAt)} x2={x(nowAt)} y1={TOP} y2={BASE} className="tl-now" />
+                        <circle cx={x(nowAt)} cy={yAt(x(nowAt))} r="4.5" className="tl-now-dot" />
+                    </g>
+                )}
+                {cx !== null && (
+                    <g>
+                        <line x1={cx} x2={cx} y1={TOP} y2={BASE} stroke="var(--text)" strokeWidth={1} opacity={0.5} />
+                        <circle cx={cx} cy={yAt(cx)} r="5" className="tl-now-dot" />
+                    </g>
+                )}
+            </svg>
+            {m !== null && (
+                <div
+                    className="chart-readout pointer-events-none absolute top-1"
+                    style={onRight ? { left: cx! + 10 } : { right: W - cx! + 10 }}
+                    aria-live="polite"
+                >
+                    <p className="font-medium text-[var(--text)]">{phaseOf(course, m)}</p>
+                    <p className="tabular-nums text-[var(--text-muted)] whitespace-nowrap">
+                        {relative ? when : `${when}, ${formatMinutes(Math.max(1, m))} after`}
+                    </p>
+                </div>
             )}
-        </svg>
+        </div>
     );
 }
 
