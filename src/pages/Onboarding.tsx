@@ -1,13 +1,20 @@
-import { useState, useSyncExternalStore } from 'react';
-import DoseRings from '../components/DoseRings';
-import PixelCat from '../components/PixelCat';
-import Point from '../components/Point';
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import Doodle from '../components/Doodle';
+import LevelRail from '../components/LevelRail';
+import { Molecule } from '../components/Molecule';
+import { Odometer } from '../components/Odometer';
+import { SessionChart, type ChartDose } from '../components/SessionChart';
+import { SessionMark } from '../components/SessionMark';
+import { Check, ChevronLeft, Clover } from '../components/icons';
+import { PALETTE } from '../lib/journal';
+import { VERDICT, type Verdict } from '../lib/mix';
+import type { Course } from '../lib/time';
 
-/* The intro, on hrt.mahiro.uk's own (pages/Onboarding.tsx there): a page of
-   its own over the app, Skip at the top, one step at a time, and at the foot
-   Back, the rings for how far along you are, and Next. Its steps are this
-   site's: say hello, what the site is for, and what stays
-   on this device. Shown once; Settings can bring it back. */
+/* The intro: a short story told with the app itself. Each screen is a
+   stage (a live piece of the site: the dose rail rolling through its bands,
+   the mix checker answering, a night on the journal's clock) over a few
+   words. Swipe, tap Next or use the arrow keys; the bars at the foot say
+   how far along it is. Shown once; Settings can bring it back. */
 
 const SEEN_KEY = 'journal-onboarding-seen';
 
@@ -50,115 +57,374 @@ function finish() {
     setShowing(false);
 }
 
+const still = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/** Steps through `n` states every `ms` while its screen is the one shown. */
+function useCycle(n: number, ms: number, active: boolean, from = 0) {
+    const [k, setK] = useState(from);
+    useEffect(() => {
+        if (!active || still()) return;
+        const t = window.setInterval(() => setK(x => (x + 1) % n), ms);
+        return () => window.clearInterval(t);
+    }, [active, n, ms]);
+    return k;
+}
+
+/* ── the stages ─────────────────────────────────────────────────────── */
+
+/** The logo, with molecules drifting round it. */
+function WelcomeStage() {
+    const drift: [string, string, CSSProperties][] = [
+        ['caffeine', 'tablet', { left: '6%', top: '10%', '--d': '9s', '--r0': '-8deg', '--r1': '4deg' } as CSSProperties],
+        ['lsd', 'blotter', { right: '4%', top: '6%', '--d': '11s', '--r0': '6deg', '--r1': '-4deg' } as CSSProperties],
+        ['mdma', 'capsule', { left: '2%', bottom: '8%', '--d': '10s', '--r0': '4deg', '--r1': '-6deg' } as CSSProperties],
+        ['mushrooms', 'capsule', { right: '6%', bottom: '10%', '--d': '12s', '--r0': '-5deg', '--r1': '5deg' } as CSSProperties],
+    ];
+    return (
+        <div className="relative h-full w-full">
+            {drift.map(([id, form, style]) => (
+                <span key={id} className="ob-float absolute opacity-60" style={style}>
+                    <Molecule id={id} form={form as 'capsule'} size="lg" />
+                </span>
+            ))}
+            <div className="absolute inset-0 flex items-center justify-center">
+                <img
+                    src="/logo.png"
+                    alt=""
+                    width={124}
+                    height={124}
+                    className="ob-pop size-[124px] rounded-[28px] shadow-[0_18px_40px_-12px_rgba(0,0,0,0.35)]"
+                />
+            </div>
+        </div>
+    );
+}
+
+const BANDS = [
+    { v: 30, name: 'Light', tone: 'text-[var(--status-info)]' },
+    { v: 113, name: 'Common', tone: 'text-[var(--accent-ink)]' },
+    { v: 225, name: 'Strong', tone: 'text-[var(--warning)]' },
+];
+
+/** LSD's dose, read off its rail, rolling from band to band. */
+function DoseStage({ active }: { active: boolean }) {
+    const k = useCycle(BANDS.length, 1800, active, 1);
+    const b = BANDS[k];
+    return (
+        <div className="w-full max-w-[22rem]">
+            <div className="flex items-center gap-3">
+                <Molecule id="lsd" form="blotter" size="sm" />
+                <div>
+                    <p className="text-sm font-medium text-[var(--text)]">{'LSD'}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{'Sublingual, in µg'}</p>
+                </div>
+            </div>
+            <div className="mt-4 flex items-baseline gap-2 font-display font-light leading-none tracking-[-0.035em] text-[3.25rem] text-[var(--text)]">
+                <Odometer value={b.v} decimals={0} places={3} />
+                <span className="text-sm font-normal tracking-normal text-[var(--text-muted)]">{'µg'}</span>
+            </div>
+            <div className="mt-1">
+                <LevelRail value={b.v} band={{ low: 75, high: 150 }} domain={[12, 405]} label={b.name} tone={b.tone} />
+            </div>
+        </div>
+    );
+}
+
+const PAIRS: [string, string, string, string, Verdict][] = [
+    ['alcohol', 'Alcohol', 'ketamine', 'Ketamine', 'Dangerous'],
+    ['mdma', 'MDMA', 'cannabis', 'Cannabis', 'Caution'],
+    ['lsd', 'LSD', 'mushrooms', 'Mushrooms', 'Synergy'],
+    ['caffeine', 'Caffeine', 'l-theanine', 'L-Theanine', 'Low risk'],
+];
+const TONE: Record<string, string> = {
+    danger: 'var(--danger)',
+    warning: 'var(--warning)',
+    info: 'var(--status-info)',
+    positive: 'var(--positive)',
+    neutral: 'var(--text-muted)',
+};
+
+/** The mix checker, answering for one pair after another. */
+function MixStage({ active }: { active: boolean }) {
+    const k = useCycle(PAIRS.length, 2200, active);
+    const [a, an, b, bn, verdict] = PAIRS[k];
+    const v = VERDICT[verdict];
+    return (
+        <div className="w-full max-w-[22rem] text-center">
+            <div key={`p${k}`} className="m-appear flex flex-wrap items-center justify-center gap-2">
+                <span className="chip chip-static text-[var(--text)]">
+                    <Molecule id={a} form="capsule" size="xs" />
+                    {an}
+                </span>
+                <span className="text-[var(--text-muted)]">{'+'}</span>
+                <span className="chip chip-static text-[var(--text)]">
+                    <Molecule id={b} form="capsule" size="xs" />
+                    {bn}
+                </span>
+            </div>
+            <div key={`v${k}`} className="ob-pop mt-6 flex items-center justify-center gap-2">
+                {v.tone === 'positive' && <Clover size={34} />}
+                <span className="font-display font-light text-[2.75rem] leading-none tracking-[-0.03em]" style={{ color: TONE[v.tone] }}>
+                    {v.label}
+                </span>
+            </div>
+            <p key={`m${k}`} className="m-appear mx-auto mt-3 max-w-[18rem] text-xs leading-relaxed text-[var(--text-muted)]">
+                {v.meaning}
+            </p>
+        </div>
+    );
+}
+
+/** A night on the journal's clock, and the sessions it keeps. */
+function JournalStage({ active }: { active: boolean }) {
+    const [now] = useState(() => Date.now());
+    const course = (a: number, b: number, c: number, d: number): Course => ({
+        firstEffects: a,
+        peakStart: b,
+        peakEnd: c,
+        over: d,
+        afterEnd: null,
+        total: null,
+        spans: {},
+    });
+    const doses: ChartDose[] = [
+        { id: 'a', time: now - 150 * 60_000, color: PALETTE[0], course: course(40, 90, 210, 330), strength: 1 },
+        { id: 'b', time: now - 50 * 60_000, color: PALETTE[1], course: course(10, 30, 100, 200), strength: 0.7 },
+    ];
+    return (
+        <div className="w-full max-w-[24rem]">
+            {/* The chart runs a little past its column, as on the journal; here
+                that's inside the panel's padding, so nothing is cut off. */}
+            <div className="px-4">{active && <SessionChart doses={doses} now={now} />}</div>
+            <div className="mt-1 flex flex-col gap-2.5">
+                {[
+                    [[PALETTE[0], PALETTE[1]], 'Saturday night', 'MDMA and Cannabis', true],
+                    [[PALETTE[2]], 'Monday', 'Caffeine', false],
+                ].map(([colors, title, what, star]) => (
+                    <div key={title as string} className="flex items-center gap-3">
+                        <SessionMark colors={colors as string[]} size={24} star={star as boolean} />
+                        <span className="min-w-0">
+                            <span className="block text-sm font-medium text-[var(--text)]">{title as string}</span>
+                            <span className="block text-xs text-[var(--text-muted)]">{what as string}</span>
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/** What stays where. */
+function PrivateStage() {
+    return (
+        <div className="flex w-full max-w-[20rem] flex-col items-center">
+            <span className="ob-pop">
+                <Doodle name="lock" size={5.5} />
+            </span>
+            <ul className="mt-5 flex w-full flex-col gap-2.5">
+                {['No account to make', 'Nothing uploaded, ever', 'Export your journal any time'].map(t => (
+                    <li key={t} className="flex items-center gap-2.5 text-sm text-[var(--text)]">
+                        <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-ink)]">
+                            <Check size={13} strokeWidth={2.4} />
+                        </span>
+                        {t}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+/* ── the story ──────────────────────────────────────────────────────── */
+
+interface Screen {
+    kicker: string;
+    title: string;
+    body: ReactNode;
+    stage: (active: boolean) => ReactNode;
+}
+
+const SCREENS: Screen[] = [
+    {
+        kicker: 'Oyama Journal',
+        title: 'Know what you take.',
+        body: 'Look up over 3,000 substances, check what doesn’t mix, and keep a journal. Free, and all on this device.',
+        stage: () => <WelcomeStage />,
+    },
+    {
+        kicker: 'Look it up',
+        title: 'How much, and how long.',
+        body: 'Doses by route on a rail from light to heavy, and when it starts, peaks and ends.',
+        stage: active => <DoseStage active={active} />,
+    },
+    {
+        kicker: 'Mix',
+        title: 'One answer for any mix.',
+        body: 'Put two or more together, alcohol and medicines too. The most serious risk comes first.',
+        stage: active => <MixStage active={active} />,
+    },
+    {
+        kicker: 'Journal',
+        title: 'Remember your nights.',
+        body: 'Log what you take. It warns before a redose or a bad mix, and keeps your stats.',
+        stage: active => <JournalStage active={active} />,
+    },
+    {
+        kicker: 'Yours',
+        title: 'Nothing leaves this device.',
+        body: (
+            <>
+                {'Information, not advice: start low, test what you have, don’t use alone. '}
+                <span className="text-[var(--danger)]">{'If someone is unresponsive or breathing slowly, call emergency services.'}</span>
+            </>
+        ),
+        stage: () => <PrivateStage />,
+    },
+];
+
 export function Onboarding() {
     const [step, setStep] = useState(0);
-    const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
+    const [drag, setDrag] = useState(0);
+    const press = useRef<{ x: number; y: number; t: number; id: number; axis?: 'x' | 'y' } | null>(null);
+    const frame = useRef<HTMLDivElement>(null);
+    const last = SCREENS.length - 1;
 
-    const steps = [
-        <div key="welcome" className="flex flex-col pt-6 text-center">
-            <div className="flex justify-center">
-                <PixelCat pose="donut" size={176} />
-            </div>
-            <h1 className="mt-6 text-[1.625rem] font-semibold text-body">{'Hello there'}</h1>
-            <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted">
-                {'This little site looks up substances: how much, how long, and what not to mix, and keeps a journal of what you take.'}
-            </p>
-        </div>,
-        <div key="what" className="pt-8">
-            <h1 className="text-[1.625rem] font-semibold text-body">{'What it’s for'}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-                {'Information from PsychonautWiki, TripSit, Wikidata and Wikipedia, for over 3,000 substances, laid out so the answer comes first. And a journal of what you take, kept on your device.'}
-            </p>
-            <div className="mt-4">
-                <Point
-                    mark="vial"
-                    title={'How much'}
-                    desc={'Slide along the doses, light to heavy, and read what each means.'}
-                />
-                <Point
-                    mark="chart"
-                    title={'How long'}
-                    desc={'Turn the clock to when you’d take it and see when it peaks and ends.'}
-                />
-                <Point
-                    mark="caution"
-                    title={'What not to mix'}
-                    desc={'Put two or more together and get one answer, most serious first.'}
-                />
-                <Point
-                    mark="notebook"
-                    title={'A journal'}
-                    desc={'Log what you take and when; it warns you before a redose or a bad mix.'}
-                />
-            </div>
-        </div>,
-        <div key="privacy" className="pt-8">
-            <h1 className="text-[1.625rem] font-semibold text-body">{'Stays with you'}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-muted">
-                {'No account, nothing to sign up for, and nothing you look at leaves this device.'}
-            </p>
-            <div className="mt-4">
-                <Point
-                    mark="lock"
-                    title={'On this device'}
-                    desc={'What you save, look at and log is kept in this browser only.'}
-                />
-                <Point
-                    mark="heart"
-                    title={'Information, not advice'}
-                    desc={'It reduces harm; it doesn’t make anything safe. Start low and don’t use alone.'}
-                />
-                <Point
-                    mark="caution"
-                    title={'In an emergency'}
-                    desc={'If someone is unresponsive or breathing slowly, call emergency services.'}
-                />
-            </div>
-        </div>,
-    ];
+    const go = (n: number) => setStep(Math.max(0, Math.min(last, n)));
+    const next = () => (step === last ? finish() : go(step + 1));
 
-    const isLast = step === steps.length - 1;
-    const goTo = (next: number) => {
-        setDirection(next > step ? 'forward' : 'backward');
-        setStep(next);
+    useEffect(() => {
+        const on = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') go(step + 1);
+            else if (e.key === 'ArrowLeft') go(step - 1);
+            else if (e.key === 'Escape') finish();
+        };
+        window.addEventListener('keydown', on);
+        return () => window.removeEventListener('keydown', on);
+    });
+
+    // A swipe: sideways moves the screens with the finger; let go past a
+    // fifth of the width (or flicked) and it turns.
+    const onDown = (e: React.PointerEvent) => {
+        if (e.button !== 0) return;
+        press.current = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+    };
+    const onMove = (e: React.PointerEvent) => {
+        const p = press.current;
+        if (!p || p.id !== e.pointerId) return;
+        const dx = e.clientX - p.x;
+        const dy = e.clientY - p.y;
+        if (!p.axis && Math.hypot(dx, dy) > 8) {
+            p.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+            if (p.axis === 'x') (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+        }
+        if (p.axis !== 'x') return;
+        const edge = (step === 0 && dx > 0) || (step === last && dx < 0);
+        setDrag(edge ? dx * 0.3 : dx);
+    };
+    const onUp = (e: React.PointerEvent) => {
+        const p = press.current;
+        press.current = null;
+        if (!p || p.axis !== 'x') return setDrag(0);
+        const dx = e.clientX - p.x;
+        const w = frame.current?.clientWidth ?? 360;
+        const fast = Math.abs(dx) / Math.max(1, performance.now() - p.t) > 0.5;
+        if ((dx < -w / 5 || (fast && dx < -30)) && step < last) go(step + 1);
+        else if ((dx > w / 5 || (fast && dx > 30)) && step > 0) go(step - 1);
+        setDrag(0);
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]">
-            <div className="flex shrink-0 justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={'Introduction'}
+            className="fixed inset-0 z-50 flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
+        >
+            <div className="mx-auto flex w-full max-w-lg shrink-0 items-center gap-2.5 px-6 pt-[calc(0.875rem+env(safe-area-inset-top,0px))]">
+                <img src="/logo.png" alt="" width={26} height={26} className="size-[26px] rounded-[7px]" />
+                <span className="text-sm">
+                    <span className="font-semibold">{'Oyama'}</span> <span className="text-[var(--text-muted)]">{'Journal'}</span>
+                </span>
                 <button
+                    type="button"
                     onClick={finish}
-                    className={`rounded-lg px-2 py-1.5 text-xs text-muted hover:bg-[var(--surface-hover)] ${isLast ? 'invisible' : ''}`}
-                    tabIndex={isLast ? -1 : 0}
+                    className={`ms-auto rounded-full px-3 py-1.5 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] ${step === last ? 'invisible' : ''}`}
+                    tabIndex={step === last ? -1 : 0}
                 >
                     {'Skip'}
                 </button>
             </div>
 
-            <div className="onboarding-steps flex flex-1 overflow-y-auto scrollbar-hide px-6">
+            <div
+                ref={frame}
+                className="relative mx-auto w-full max-w-lg flex-1 overflow-hidden"
+                style={{ touchAction: 'pan-y' }}
+                onPointerDown={onDown}
+                onPointerMove={onMove}
+                onPointerUp={onUp}
+                onPointerCancel={onUp}
+            >
                 <div
-                    key={step}
-                    className={`mx-auto w-full max-w-md pb-8 ${direction === 'backward' ? 'view-enter-backward' : 'view-enter-forward'}`}
+                    className="flex h-full"
+                    style={{
+                        transform: `translate3d(calc(${-step * 100}% + ${drag}px), 0, 0)`,
+                        transition: drag || still() ? 'none' : 'transform 560ms cubic-bezier(0.22, 0.9, 0.24, 1)',
+                    }}
                 >
-                    {steps[step]}
+                    {SCREENS.map((s, k) => (
+                        <section
+                            key={s.kicker}
+                            className="ob-screen flex h-full w-full shrink-0 flex-col px-6 pt-5"
+                            data-active={k === step}
+                            aria-hidden={k !== step}
+                            {...(k === step ? {} : { inert: '' })}
+                        >
+                            <div className="ob-stage relative grid min-h-[15rem] flex-1 max-h-[24rem] place-items-center overflow-hidden rounded-[1.75rem] bg-[var(--surface-muted)] px-6 py-6">
+                                {s.stage(k === step)}
+                            </div>
+                            <div className="pt-7 pb-4">
+                                <p className="ob-rise text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-ink)]" style={{ '--i': 0 } as CSSProperties}>
+                                    {s.kicker}
+                                </p>
+                                <h1 className="ob-rise mt-2 font-display text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em]" style={{ '--i': 1 } as CSSProperties}>
+                                    {s.title}
+                                </h1>
+                                <p className="ob-rise mt-3 text-[0.9375rem] leading-relaxed text-[var(--text-muted)]" style={{ '--i': 2 } as CSSProperties}>
+                                    {s.body}
+                                </p>
+                            </div>
+                        </section>
+                    ))}
                 </div>
             </div>
 
-            <div className="shrink-0 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t-(length:--hairline) border-[var(--border)] max-[360px]:px-4">
-                <div className="mx-auto grid w-full max-w-md grid-cols-[1fr_auto_1fr] items-center gap-4 max-[360px]:gap-2">
-                    <div className="justify-self-start">
-                        {step > 0 && (
-                            <button onClick={() => goTo(step - 1)} className="btn-secondary whitespace-nowrap">
-                                {'Back'}
-                            </button>
-                        )}
-                    </div>
-                    <DoseRings count={steps.length} at={step} />
-                    <div className="justify-self-end">
-                        <button onClick={() => (isLast ? finish() : goTo(step + 1))} className="btn-primary whitespace-nowrap">
-                            {isLast ? 'Get started' : 'Next'}
+            <div className="mx-auto w-full max-w-lg shrink-0 px-6 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+                <div className="mb-4 flex gap-1.5" aria-hidden="true">
+                    {SCREENS.map((s, k) => (
+                        <button
+                            key={s.kicker}
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => go(k)}
+                            className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--border)]"
+                        >
+                            <span
+                                className="block h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 ease-out"
+                                style={{ width: k <= step ? '100%' : '0%' }}
+                            />
                         </button>
-                    </div>
+                    ))}
+                </div>
+                <p className="sr-only" aria-live="polite">{`Step ${step + 1} of ${SCREENS.length}`}</p>
+                <div className="flex items-center gap-3">
+                    {step > 0 && (
+                        <button type="button" onClick={() => go(step - 1)} className="btn-secondary !px-3" aria-label={'Back'}>
+                            <ChevronLeft size={18} />
+                        </button>
+                    )}
+                    <button type="button" onClick={next} className="btn-primary flex-1">
+                        {step === last ? 'Get started' : 'Next'}
+                    </button>
                 </div>
             </div>
         </div>
