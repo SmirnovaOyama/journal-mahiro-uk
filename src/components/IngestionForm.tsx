@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type DoseRow, type IndexEntry, convertAmount } from '../lib/data';
+import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type DoseRow, type IndexEntry, convertAmount, fmtAmount, isPerKg } from '../lib/data';
 import { useJournal, type Ingestion, type Prefill } from '../lib/journal';
 import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
 import { courseFor, formatMinutes } from '../lib/time';
 import { useDetail } from '../lib/useIndex';
 import LevelRail from './LevelRail';
+import { formatWeight, useWeight } from '../lib/store';
 import { absorbedText } from './Absorption';
 import { Molecule } from './Molecule';
 import { SearchField } from './SearchField';
@@ -106,8 +107,15 @@ export function IngestionForm({
 
     const dose = doseText.trim() === '' ? null : Number(doseText.replace(',', '.'));
     const doseOk = dose === null || (Number.isFinite(dose) && dose >= 0);
-    // In the route's own unit: 0.1 mg is 100 µg.
-    const inRowUnit = row && dose != null && doseOk ? convertAmount(dose, unit, row.unit) : null;
+    // In the route's own unit: 0.1 mg is 100 µg, and with a body weight, an
+    // amount is so much a kilogram (a dose given per kilogram).
+    const weight = useWeight();
+    const inRowUnit = row && dose != null && doseOk ? convertAmount(dose, unit, row.unit, weight.kg) : null;
+    const mass = unit.split('/')[0].trim();
+    const perKgLine =
+        weight.kg && dose != null && doseOk && dose > 0 && /^(g|mg|μg|µg)$/.test(mass) && !isPerKg(unit)
+            ? `${fmtAmount(dose / weight.kg)} ${unit}/kg at ${formatWeight(weight.kg, weight.unit)}`
+            : null;
     const band = row && inRowUnit != null ? bandOf(row, inRowUnit) : null;
 
     // ── what the journal already says ──
@@ -364,6 +372,10 @@ export function IngestionForm({
                                     tone={band ? BAND_TONE[band] : ''}
                                 />
                             </div>
+                        )}
+                        {perKgLine && <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">{perKgLine}</p>}
+                        {row && isPerKg(row.unit) && !weight.kg && (
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">{'Its doses are given per kilogram: set your body weight in Settings to see where this amount falls.'}</p>
                         )}
                         {row?.absorbed && (
                             <p className="mt-2 text-xs text-[var(--text-muted)]">

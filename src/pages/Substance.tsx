@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     describe,
     resolveName,
@@ -7,10 +7,13 @@ import {
     type ComboStatus,
     type Detail,
     type IndexEntry,
+    convertAmount,
+    fmtAmount,
+    isPerKg,
 } from '../lib/data';
 import { historyOf, logFrom, useJournal } from '../lib/journal';
 import { RANK } from '../lib/mix';
-import { pushRecent, useSaved } from '../lib/store';
+import { pushRecent, useSaved, formatWeight, useWeight } from '../lib/store';
 import { courseFor, formatMinutes } from '../lib/time';
 import { useDetail } from '../lib/useIndex';
 import { DoseRuler } from '../components/DoseRuler';
@@ -141,6 +144,25 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     const journal = useJournal();
     const structure = useStructure(id);
     const inkRef = useRef<HTMLSpanElement>(null);
+    const weight = useWeight();
+    /** The amount per kilogram of the reader's weight, or a per-kilogram dose
+     *  as an amount; nothing for units that aren't a mass. */
+    const weightAside = (unit: string, v: number): React.ReactNode => {
+        const mass = unit.split('/')[0].trim();
+        const isMass = /^(g|mg|μg|µg)$/.test(mass);
+        if (!isMass) return null;
+        if (isPerKg(unit)) {
+            if (!weight.kg)
+                return (
+                    <Link to={{ page: 'settings', sub: 'weight' }} className="text-[var(--accent-ink)] no-underline">
+                        {'Set your body weight to see this as an amount'}
+                    </Link>
+                );
+            return `≈ ${fmtAmount(v * weight.kg)} ${mass} at ${formatWeight(weight.kg, weight.unit)}`;
+        }
+        if (!weight.kg) return null;
+        return `${fmtAmount(v / weight.kg)} ${unit}/kg at ${formatWeight(weight.kg, weight.unit)}`;
+    };
     const taps = useRef(0);
     const roa = route && routes.includes(route) ? route : routes[0];
     const roaName = (r: string) => (r);
@@ -229,7 +251,16 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         <button
                             type="button"
                             className={`${headerActionAccent} tap-target`}
-                            onClick={() => logFrom({ id: detail.id, route: roa, dose: picked ?? undefined, unit: dose?.unit })}
+                            onClick={() => {
+                                // A dose given per kilogram goes in the journal as the amount.
+                                const asMg = dose && picked != null && isPerKg(dose.unit) && weight.kg ? convertAmount(picked, dose.unit, 'mg', weight.kg) : null;
+                                logFrom({
+                                    id: detail.id,
+                                    route: roa,
+                                    dose: asMg != null ? Math.round(asMg) : (picked ?? undefined),
+                                    unit: asMg != null ? 'mg' : dose?.unit,
+                                });
+                            }}
                         >
                             <Plus size={16} />
                             {'Log'}
@@ -382,6 +413,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             key={detail.id}
                             row={dose}
                             onPick={setPicked}
+                            aside={v => weightAside(dose.unit, v)}
                             label={roa ? `${roaName(roa)}, in ${dose.unit}` : dose.unit}
                             footer={
                                 <Link

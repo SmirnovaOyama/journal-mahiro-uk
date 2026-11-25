@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePixelCats, type CatStyle } from '../contexts/PixelCatContext';
 import { go, useOpenedFromLink, type SettingsSub } from '../lib/router';
-import { useRecent, useSaved, useTheme, type ThemeChoice } from '../lib/store';
+import { formatWeight, useRecent, useSaved, useTheme, useWeight, type ThemeChoice } from '../lib/store';
 import { exportFile, merge, parseImport, useJournal } from '../lib/journal';
 import { loadIndex, resolveName } from '../lib/data';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
@@ -15,6 +15,7 @@ import { useAccount } from '../lib/account';
 import { AccountPage, AccountTile, DeleteAccountPage, DevicesPage, PasswordPage, RecoverPage, RecoveryKeyPage } from './Account';
 import { AdminPage } from './Admin';
 import { TwoFactorPage } from './TwoFactor';
+import { WeightPage } from './Weight';
 import { useWide } from '../hooks/useWide';
 import { SettingsTile } from '../components/SettingsTile';
 
@@ -135,6 +136,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     const saved = useSaved();
     const journal = useJournal();
     const { account } = useAccount();
+    const weight = useWeight();
     const fromLink = useOpenedFromLink();
     const [importNote, setImportNote] = useState<string | null>(null);
     const wide = useWide();
@@ -187,7 +189,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             id: 'general',
             label: 'General',
             Icon: Sliders,
-            hint: 'Appearance, pixel cats',
+            hint: 'Appearance, body weight, pixel cats',
         },
         { id: 'data', label: 'Data', Icon: Database, hint: 'Journal, saved, looked at lately' },
         { id: 'about', label: 'About', Icon: Info, hint: 'Sources, disclaimer' },
@@ -202,6 +204,11 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         label={'Appearance'}
                         value={themeLabel(choice)}
                         onClick={() => open('appearance')}
+                    />
+                    <NavRow
+                        label={'Body weight'}
+                        value={weight.kg ? formatWeight(weight.kg, weight.unit) : 'Not set'}
+                        onClick={() => open('weight')}
                     />
                     <SwitchRow
                         label={'Pixel cats'}
@@ -359,6 +366,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     if (sub === 'password') return <PasswordPage />;
     if (sub === 'recovery-key') return <RecoveryKeyPage />;
     if (sub === 'two-factor') return <TwoFactorPage />;
+    if (sub === 'weight') return <WeightPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;
     if (sub === 'recover') return <RecoverPage />;
     if (sub === 'admin' || sub === 'admin-overview' || sub === 'admin-accounts') return <AdminPage sub={sub} />;
