@@ -341,9 +341,10 @@ export function Onboarding() {
             className="fixed inset-0 z-50 flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
         >
             <div className="mx-auto flex w-full max-w-lg shrink-0 items-center gap-2.5 px-6 pt-[calc(0.875rem+env(safe-area-inset-top,0px))]">
-                <img src="/logo.png" alt="" width={26} height={26} className="size-[26px] rounded-[7px]" />
-                <span className="text-sm">
-                    <span className="font-semibold">{'Oyama'}</span> <span className="text-[var(--text-muted)]">{'Journal'}</span>
+                <img src="/logo.png" alt="" width={30} height={30} className="size-[30px] rounded-[8px]" />
+                <span className="font-display text-[1.25rem] leading-none tracking-[-0.015em]">
+                    <span className="font-normal text-[var(--text)]">{'Oyama'}</span>{' '}
+                    <span className="font-light text-[var(--text-muted)]">{'Journal'}</span>
                 </span>
                 <button
                     type="button"
