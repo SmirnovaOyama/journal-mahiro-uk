@@ -24,7 +24,8 @@ export type SettingsSub =
     | 'recovery-key'
     | 'devices'
     | 'delete-account'
-    | 'recover';
+    | 'recover'
+    | 'admin';
 const SETTINGS_SUBS: readonly SettingsSub[] = [
     'general',
     'data',
@@ -37,6 +38,7 @@ const SETTINGS_SUBS: readonly SettingsSub[] = [
     'devices',
     'delete-account',
     'recover',
+    'admin',
 ];
 
 export function parse(path: string): Route {

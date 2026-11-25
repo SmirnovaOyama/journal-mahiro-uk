@@ -66,6 +66,7 @@ for chat apps and search engines.
 | `/journal/substance/<id>` | One substance's history in the journal |
 | `/saved`, `/settings` | Saved substances; settings |
 | `/settings/account` | The account: sign in or make one, sync, devices, password, recovery key |
+| `/settings/admin` | The admin's page |
 
 ## Data
 
@@ -122,6 +123,29 @@ The server never sees the password, the journal, or the saved list.
 The server side is `worker/api.ts`, with its tables in `migrations/`, on
 Cloudflare D1.
 
+### Admin
+
+One account is the admin's, by its username. The admin page (Settings,
+Account, Admin) shows what the server knows: accounts, when each was last
+seen, devices, the size of each encrypted copy, sign-ups a day, locks, and
+how many accounts were deleted and by whom. From it the admin can sign an
+account out everywhere, lift a lock, or delete an account, which asks for
+the admin's password again. It can't read any journal, the admin's
+included, or reset anyone's password.
+
+The admin's name can't be taken by anyone else: it can only be made with
+the admin's password, which the server never has. It keeps two secrets, the
+username and the SHA-256 of the sign-in key that password makes:
+
+```bash
+node scripts/admin-key.mjs <username>      # asks for the password, prints the hash
+npx wrangler secret put ADMIN_USERNAME
+npx wrangler secret put ADMIN_KEY_HASH
+```
+
+Then make the account on the site with that username and password, as any
+other. For `wrangler dev`, the same two go in `.dev.vars`.
+
 ## Running it
 
 ```bash
@@ -134,6 +158,7 @@ npm run dev
 | `npm run dev` | The site at localhost:5173 |
 | `npx wrangler dev` | The Worker with the account API and a local database, at localhost:8787; `npm run dev` sends `/api/` to it |
 | `npx wrangler d1 migrations apply oyama-journal --local` | Make the account tables in the local database (`--remote` for the real one) |
+| `node scripts/admin-key.mjs <username>` | The admin's key hash, from its password (see [Admin](#admin)) |
 | `npm run build` | Type-check and build into `dist/` |
 | `npm run data` | Every data step in turn: PsychonautWiki and TripSit, then Wikidata and Wikipedia, then PubChem structures |
 | `node scripts/sync-wikidata.mjs --write` | Rebuild the reference entries from the cache in `scripts/.cache/`, without fetching |
@@ -165,7 +190,7 @@ tables is a new file in `migrations/`, applied with
 - `src/App.tsx`: the shell, with the sidebar on a wide window and the tab bar
   on a phone.
 - `src/pages/`: Search, Substance, Kind, Mix, Journal, Saved, Settings, the
-  account (Account), and the intro (Onboarding).
+  account (Account), the admin's page (Admin), and the intro (Onboarding).
 - `src/components/`, among them:
   - `Odometer`: the rolling number.
   - `LevelRail` and `DoseRuler`: the dose rail.
@@ -173,6 +198,7 @@ tables is a new file in `migrations/`, applied with
   - `Timeline` and `SessionChart`: the duration curve and the session timeline.
   - `IngestionForm`: logging a dose.
   - `scrub.ts`: reading the charts by touch.
+  - `StackedBars`: the column charts, read by touch too.
 - `src/lib/`:
   - `data.ts`, `mix.ts`: the data and the mix checker.
   - `journal.ts`: the journal's store, sessions, import, export and merging.
@@ -184,7 +210,8 @@ tables is a new file in `migrations/`, applied with
   - `routes.ts`, `router.ts`: the pages.
 - `worker/`: the Worker; `api.ts` is the accounts.
 - `migrations/`: the account tables.
-- `scripts/`: the data sync, structures, cards, sitemap and icons.
+- `scripts/`: the data sync, structures, cards, sitemap, icons, and the
+  admin's key hash.
 
 ## Not medical advice
 

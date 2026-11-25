@@ -13,7 +13,14 @@
 
    Laid out after hrt.mahiro.uk's own accounts (src/server/routes/auth.ts
    there): a name and a password, a session per device, a persistent backoff
-   for failed sign-ins, and the Workers rate limiter in front. */
+   for failed sign-ins, and the Workers rate limiter in front.
+
+   One account is the admin's, by its name (ADMIN_USERNAME). Nobody else can
+   take that name: it can only be made with the password it was set up
+   with, which the server knows only as SHA-256 of the sign-in key it makes
+   (ADMIN_KEY_HASH), never as the password. The admin sees accounts, devices
+   and sizes, and can sign an account out, lift a lock or delete it; no
+   journal can be read here, the admin's included. */
 
 /* The runtime's own types, declared here so the Worker type-checks without
    all of @cloudflare/workers-types. */
@@ -41,6 +48,11 @@ export interface ApiEnv {
     RL_AUTH?: RateLimit;
     /** Sixty a minute: syncing and the account page. */
     RL_SYNC?: RateLimit;
+    /** The admin's username (a secret). */
+    ADMIN_USERNAME?: string;
+    /** base64url SHA-256 of the sign-in key the admin's password makes, which
+     *  is what lets that name be made (a secret). */
+    ADMIN_KEY_HASH?: string;
 }
 
 /** A session lasts this long after it was last used. */
@@ -207,7 +219,15 @@ interface UserRow {
 }
 
 const now = () => Math.floor(Date.now() / 1000);
-const publicUser = (u: Pick<UserRow, 'id' | 'username' | 'created_at'>) => ({ id: u.id, username: u.username, created: u.created_at * 1000 });
+const publicUser = (u: Pick<UserRow, 'id' | 'username' | 'created_at'>, admin = false) => ({
+    id: u.id,
+    username: u.username,
+    created: u.created_at * 1000,
+    ...(admin ? { admin: true } : {}),
+});
+
+const adminName = (env: ApiEnv) => env.ADMIN_USERNAME?.trim().toLowerCase() || null;
+const isAdmin = (env: ApiEnv, u: Pick<UserRow, 'username_key'>) => u.username_key === adminName(env);
 
 async function newSession(db: D1Database, userId: string, request: Request): Promise<string> {
     const token = b64url(random(32));
@@ -225,6 +245,7 @@ async function newSession(db: D1Database, userId: string, request: Request): Pro
                     (SELECT id FROM sessions WHERE user_id = ? ORDER BY last_used_at DESC LIMIT ?)`,
             )
             .bind(userId, userId, MAX_SESSIONS),
+        db.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?').bind(t, userId),
     ]);
     return token;
 }
@@ -251,7 +272,10 @@ async function signedIn(db: D1Database, request: Request): Promise<Signed | null
     if (!row || row.expires_at < t) return null;
     // Used again: it lasts another SESSION_DAYS. Written at most hourly.
     if (t - row.last_used_at > 3600)
-        await db.prepare('UPDATE sessions SET last_used_at = ?, expires_at = ? WHERE id = ?').bind(t, t + SESSION_DAYS * 86400, row.sid).run();
+        await db.batch([
+            db.prepare('UPDATE sessions SET last_used_at = ?, expires_at = ? WHERE id = ?').bind(t, t + SESSION_DAYS * 86400, row.sid),
+            db.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?').bind(t, row.id),
+        ]);
     return { user: row, sid: row.sid };
 }
 
@@ -322,10 +346,18 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
             const username = typeof b.username === 'string' ? b.username.trim() : '';
             if (!USERNAME.test(username))
-                return fail('BAD_USERNAME', 'A name is 3 to 30 letters, digits, - or _.', 400);
+                return fail('BAD_USERNAME', 'A username is 3 to 30 letters, digits, - or _.', 400);
             if (RESERVED.has(username.toLowerCase())) return fail('USERNAME_TAKEN', 'That username is taken.', 409);
             const recovery = recoveryOf(b);
             if (!isKey(b.auth, 32) || !isWrapped(b.key) || !recovery) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            // The admin's name, made only with the admin's password: anyone
+            // else is told it's taken.
+            const admin = username.toLowerCase() === adminName(env);
+            if (admin) {
+                const expected = env.ADMIN_KEY_HASH?.trim() ?? '';
+                if (!expected || !same(b64url(await sha256(unb64url(b.auth))), expected))
+                    return fail('USERNAME_TAKEN', 'That username is taken.', 409);
+            }
 
             const id = crypto.randomUUID();
             const account = username.toLowerCase();
@@ -345,7 +377,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             // A deleted account's misses would otherwise lock out the name's new owner.
             await clearMisses(db, account);
             const token = await newSession(db, id, request);
-            return ok({ token, user: publicUser({ id, username, created_at: t }) }, 201);
+            return ok({ token, user: publicUser({ id, username, created_at: t }, admin) }, 201);
         }
 
         // Sign in.
@@ -366,7 +398,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             }
             await clearMisses(db, account);
             const token = await newSession(db, user.id, request);
-            return ok({ token, user: publicUser(user), key: JSON.parse(user.wrapped_key) });
+            return ok({ token, user: publicUser(user, isAdmin(env, user)), key: JSON.parse(user.wrapped_key) });
         }
 
         // Set a new password with the recovery key: first prove the key and
@@ -407,7 +439,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             ]);
             await clearMisses(db, account);
             const token = await newSession(db, user.id, request);
-            return ok({ token, user: publicUser(user) });
+            return ok({ token, user: publicUser(user, isAdmin(env, user)) });
         }
 
         // Everything after this is for a signed-in device.
@@ -431,7 +463,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
                 db.prepare('SELECT version, size, updated_at FROM vaults WHERE user_id = ?').bind(user.id).first<{ version: number; size: number; updated_at: number }>(),
             ]);
             return ok({
-                user: publicUser(user),
+                user: publicUser(user, isAdmin(env, user)),
                 key: JSON.parse(user.wrapped_key),
                 sessions: sessions.results.map(s => ({
                     id: s.id,
@@ -548,13 +580,14 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
                 await miss(db, user.username_key);
                 return fail('WRONG_PASSWORD', 'That isn’t the password.', 403);
             }
-            await db.batch([
-                db.prepare('DELETE FROM vaults WHERE user_id = ?').bind(user.id),
-                db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(user.id),
-                db.prepare('DELETE FROM users WHERE id = ?').bind(user.id),
-                db.prepare('DELETE FROM login_backoff WHERE account = ?').bind(user.username_key),
-            ]);
+            await db.batch(deleteAccount(db, user, 'self'));
             return ok(null, 204);
+        }
+
+        // The admin's, and only the admin's.
+        if (path.startsWith('/api/admin/')) {
+            if (!isAdmin(env, user)) return fail('FORBIDDEN', 'This is for the site’s admin.', 403);
+            return await adminRoute(path, method, url, request, env, db, user, sid);
         }
 
         return fail('NOT_FOUND', 'Nothing here.', 404);
@@ -562,4 +595,143 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         console.error('api', path, e);
         return fail('SERVER_ERROR', 'Something went wrong on the server. Try again in a moment.', 500);
     }
+}
+
+/** Everything an account keeps, deleted, and a line saying one was, and by whom. */
+function deleteAccount(db: D1Database, user: UserRow, by: 'self' | 'admin'): D1PreparedStatement[] {
+    return [
+        db.prepare('DELETE FROM vaults WHERE user_id = ?').bind(user.id),
+        db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(user.id),
+        db.prepare('DELETE FROM users WHERE id = ?').bind(user.id),
+        db.prepare('DELETE FROM login_backoff WHERE account = ?').bind(user.username_key),
+        db.prepare('INSERT INTO deletion_log (reason, user_created_at) VALUES (?, ?)').bind(by, user.created_at),
+    ];
+}
+
+/* ── the admin's ────────────────────────────────────────────────────── */
+
+async function adminRoute(
+    path: string,
+    method: string,
+    url: URL,
+    request: Request,
+    env: ApiEnv,
+    db: D1Database,
+    me: UserRow,
+    sid: string,
+): Promise<Response> {
+    const t = now();
+
+    // The numbers: accounts, who's been around this week, devices, the
+    // encrypted copies, locks, deletions, and sign-ups a day for 30 days.
+    if (path === '/api/admin/stats' && method === 'GET') {
+        const week = t - 7 * 86400;
+        const month = t - 30 * 86400;
+        const [row, days] = await Promise.all([
+            db
+                .prepare(
+                    `SELECT
+                        (SELECT count(*) FROM users) AS accounts,
+                        (SELECT count(*) FROM users WHERE created_at > ?1) AS newWeek,
+                        (SELECT count(*) FROM users WHERE last_seen_at > ?1) AS activeWeek,
+                        (SELECT count(*) FROM sessions WHERE expires_at > ?2) AS devices,
+                        (SELECT count(*) FROM vaults) AS copies,
+                        (SELECT COALESCE(SUM(size), 0) FROM vaults) AS bytes,
+                        (SELECT count(*) FROM login_backoff WHERE locked_until > ?2) AS locked,
+                        (SELECT count(*) FROM deletion_log WHERE reason = 'self' AND deleted_at > ?3) AS deletedSelf,
+                        (SELECT count(*) FROM deletion_log WHERE reason = 'admin' AND deleted_at > ?3) AS deletedAdmin`,
+                )
+                .bind(week, t, month)
+                .first<Record<string, number>>(),
+            db
+                .prepare(`SELECT date(created_at, 'unixepoch') AS day, count(*) AS n FROM users WHERE created_at > ? GROUP BY day`)
+                .bind(t - 31 * 86400)
+                .all<{ day: string; n: number }>(),
+        ]);
+        return ok({ ...row, signups: days.results, now: t * 1000 });
+    }
+
+    // The accounts, newest first, or those whose name has `q` in it.
+    if (path === '/api/admin/users' && method === 'GET') {
+        const q = (url.searchParams.get('q') ?? '').trim().toLowerCase().slice(0, 30);
+        const like = `%${q.replace(/[\\%_]/g, c => `\\${c}`)}%`;
+        const rows = await db
+            .prepare(
+                `SELECT u.id, u.username, u.username_key, u.created_at, u.last_seen_at,
+                        (SELECT count(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > ?1) AS devices,
+                        v.version, v.size, v.updated_at, b.locked_until, b.failed_attempts
+                   FROM users u
+                   LEFT JOIN vaults v ON v.user_id = u.id
+                   LEFT JOIN login_backoff b ON b.account = u.username_key
+                  WHERE u.username_key LIKE ?2 ESCAPE '\\'
+                  ORDER BY u.created_at DESC
+                  LIMIT 200`,
+            )
+            .bind(t, like)
+            .all<{
+                id: string;
+                username: string;
+                username_key: string;
+                created_at: number;
+                last_seen_at: number | null;
+                devices: number;
+                version: number | null;
+                size: number | null;
+                updated_at: number | null;
+                locked_until: number | null;
+                failed_attempts: number | null;
+            }>();
+        const admin = adminName(env);
+        return ok({
+            users: rows.results.map(r => ({
+                id: r.id,
+                username: r.username,
+                created: r.created_at * 1000,
+                seen: r.last_seen_at ? r.last_seen_at * 1000 : null,
+                devices: r.devices,
+                copy: r.version ? { version: r.version, size: r.size ?? 0, updated: (r.updated_at ?? 0) * 1000 } : null,
+                locked: Math.max(0, (r.locked_until ?? 0) - t),
+                misses: r.failed_attempts ?? 0,
+                admin: r.username_key === admin,
+            })),
+        });
+    }
+
+    const m = /^\/api\/admin\/users\/([0-9a-f-]{36})(?:\/(sign-out|unlock))?$/.exec(path);
+    if (m) {
+        const target = await db.prepare('SELECT * FROM users WHERE id = ?').bind(m[1]).first<UserRow>();
+        if (!target) return fail('NOT_FOUND', 'There’s no such account.', 404);
+
+        // Every device it's signed in on (but this one, for the admin's own).
+        if (m[2] === 'sign-out' && method === 'POST') {
+            await db.prepare('DELETE FROM sessions WHERE user_id = ? AND id != ?').bind(target.id, sid).run();
+            return ok({});
+        }
+
+        // Lifts a lock from too many wrong passwords.
+        if (m[2] === 'unlock' && method === 'POST') {
+            await clearMisses(db, target.username_key);
+            return ok({});
+        }
+
+        // Deletes it, with the admin's password again: a session left open
+        // on some browser shouldn't be enough.
+        if (!m[2] && method === 'DELETE') {
+            if (target.id === me.id) return fail('BAD_REQUEST', 'Delete your own account from your account page.', 400);
+            if (!(await allowed(env.RL_AUTH, `admin:${me.id}`))) return TOO_MANY();
+            const b = await body(request);
+            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            const locked = await lockedFor(db, me.username_key);
+            if (locked) return LOCKED(locked);
+            if (!(await matches(me, b.auth))) {
+                await miss(db, me.username_key);
+                return fail('WRONG_PASSWORD', 'That isn’t your password.', 403);
+            }
+            await db.batch(deleteAccount(db, target, 'admin'));
+            await clearMisses(db, me.username_key);
+            return ok(null, 204);
+        }
+    }
+
+    return fail('NOT_FOUND', 'Nothing here.', 404);
 }

@@ -32,6 +32,8 @@ export interface User {
     username: string;
     /** When the account was made, ms. */
     created: number;
+    /** The site's admin. */
+    admin?: boolean;
 }
 
 interface Stored {
@@ -360,6 +362,55 @@ export interface AccountInfo {
 export const fetchAccount = () => api<AccountInfo>('/api/account');
 export const signOutDevice = (id: string) => api<void>(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
 export const signOutOtherDevices = () => api<void>('/api/sessions', { method: 'DELETE' });
+
+/** The account as the server has it now (an admin's flag, say), kept. */
+export function refreshUser(user: User) {
+    const a = state.account;
+    if (!a || a.user.id !== user.id) return;
+    if (a.user.username !== user.username || !!a.user.admin !== !!user.admin) update({ user });
+}
+
+/* ── the admin's ────────────────────────────────────────────────────── */
+
+export interface AdminStats {
+    accounts: number;
+    newWeek: number;
+    activeWeek: number;
+    devices: number;
+    copies: number;
+    bytes: number;
+    locked: number;
+    deletedSelf: number;
+    deletedAdmin: number;
+    /** Sign-ups a day ("2026-11-25", UTC), for the last 30 days. */
+    signups: { day: string; n: number }[];
+    now: number;
+}
+
+export interface AdminUser {
+    id: string;
+    username: string;
+    created: number;
+    seen: number | null;
+    devices: number;
+    copy: { version: number; size: number; updated: number } | null;
+    /** Seconds left on a lock from wrong passwords. */
+    locked: number;
+    misses: number;
+    admin: boolean;
+}
+
+export const adminStats = () => api<AdminStats>('/api/admin/stats');
+export const adminUsers = (q = '') => api<{ users: AdminUser[] }>(`/api/admin/users${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`).then(r => r.users);
+export const adminSignOut = (id: string) => api<void>(`/api/admin/users/${id}/sign-out`, { method: 'POST' });
+export const adminUnlock = (id: string) => api<void>(`/api/admin/users/${id}/unlock`, { method: 'POST' });
+
+/** Deletes another account, with the admin's own password again. */
+export async function adminDelete(id: string, password: string): Promise<void> {
+    const a = need();
+    const pk = await passwordKeys(a.user.username, password);
+    await api<void>(`/api/admin/users/${id}`, { method: 'DELETE', body: { auth: pk.auth } });
+}
 
 /** Clears a note left by being signed out. */
 export function dismissNote() {

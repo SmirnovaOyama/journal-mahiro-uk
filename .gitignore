@@ -11,3 +11,4 @@ public/og/
 scripts/.cache/
 .wrangler/
 phone-preview-qr.svg
+.dev.vars
