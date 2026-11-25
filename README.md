@@ -61,7 +61,7 @@ for chat apps and search engines.
 | `/s/lsd` | A substance |
 | `/kind/Stimulant` | One kind, A to Z |
 | `/mix/mdma+tramadol` | The mix checker |
-| `/journal` | The journal; `/journal/stats` for its stats |
+| `/journal` | The journal; `/journal/stats` for its stats, `/journal/weight` for body weight |
 | `/journal/<session>` | One session |
 | `/journal/substance/<id>` | One substance's history in the journal |
 | `/saved`, `/settings` | Saved substances; settings |

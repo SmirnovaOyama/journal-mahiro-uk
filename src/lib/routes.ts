@@ -8,7 +8,7 @@ export type Route =
     | { page: 'kind'; category: string }
     | { page: 'browse' }
     | { page: 'saved' }
-    | { page: 'journal'; session?: string; view?: 'stats'; substance?: string }
+    | { page: 'journal'; session?: string; view?: 'stats' | 'weight'; substance?: string }
     | { page: 'settings'; sub?: SettingsSub };
 
 /** Settings' own pages: its three groups, the pages a row opens, and the
@@ -50,6 +50,7 @@ export function parse(path: string): Route {
     if (parts[0] === 'saved') return { page: 'saved' };
     if (parts[0] === 'journal') {
         if (parts[1] === 'stats') return { page: 'journal', view: 'stats' };
+        if (parts[1] === 'weight') return { page: 'journal', view: 'weight' };
         if (parts[1] === 'substance' && parts[2]) return { page: 'journal', substance: parts[2] };
         return parts[1] ? { page: 'journal', session: parts[1] } : { page: 'journal' };
     }
@@ -71,8 +72,8 @@ export function href(r: Route): string {
         case 'settings':
             return r.sub ? `/settings/${r.sub}` : '/settings';
         case 'journal':
-            return r.view === 'stats'
-                ? '/journal/stats'
+            return r.view
+                ? `/journal/${r.view}`
                 : r.substance
                   ? `/journal/substance/${encodeURIComponent(r.substance)}`
                   : r.session

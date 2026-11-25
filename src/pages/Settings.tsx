@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { usePixelCats, type CatStyle } from '../contexts/PixelCatContext';
 import { go, type SettingsSub } from '../lib/router';
 import { useRecent, useSaved, useTheme, type ThemeChoice } from '../lib/store';
-import { exportFile, merge, parseImport, useJournal } from '../lib/journal';
+import { exportFile, merge, parseImport, useJournal, useWeights } from '../lib/journal';
 import { loadIndex, resolveName } from '../lib/data';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { rowBleed, settingsSection } from '../components/SettingsListItem';
@@ -144,6 +144,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     const recent = useRecent();
     const saved = useSaved();
     const journal = useJournal();
+    const weights = useWeights();
     const { account } = useAccount();
     const [importNote, setImportNote] = useState<string | null>(null);
     const wide = useWide();
@@ -169,13 +170,13 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             setImportNote('That file isn’t a journal from here or from PsychonautWiki Journal.');
             return;
         }
-        const { next, added } = merge(journal.data, parsed);
+        const { next, added, addedWeights } = merge(journal.data, parsed);
         journal.replace(next);
-        setImportNote(
-            added
-                ? added === 1 ? 'Added 1 dose.' : `Added ${added} doses.`
-                : 'Nothing new: every dose in it is already here.',
-        );
+        const parts = [
+            added ? (added === 1 ? '1 dose' : `${added} doses`) : '',
+            addedWeights ? (addedWeights === 1 ? '1 weight' : `${addedWeights} weights`) : '',
+        ].filter(Boolean);
+        setImportNote(parts.length ? `Added ${parts.join(' and ')}.` : 'Nothing new: everything in it is already here.');
     };
 
     useEffect(() => {
@@ -253,14 +254,19 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     );
 
     const count = journal.data.ingestions.length;
+    const wCount = weights.weights.length;
+    const anything = count + wCount;
+    const exportText = [count ? (count === 1 ? '1 dose' : `${count} doses`) : '', wCount ? (wCount === 1 ? '1 weight' : `${wCount} weights`) : '']
+        .filter(Boolean)
+        .join(', ');
     const renderData = () => (
         <div className="space-y-8">
             <div>
                 <SectionHeading title={'Journal'} />
                 <div className={section}>
-                    <button onClick={doExport} disabled={!count} className={`${rowBase} ${count ? rowBleed : 'row-bleed opacity-45 cursor-not-allowed'}`}>
+                    <button onClick={doExport} disabled={!anything} className={`${rowBase} ${anything ? rowBleed : 'row-bleed opacity-45 cursor-not-allowed'}`}>
                         <span className={rowLabel}>{'Export the journal'}</span>
-                        {count > 0 && <span className={`${rowValue} tabular-nums`}>{count === 1 ? '1 dose' : `${count} doses`}</span>}
+                        {anything > 0 && <span className={`${rowValue} tabular-nums`}>{exportText}</span>}
                     </button>
                     <label className={`${rowBase} ${rowBleed} cursor-pointer`}>
                         <span>
@@ -285,6 +291,13 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         count={count}
                         countText={count === 1 ? '1 dose' : `${count} doses`}
                         onClear={journal.clear}
+                        warn={account ? 'From every device signed in to your account too. This can’t be undone.' : undefined}
+                    />
+                    <ClearRow
+                        label={'Delete body weight'}
+                        count={wCount}
+                        countText={wCount === 1 ? '1 weight' : `${wCount} weights`}
+                        onClear={weights.clear}
                         warn={account ? 'From every device signed in to your account too. This can’t be undone.' : undefined}
                     />
                 </div>
