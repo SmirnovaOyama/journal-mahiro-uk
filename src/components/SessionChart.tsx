@@ -45,6 +45,8 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     const ends = doses.map(d => d.time + (d.course ? d.course.over : 60) * MIN);
     let start = first - 15 * MIN;
     let end = Math.max(...ends, first + 2 * 3600_000);
+    // A little room after the last curve lands, so it doesn't run into the edge.
+    end += (end - start) * 0.06;
     // Now inside the night, or just after it: show it.
     if (now > start && now < end + 3 * 3600_000) end = Math.max(end, now + 20 * MIN);
     end = Math.min(end, start + 36 * 3600_000);
