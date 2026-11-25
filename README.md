@@ -50,6 +50,13 @@ it. They're encrypted in the browser before they're sent, so the server keeps
 a copy it can't read. Two-step sign-in, with an authenticator app and backup
 codes, is there to turn on. See [Accounts](#accounts).
 
+**Body weight.** Set once in Settings (kg or lb, 20 to 400 kg), as hrt.mahiro.uk
+keeps it. With it, a dose given per kilogram (ibogaine's) reads as an amount,
+an amount reads per kilogram on the dose rail and in the journal, and a
+session with alcohol in it shows blood alcohol, roughly: how high it went,
+where it is now, and about when it's back to none (Widmark's formula, as a
+range, since it doesn't know your sex). It syncs with an account, encrypted.
+
 **Read any chart by touch.** Press and slide along a timeline or a duration
 curve to read any moment. Tap a bar to read its month.
 
@@ -70,6 +77,7 @@ for chat apps and search engines.
 | `/saved`, `/settings` | Saved substances; settings |
 | `/settings/account` | The account: sign in or make one; on a phone, its parts as tiles (`/settings/sync`, `/settings/security`, `/settings/devices`), on a wide window as tabs |
 | `/settings/two-factor` | Two-step sign-in |
+| `/settings/weight` | Body weight |
 | `/settings/admin` | The admin's page: `/settings/admin-overview`, `/settings/admin-accounts` |
 
 ## Data
@@ -148,7 +156,9 @@ day, locks, and how many accounts were deleted and by whom. From it the
 admin can sign an account out everywhere, lift a lock, turn off two-step
 sign-in for someone who lost their phone and backup codes, or delete an
 account; the last two ask for the admin's password again. It can't read any
-journal, the admin's included, or reset anyone's password.
+journal, the admin's included, or reset anyone's password. The admin page opens only once the
+admin's account has two-step sign-in on; a new admin account goes straight
+from its recovery key to setting it up.
 
 The admin's name can't be taken by anyone else: it can only be made with
 the admin's password, which the server never has. It keeps two secrets, the
@@ -225,6 +235,7 @@ tables is a new file in `migrations/`, applied with
   - `journal.ts`: the journal's store, sessions, import, export and merging.
   - `account.ts`: signing in and out, two-step sign-in, and syncing.
   - `eggs.ts`: a few things for whoever looks up estradiol.
+  - `alcohol.ts`: blood alcohol, roughly, from the body weight.
   - `keys.ts`: the keys, and encrypting the journal.
   - `password.ts`: how guessable a new password is.
   - `molsvg.ts`: skeletal formulas from 2D coordinates.

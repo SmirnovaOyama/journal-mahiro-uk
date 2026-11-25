@@ -18,7 +18,8 @@
    One account is the admin's, by its name (ADMIN_USERNAME). Nobody else can
    take that name: it can only be made with the password it was set up
    with, which the server knows only as SHA-256 of the sign-in key it makes
-   (ADMIN_KEY_HASH), never as the password. The admin sees accounts, devices
+   (ADMIN_KEY_HASH), never as the password, and its admin page works only
+   with two-step sign-in on. The admin sees accounts, devices
    and sizes, and can sign an account out, lift a lock or delete it; no
    journal can be read here, the admin's included. */
 
@@ -817,6 +818,9 @@ async function adminRoute(
     sid: string,
 ): Promise<Response> {
     const t = now();
+
+    // The admin's account opens every other: it needs its second step on.
+    if (!me.totp_secret) return fail('TWO_FACTOR_REQUIRED', 'Turn on two-step sign-in to use the admin page.', 403);
 
     // The numbers: accounts, who's been around this week, devices, the
     // encrypted copies, locks, deletions, and sign-ups a day for 30 days.

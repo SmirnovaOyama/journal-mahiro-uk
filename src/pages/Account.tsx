@@ -332,7 +332,15 @@ export function AccountPage({ sub = 'account' }: { sub?: SettingsSub }) {
             <div className="relative md:pb-32">
                 <PageHeader backTo title={'Recovery key'} />
                 <div className={`${PAGE_COLUMN} mt-3 [&>*]:mx-auto [&>*]:max-w-sm`}>
-                    <RecoveryKeyShow code={made.code} username={made.username} onDone={() => setMade(null)} />
+                    <RecoveryKeyShow
+                        code={made.code}
+                        username={made.username}
+                        onDone={() => {
+                            setMade(null);
+                            // The admin's account goes on to its second step.
+                            if (s.account?.user.admin) go({ page: 'settings', sub: 'two-factor' });
+                        }}
+                    />
                 </div>
             </div>
         );
@@ -367,6 +375,10 @@ function SignedIn({ s, sub }: { s: AccountState; sub: SettingsSub }) {
         );
 
     const devices = info?.sessions.length;
+    // The admin page opens only with two-step sign-in on.
+    const adminLocked = info ? !info.twoFactor.on : false;
+    const adminHint = adminLocked ? 'Turn on two-step sign-in first' : 'Accounts, devices, storage and sign-ups';
+    const adminTone = adminLocked ? 'text-[var(--warning)]' : undefined;
     const hints: Record<Part, string> = {
         sync: syncLine(s),
         security: info?.twoFactor.on ? 'Two-step sign-in is on' : 'Password, two-step sign-in',
@@ -404,7 +416,7 @@ function SignedIn({ s, sub }: { s: AccountState; sub: SettingsSub }) {
                             />
                         ))}
                         {account.user.admin && (
-                            <SettingsTile Icon={Server} label={'Admin'} hint={'Accounts, devices, storage and sign-ups'} onClick={() => go({ page: 'settings', sub: 'admin' })} />
+                            <SettingsTile Icon={Server} label={'Admin'} hint={adminHint} hintTone={adminTone} onClick={() => go({ page: 'settings', sub: 'admin' })} />
                         )}
                     </div>
                 )}
@@ -412,7 +424,7 @@ function SignedIn({ s, sub }: { s: AccountState; sub: SettingsSub }) {
                 {/* On a wide window the parts are tabs; the admin's is a tile of its own. */}
                 {wide && account.user.admin && (
                     <div className={settingsSection}>
-                        <SettingsTile Icon={Server} label={'Admin'} hint={'Accounts, devices, storage and sign-ups'} onClick={() => go({ page: 'settings', sub: 'admin' })} />
+                        <SettingsTile Icon={Server} label={'Admin'} hint={adminHint} hintTone={adminTone} onClick={() => go({ page: 'settings', sub: 'admin' })} />
                     </div>
                 )}
 

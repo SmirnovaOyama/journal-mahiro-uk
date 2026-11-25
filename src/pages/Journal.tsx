@@ -24,6 +24,7 @@ import { Link } from '../components/Link';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import Segmented from '../components/Segmented';
 import { StackedBars, type Bucket } from '../components/StackedBars';
+import { AlcoholLine } from '../components/AlcoholLine';
 import { SessionChart, type ChartDose } from '../components/SessionChart';
 import { SessionMark, starPath } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
@@ -437,6 +438,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                 </div>
                                 <div className="mt-3">
                                     <SessionChart doses={chartDoses(live, details, color)} now={now} />
+                                    <AlcoholLine s={live} now={now} />
                                 </div>
                                 <div className="mt-3">
                                     <Interactions pairs={pairsOf(live, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution)} />
@@ -577,6 +579,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                 />
 
                 <SessionChart doses={chartDoses(s, details, color)} now={now} />
+                <AlcoholLine s={s} now={now} />
 
                 <section className="mt-6">
                     <h2 className="group-heading mb-2">{'How it went'}</h2>

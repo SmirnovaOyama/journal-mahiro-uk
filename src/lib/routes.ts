@@ -18,6 +18,7 @@ export type SettingsSub =
     | 'data'
     | 'about'
     | 'appearance'
+    | 'weight'
     | 'disclaimer'
     | 'account'
     | 'password'
@@ -36,6 +37,7 @@ const SETTINGS_SUBS: readonly SettingsSub[] = [
     'data',
     'about',
     'appearance',
+    'weight',
     'disclaimer',
     'account',
     'password',

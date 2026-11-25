@@ -406,6 +406,7 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
     const [users, setUsers] = useState<AdminUser[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [forbidden, setForbidden] = useState(false);
+    const [needsSecondStep, setNeedsSecondStep] = useState(false);
     const [query, setQuery] = useState('');
     const [open, setOpen] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -418,7 +419,8 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
             setUsers(us);
             setError(null);
         } catch (e) {
-            if (e instanceof ApiError && e.status === 403) setForbidden(true);
+            if (e instanceof ApiError && e.code === 'TWO_FACTOR_REQUIRED') setNeedsSecondStep(true);
+            else if (e instanceof ApiError && e.status === 403) setForbidden(true);
             else setError(message(e));
         } finally {
             setLoading(false);
@@ -433,6 +435,28 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
     }, [query, me?.admin, load]);
 
     const buckets = useMemo(() => (stats ? signupBuckets(stats) : []), [stats]);
+
+    // The admin's account opens every other, so it has a second lock first.
+    if (me?.admin && needsSecondStep)
+        return (
+            <div className="relative md:pb-32">
+                <PageHeader backTo title={'Admin'} />
+                <div className={`${PAGE_COLUMN} mt-6 [&>*]:mx-auto [&>*]:max-w-sm`}>
+                    <div className="m-appear flex flex-col items-center space-y-4 text-center">
+                        <span className="grid size-12 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-ink)]">
+                            <Lock size={22} />
+                        </span>
+                        <p className={`text-base font-semibold ${on}`}>{'Two-step sign-in first'}</p>
+                        <p className={`text-sm leading-relaxed ${muted}`}>
+                            {'The admin’s account can sign out, unlock and delete every other one, so the admin page opens only once it asks for a code from your phone as well as your password.'}
+                        </p>
+                        <button type="button" className="btn-primary w-full" onClick={() => go({ page: 'settings', sub: 'two-factor' })}>
+                            {'Set up two-step sign-in'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
 
     if (!me?.admin || forbidden)
         return (

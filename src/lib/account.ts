@@ -1,6 +1,17 @@
 import { useSyncExternalStore } from 'react';
 import { applyMerged, cleanJournal, emptyJournal, getJournal, onLocalChange, syncMerge, type JournalData } from './journal';
-import { applySavedLog, getSavedLog, mergeSaved, onSavedChange, type SavedLog } from './store';
+import {
+    applySavedLog,
+    applyWeight,
+    getSavedLog,
+    getWeight,
+    mergeSaved,
+    mergeWeight,
+    onSavedChange,
+    onWeightChange,
+    type BodyWeight,
+    type SavedLog,
+} from './store';
 import {
     forgetKeys,
     keepKey,
@@ -295,6 +306,7 @@ export async function signOut(keepHere: boolean): Promise<void> {
     if (!keepHere) {
         applyMerged(emptyJournal());
         applySavedLog({});
+        applyWeight(null);
     }
 }
 
@@ -473,13 +485,21 @@ interface Vault {
     v: 1;
     journal: JournalData;
     saved: SavedLog;
+    /** Settings that go with the person: the body weight. */
+    prefs?: { weight?: BodyWeight };
 }
 
 function readVault(text: string): Vault {
     const raw = JSON.parse(text) as Partial<Vault>;
     const saved = raw.saved && typeof raw.saved === 'object' && !Array.isArray(raw.saved) ? raw.saved : {};
-    return { v: 1, journal: cleanJournal(raw.journal), saved };
+    const w = raw.prefs?.weight;
+    const weight = w && typeof w === 'object' && typeof w.at === 'number' ? w : undefined;
+    return { v: 1, journal: cleanJournal(raw.journal), saved, ...(weight ? { prefs: { weight } } : {}) };
 }
+
+/** A vault's prefs with the weight in, or none at all, so a copy without a
+ *  weight stays exactly as it was. */
+const prefsWith = (weight: BodyWeight | null) => (weight ? { prefs: { weight } } : {});
 
 /** JSON with every object's keys in order, to tell whether two copies are alike. */
 function canonical(v: unknown): string {
@@ -545,6 +565,9 @@ function apply(m: Vault, j0: JournalData, s0: SavedLog) {
     const saved = s === s0 ? m.saved : mergeSaved(s, m.saved);
     if (canonical(journal) !== canonical(j)) applyMerged(journal);
     if (canonical(saved) !== canonical(s)) applySavedLog(saved);
+    const w = getWeight();
+    const weight = mergeWeight(w, m.prefs?.weight);
+    if (canonical(weight) !== canonical(w)) applyWeight(weight);
 }
 
 async function syncOnce() {
@@ -585,13 +608,18 @@ async function syncOnce() {
                 } catch {
                     throw new ApiError('UNREADABLE', 'The copy in your account couldn’t be opened on this device.');
                 }
-                merged = { v: 1, journal: syncMerge(j0, remote.journal), saved: mergeSaved(s0, remote.saved) };
+                merged = {
+                    v: 1,
+                    journal: syncMerge(j0, remote.journal),
+                    saved: mergeSaved(s0, remote.saved),
+                    ...prefsWith(mergeWeight(getWeight(), remote.prefs?.weight)),
+                };
                 theirs = canonical(remote);
             } else {
                 // Nothing there yet, or nothing new since this device last
                 // merged it: this device's copy is the whole of it.
                 if (got.same && !cur.dirty && changes === gen) return finish(got.version);
-                merged = { v: 1, journal: syncMerge(j0, emptyJournal()), saved: s0 };
+                merged = { v: 1, journal: syncMerge(j0, emptyJournal()), saved: s0, ...prefsWith(getWeight()) };
             }
             apply(merged, j0, s0);
             if (theirs !== null && canonical(merged) === theirs) return finish(got.version);
@@ -632,6 +660,7 @@ export function startSync() {
     };
     onLocalChange(changed);
     onSavedChange(changed);
+    onWeightChange(changed);
     const wake = () => {
         if (document.visibilityState !== 'visible' || !state.account || Date.now() - lastWake < 10_000) return;
         lastWake = Date.now();
