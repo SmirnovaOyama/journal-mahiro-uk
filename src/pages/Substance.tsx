@@ -22,7 +22,7 @@ import { useDetail } from '../lib/useIndex';
 import { DoseRuler } from '../components/DoseRuler';
 import { Absorption } from '../components/Absorption';
 import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
-import Doodle from '../components/Doodle';
+import Doodle, { Route } from '../components/Doodle';
 import { Fold } from '../components/Fold';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
@@ -146,6 +146,17 @@ const BODY: Record<BodyStep, [string, string]> = {
 };
 
 const wikipedia = (title: string) => `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+
+/** A chemical formula as it's written: C8H10N4O2 with its figures set low,
+ *  and a charge, if it has one, set high. */
+function Formula({ of }: { of: string }) {
+    const parts = of.match(/[A-Z][a-z]?|\d+|[+-]\d*|./g) ?? [];
+    return (
+        <span className="whitespace-nowrap">
+            {parts.map((p, i) => (/^\d+$/.test(p) ? <sub key={i}>{p}</sub> : /^[+-]/.test(p) ? <sup key={i}>{p}</sup> : p))}
+        </span>
+    );
+}
 
 /** A row of facts: what it's about, a smaller word under it, and what's said. */
 function Fact({ about, sub, children }: { about: string; sub?: string; children: React.ReactNode }) {
@@ -422,6 +433,12 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {aliases.slice(0, 6).join(', ')}
                                 </p>
                             )}
+                            {detail.formula && (
+                                <p className="text-sm text-[var(--text)] mt-1">
+                                    <Formula of={detail.formula} />
+                                    {detail.molarMass != null && <span className={`text-xs ${muted}`}>{tr(', {0} g/mol', { 0: detail.molarMass })}</span>}
+                                </p>
+                            )}
                             {structure && (
                                 <p className={`text-xs ${muted} mt-1`}>
                                     {structure.role === 'active'
@@ -437,7 +454,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         rel="noreferrer"
                                         className="text-[var(--text-muted)]"
                                     >
-                                        {tr('Structure from PubChem')}
+                                        {detail.formula ? tr('Structure and formula from PubChem') : tr('Structure from PubChem')}
                                     </a>
                                 </p>
                             )}
@@ -626,6 +643,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         {(detail.summary) && (
                             <Fold
                                 title={tr('What it is')}
+                                icon="molecule"
                                 hint={(() => {
                                     const text = detail.summary;
                                     const first = firstSentence(text);
@@ -641,6 +659,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         {how && (
                             <Fold
                                 title={tr('How it works')}
+                                icon="key"
                                 hint={
                                     how.text
                                         ? firstSentence(how.text)
@@ -704,6 +723,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         {uses && (
                             <Fold
                                 title={tr('What it’s used for')}
+                                icon={Route.oral}
                                 hint={
                                     uses.text
                                         ? firstSentence(uses.text)
@@ -729,6 +749,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         {side && (
                             <Fold
                                 title={tr('Side effects')}
+                                icon="caution"
                                 hint={
                                     side.text
                                         ? firstSentence(side.text)
@@ -754,7 +775,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             </Fold>
                         )}
                         {safety.length > 0 && (
-                            <Fold title={tr('Safety')} hint={safety.map(([k]) => k).join(tr(', '))}>
+                            <Fold title={tr('Safety')} icon="shield" hint={safety.map(([k]) => k).join(tr(', '))}>
                                 <dl>
                                     {safety.map(([k, v]) => (
                                         <div className="fact-row" key={k}>
@@ -786,6 +807,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         {detail.tolerance && (detail.tolerance.buildUp || detail.tolerance.reset) && (
                             <Fold
                                 title={tr('Tolerance')}
+                                icon="chart"
                                 hint={
                                     detail.tolerance.reset
                                         ? tr('Back to normal after about {0}', { 0: spanText(detail.tolerance.reset) })
@@ -817,6 +839,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         {detail.subjectiveEffects.length > 0 && (
                             <Fold
                                 title={tr('Effects people report')}
+                                icon="person"
                                 hint={tr('{0} documented effects', { 0: detail.subjectiveEffects.length })}
                             >
                                 <ul className="effect-list">
@@ -835,7 +858,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             </Fold>
                         )}
                         {(detail.helpfulLinks.length > 0 || detail.citations.length > 0) && (
-                            <Fold title={tr('Sources and further reading')}>
+                            <Fold title={tr('Sources and further reading')} icon="report">
                                 {detail.helpfulLinks.length > 0 && (
                                     <div className="settings-section">
                                         {detail.helpfulLinks.map(l => (

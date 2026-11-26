@@ -56,7 +56,9 @@ export type DoodleName =
     | 'lens'
     | 'flask'
     | 'pencil'
-    | 'shield';
+    | 'shield'
+    | 'molecule'
+    | 'key';
 
 const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     // A syringe drawn with volume, needle down to the left: a plump barrel
@@ -467,6 +469,43 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             />
             <Line d="M20 6.6 C 23.6 8.6, 27.6 9.8, 31.6 10 C 31.8 19.6, 28.4 27.8, 20 33.4 C 11.6 27.6, 8.2 19.6, 8.6 10 C 12.6 9.8, 16.4 8.6, 20.4 6.3" />
             <Line d="M14.6 19.8 C 16 21.2, 17.4 22.6, 18.6 24.2 C 21 20.6, 23.6 17.4, 26.4 14.6" w={2} />
+        </>
+    ),
+    // A molecule as a chemist sketches one: a six-sided ring, washed, with its
+    // three double bonds drawn inside and a short chain off one corner. What a
+    // substance is.
+    molecule: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M16.6 11.4 C 19.4 13, 22.2 14.6, 25 16.2 C 25.2 19.4, 24.9 22.6, 25 25.8 C 22.2 27.5, 19.5 29, 16.7 30.6 C 13.8 29.1, 11 27.4, 8.2 25.8 C 8.1 22.6, 8.4 19.4, 8.2 16.2 C 11 14.5, 13.8 12.9, 16.6 11.4 Z"
+            />
+            <Line d="M16.6 11.4 C 19.4 13, 22.2 14.6, 25 16.2 C 25.2 19.4, 24.9 22.6, 25 25.8 C 22.2 27.5, 19.5 29, 16.7 30.6 C 13.8 29.1, 11 27.4, 8.2 25.8 C 8.1 22.6, 8.4 19.4, 8.2 16.2 C 11 14.5, 13.8 12.9, 17 11.1" />
+            {/* The double bonds, inside every other side */}
+            <Line d="M22.2 17.9 C 22.3 20, 22.1 22.2, 22.2 24.2" w={1.5} />
+            <Line d="M11.4 24.4 C 13.1 25.4, 14.8 26.4, 16.5 27.4" w={1.5} />
+            <Line d="M11.4 17.5 C 13.1 16.5, 14.8 15.5, 16.4 14.6" w={1.5} />
+            {/* The chain off the ring */}
+            <Line d="M25 16.2 C 27 15, 29 13.7, 31 12.4 C 32.2 14, 33.4 15.6, 34.4 17.4" />
+        </>
+    ),
+    // A key on the slant, its bow washed and its bit down to the right: how a
+    // drug works, the key to a lock.
+    key: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M13.6 6.8 C 17.6 6.7, 20.7 9.8, 20.6 13.7 C 20.6 17.6, 17.5 20.6, 13.6 20.5 C 9.7 20.5, 6.7 17.4, 6.8 13.6 C 6.8 9.8, 9.8 6.8, 13.6 6.8 Z"
+            />
+            <Line d="M13.6 6.8 C 17.6 6.7, 20.7 9.8, 20.6 13.7 C 20.6 17.6, 17.5 20.6, 13.6 20.5 C 9.7 20.5, 6.7 17.4, 6.8 13.6 C 6.8 9.8, 9.8 6.8, 14.2 6.9" />
+            {/* The hole in the bow */}
+            <Line d="M12 10.4 C 13.1 10.4, 13.9 11.3, 13.8 12.3 C 13.8 13.3, 12.9 14.1, 11.9 14 C 10.9 14, 10.2 13.1, 10.3 12.1 C 10.3 11.2, 11.1 10.4, 12.3 10.5" w={1.4} />
+            {/* The shank, and the two teeth of the bit */}
+            <Line d="M18.4 18.6 C 23 23, 27.8 27.8, 32.8 32.6" />
+            <Line d="M27.4 27.4 C 26.4 28.5, 25.3 29.5, 24.3 30.6" />
+            <Line d="M31 30.9 C 30.2 31.8, 29.3 32.6, 28.5 33.5" />
         </>
     ),
 };

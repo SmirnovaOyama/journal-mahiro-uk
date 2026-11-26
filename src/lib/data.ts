@@ -142,6 +142,10 @@ export interface Detail {
   marquis?: string;
   addictionPotential?: string;
   toxicity?: string[];
+  /** Its chemical formula ("C8H10N4O2") and molar mass in g/mol, from PubChem
+   *  (scripts/formulas.mjs): only where the drawing is of the substance itself. */
+  formula?: string;
+  molarMass?: number;
   summarySources?: string;
   summary: string;
   /** How it works (scripts/pharmacology.mjs): the opening of what its article
