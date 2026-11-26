@@ -120,6 +120,8 @@ export interface Detail {
   advisory?: string;
   /** Warnings added by hand from a case report, each with where it comes from. */
   warnings?: { text: string; source: string; url: string; report?: string }[];
+  /** How it's sold in a place, added by hand from that place's own rule. */
+  availability?: { where: string; rule: string; source: string; url: string }[];
   doseBasis?: string;
   doseUnit: string;
   doseRows: DoseRow[];
