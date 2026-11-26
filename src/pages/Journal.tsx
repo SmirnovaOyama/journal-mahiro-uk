@@ -29,6 +29,7 @@ import { StackedBars, type Bucket } from '../components/StackedBars';
 import { AlcoholLine } from '../components/AlcoholLine';
 import { KeepNote } from '../components/KeepNote';
 import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChart';
+import { ToleranceChart } from '../components/ToleranceChart';
 import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
 import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
@@ -549,6 +550,14 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const s = sessions.find(x => x.id === id || x.ingestions.some(i => i.id === id));
     const meta = (s && data.meta?.[s.id]) || {};
     const details = useDetails(s ? s.ingestions : [], byId);
+    // Every dose that may still leave tolerance at the session: up to its
+    // end, from far enough back for the longest reset (2.5 months) to reach it.
+    const [tolDays, setTolDays] = useState<'30' | '90'>('30');
+    const before = useMemo(
+        () => (s ? data.ingestions.filter(i => i.time <= s.end && i.time >= s.end - (Number(tolDays) + 80) * 86_400_000) : []),
+        [data.ingestions, s?.end, tolDays], // eslint-disable-line react-hooks/exhaustive-deps
+    );
+    const tolDetails = useDetails(before, byId);
     const [matrix, setMatrix] = useState<ComboMatrix>();
     const [adding, setAdding] = useState(false);
     const [openRow, setOpenRow] = useState<string | null>(null);
@@ -705,6 +714,30 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                             onToggle={() => setOpenRow(o => (o === i.id ? null : i.id))}
                         />
                     ))}
+                </section>
+
+                <section className="mt-8">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                        <h2 className="group-heading">{tr('Tolerance')}</h2>
+                        <Segmented
+                            aria-label={tr('Over', undefined, 'range')}
+                            options={[
+                                { id: '30', label: tr('30 days') },
+                                { id: '90', label: tr('90 days') },
+                            ]}
+                            value={tolDays}
+                            onChange={setTolDays}
+                        />
+                    </div>
+                    <ToleranceChart
+                        doses={before}
+                        details={tolDetails}
+                        here={s.end}
+                        now={now}
+                        days={Number(tolDays)}
+                        colors={color}
+                        names={x => byId.get(x)?.name ?? before.find(i => i.substance === x)?.name ?? x}
+                    />
                 </section>
             </div>
         </div>

@@ -177,6 +177,16 @@ const zh: Record<string, string> = {
     'over': '已結束',
     'The session over time; press and slide along it to read any moment': '整個場次隨時間的變化；按住並沿線滑動可讀取任一時刻',
 
+    // components/ToleranceChart.tsx
+    'here': '此處',
+    'fully tolerant': '完全耐受',
+    'half tolerant': '半耐受',
+    'back to normal': '已恢復正常',
+    '90 days': '90 天',
+    'Tolerance from the doses up to this session; press and slide along it to read any day': '截至這個場次的劑量所留下的耐受性；按住並沿線滑動可讀取任一天',
+    'From each dose up to this session: darker until tolerance is halved, lighter until it’s back to normal.': '從截至這個場次的每一劑起算：顏色較深表示耐受性尚未減半，較淺表示尚未恢復正常。',
+    'No tolerance is documented for {0}.': '{0} 沒有耐受性的資料。',
+
     // components/StackedBars.tsx
     '1 session': '1 個場次',
     '{0} sessions': '{0} 個場次',

@@ -198,6 +198,8 @@ export interface Detail {
   tolerance?: {
     buildUp?: string;
     reset?: string;
+    /** "Full tolerance", "Half tolerance", "Baseline", each with when. */
+    milestones?: { label: string; value: string; tone?: string }[];
     crossTolerances?: { group: string; items: string[] }[];
   };
   subjectiveEffects: { name: string; url?: string }[];
