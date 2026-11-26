@@ -847,27 +847,7 @@ input[type='search']::-webkit-search-cancel-button {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-/* The N55 window: a card over a dimmed page. */
-.n55-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgb(0 0 0 / 0.35);
-}
-.n55-card {
-  width: 100%;
-  max-width: 26rem;
-  max-height: calc(100dvh - 2rem);
-  overflow-y: auto;
-  padding: 1.25rem;
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  box-shadow: var(--shadow-lg);
-}
+/* The N55 note: a plain list under the search. */
 .n55-list {
   list-style: disc;
   padding-inline-start: 1.25rem;
