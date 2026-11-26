@@ -110,7 +110,7 @@ function Advisory({ children }: { children: React.ReactNode }) {
             <span className="icon-line">
                 <Alert size={16} strokeWidth={1.75} className="text-[var(--warning)]" />
             </span>
-            <span className="min-w-0 text-[var(--warning)]">{children}</span>
+            <span className="min-w-0 [overflow-wrap:anywhere] text-[var(--warning)]">{children}</span>
         </p>
     );
 }
