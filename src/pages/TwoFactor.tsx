@@ -118,7 +118,7 @@ export function TwoFactorPage() {
                 </div>
                 {acting && (
                     <form
-                        className="m-appear space-y-4 rounded-[var(--radius-md)] bg-[var(--surface-muted)] p-4"
+                        className="m-appear space-y-4 bg-[var(--surface-muted)] p-4"
                         onSubmit={e => {
                             e.preventDefault();
                             void run(async () => {
@@ -182,7 +182,7 @@ export function TwoFactorPage() {
                 <Steps step="scan" />
                 <p className="text-sm leading-relaxed">{'Scan this with your authenticator app, or on this phone, open it in the app.'}</p>
                 {/* Dark on white whatever the theme: some cameras won't read a light-on-dark code. */}
-                <div className="mx-auto w-fit rounded-[var(--radius-md)] bg-white p-3 shadow-[inset_0_0_0_var(--hairline)_var(--border)]">
+                <div className="mx-auto w-fit bg-white p-3 shadow-[inset_0_0_0_var(--hairline)_var(--border)]">
                     <QRCodeSVG value={setup.uri} size={176} bgColor="#ffffff" fgColor="#1a1714" level="M" marginSize={0} />
                 </div>
                 <a href={setup.uri} className="btn-secondary btn-sm w-full no-underline">
@@ -192,7 +192,7 @@ export function TwoFactorPage() {
                 <div className="space-y-1.5">
                     <p className={`text-xs ${muted}`}>{'Or type in this key:'}</p>
                     <div className="flex items-center gap-2">
-                        <code className="flex-1 select-all rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-3 py-2 font-mono text-sm tracking-wide text-[var(--text)]">{grouped}</code>
+                        <code className="flex-1 select-all bg-[var(--surface-muted)] px-3 py-2 font-mono text-sm tracking-wide text-[var(--text)]">{grouped}</code>
                         <button
                             type="button"
                             className="btn-secondary btn-sm"

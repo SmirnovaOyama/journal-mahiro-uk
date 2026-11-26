@@ -287,7 +287,7 @@ export function IngestionForm({
                                     <button
                                         type="button"
                                         key={h.entry.id}
-                                        className="flex items-center gap-3 py-2 text-start rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)] -mx-2 px-2"
+                                        className="flex items-center gap-3 py-2 text-start hover:bg-[var(--surface-hover)] -mx-2 px-2"
                                         onClick={() => {
                                             setSubstance(h.entry.id);
                                             setQ('');
@@ -303,7 +303,7 @@ export function IngestionForm({
                                 ))}
                                 <button
                                     type="button"
-                                    className="flex items-center gap-3 py-2 text-start text-sm text-[var(--text-muted)] rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)] -mx-2 px-2"
+                                    className="flex items-center gap-3 py-2 text-start text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] -mx-2 px-2"
                                     onClick={() => {
                                         setCustom(q.trim());
                                         setQ('');

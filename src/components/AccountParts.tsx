@@ -266,7 +266,7 @@ export function RecoveryKeyShow({ code, username, fresh, onDone }: { code: strin
                 </p>
             </div>
             <p
-                className="grid grid-cols-4 gap-x-3 gap-y-2 rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-4 py-4 text-center font-mono text-[1.0625rem] font-medium tracking-[0.08em] text-[var(--text)] select-all max-[360px]:grid-cols-2"
+                className="grid grid-cols-4 gap-x-3 gap-y-2 bg-[var(--surface-muted)] px-4 py-4 text-center font-mono text-[1.0625rem] font-medium tracking-[0.08em] text-[var(--text)] select-all max-[360px]:grid-cols-2"
                 aria-label={`Recovery key: ${code.split('-').join(' ')}`}
             >
                 {code.split('-').map((g, i) => (
@@ -306,7 +306,7 @@ export function BackupCodesShow({ codes, username, onDone }: { codes: string[]; 
                     {'If your phone isn’t to hand, each of these signs you in once in place of a code. Keep them somewhere safe: they’re shown only now.'}
                 </p>
             </div>
-            <ol className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-5 py-4 font-mono text-[0.9375rem] font-medium tracking-[0.06em] text-[var(--text)] select-all">
+            <ol className="grid grid-cols-2 gap-x-6 gap-y-2 bg-[var(--surface-muted)] px-5 py-4 font-mono text-[0.9375rem] font-medium tracking-[0.06em] text-[var(--text)] select-all">
                 {codes.map(c => (
                     <li key={c}>{c}</li>
                 ))}

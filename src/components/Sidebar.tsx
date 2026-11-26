@@ -45,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
             className="side-nav hidden md:block relative w-[var(--sidebar-width)] h-full shrink-0"
         >
             <div className="side-panel absolute inset-y-0 start-0 z-40 flex w-full flex-col bg-[var(--bg-subtle)] border-e-(length:--hairline) border-[var(--border)]">
-                {/* Logo: the app icon in a rounded tile, then the name. The
+                {/* Logo: the app icon in a square tile, then the name. The
                     tile is the drawings' size and centred over them, so it
                     stays in line with them in the narrow strip too. */}
                 <div className="px-[1.375rem] pt-6 pb-5 touch-short:pt-4 touch-short:pb-3">
@@ -63,14 +63,14 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                             onClick={() => {
                                 if (currentInputMode() === 'touch') setOpen(o => !o);
                             }}
-                            className="tap-target shrink-0 cursor-default rounded-[0.5625rem]"
+                            className="tap-target shrink-0 cursor-default"
                         >
                             <img
                                 src="/pwa-192x192.png"
                                 alt=""
                                 width={36}
                                 height={36}
-                                className="block size-9 max-w-none rounded-[0.5625rem]"
+                                className="block size-9 max-w-none"
                             />
                         </button>
                         <span className="side-label">
@@ -105,7 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navItems, currentView, onViewChange }
                                 }}
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={item.label}
-                                className={`w-full h-14 touch-short:h-11 flex items-center gap-3.5 px-2.5 rounded-[var(--radius-md)] text-sm transition-colors duration-150 motion-reduce:transition-none
+                                className={`w-full h-14 touch-short:h-11 flex items-center gap-3.5 px-2.5 text-sm transition-colors duration-150 motion-reduce:transition-none
                                 ${
                                     isActive
                                         ? 'font-medium text-[var(--text)] bg-[var(--surface-pressed)]'

@@ -116,26 +116,8 @@
 }
 .warning-line {
   padding: 12px 14px;
-  border-radius: var(--radius-md);
   color: var(--warning);
   background: color-mix(in oklch, var(--warning) 10%, var(--bg));
-}
-
-/* Fills, for the dots in the list of bands. */
-.band-below {
-  background: var(--band-below);
-}
-.band-light {
-  background: var(--band-light);
-}
-.band-common {
-  background: var(--band-common);
-}
-.band-strong {
-  background: var(--band-strong);
-}
-.band-heavy {
-  background: var(--band-heavy);
 }
 
 /* the timeline */
@@ -668,7 +650,6 @@ input[type='search']::-webkit-search-cancel-button {
 .chart-readout {
   z-index: 2;
   padding: 6px 10px;
-  border-radius: 12px;
   border: var(--hairline) solid var(--border);
   background: color-mix(in oklab, var(--bg) 88%, transparent);
   -webkit-backdrop-filter: blur(8px);
@@ -740,7 +721,6 @@ input[type='search']::-webkit-search-cancel-button {
   width: 8px;
   height: 8px;
   margin: -4px;
-  border-radius: 2px;
   background: var(--c);
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--text) 12%, transparent);
 }
