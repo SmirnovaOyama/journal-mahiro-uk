@@ -3,9 +3,12 @@ import {
     describe,
     resolveName,
     squash,
+    type ActHow,
+    type BodyStep,
     type Combination,
     type ComboStatus,
     type Detail,
+    type Quoted,
     type IndexEntry,
     convertAmount,
     fmtAmount,
@@ -106,9 +109,102 @@ function resetAfter(s?: string): number | null {
     return Number.isFinite(n) ? n * unit : null;
 }
 
+/** What a substance does to the things it binds to: the plain word, and
+ *  the pharmacologist's under it where that says more. Said through tr(). */
+const ACTS: Record<ActHow, [string, string]> = {
+    agonist: ['Activates', 'agonist'],
+    'partial agonist': ['Partly activates', 'partial agonist'],
+    activator: ['Activates', 'activator'],
+    'positive modulator': ['Strengthens', 'positive modulator'],
+    inhibitor: ['Inhibits', 'inhibitor'],
+    antagonist: ['Blocks', 'antagonist'],
+    'inverse agonist': ['Turns down', 'inverse agonist'],
+    'negative modulator': ['Weakens', 'negative modulator'],
+    blocker: ['Blocks', 'channel blocker'],
+    modulator: ['Modulates', ''],
+    ligand: ['Binds to', ''],
+};
+
+/** The targets as they read in a line: the receptors together, said once
+ *  ("5-HT1A, 5-HT2A, Dopamine D2 receptors"), then the rest. */
+function targetNames(on: string[]): string[] {
+    const receptors = on.filter(t => / receptor$/.test(t)).map(t => t.replace(/ receptor$/, ''));
+    const rest = on.filter(t => !/ receptor$/.test(t));
+    if (receptors.length) receptors[receptors.length - 1] += receptors.length > 1 ? ' receptors' : ' receptor';
+    return [...receptors, ...rest];
+}
+
+/** What the body does with a dose: the plain word, and the pharmacologist's under it. Said through tr(). */
+const BODY: Record<BodyStep, [string, string]> = {
+    absorbed: ['Gets into the blood', 'bioavailability'],
+    onset: ['Starts working', 'onset'],
+    lasts: ['Lasts', 'duration of action'],
+    halfLife: ['Half-life', 'time for half of it to go'],
+    brokenDown: ['Broken down', 'metabolism'],
+    turnsInto: ['Turns into', 'metabolites'],
+    leaves: ['Leaves the body', 'excretion'],
+};
+
+const wikipedia = (title: string) => `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+
+/** A row of facts: what it's about, a smaller word under it, and what's said. */
+function Fact({ about, sub, children }: { about: string; sub?: string; children: React.ReactNode }) {
+    return (
+        <div className="fact-row">
+            <dt>
+                {about}
+                {sub && <span className="fact-sub block">{sub}</span>}
+            </dt>
+            <dd>{children}</dd>
+        </div>
+    );
+}
+
+/** Where a quote is from, linked to the place in the article; and where the
+ *  rows beside it are from (`figures`: a Wikipedia article's infobox), if
+ *  that's somewhere else. */
+function QuotedFrom({ q, figures, also }: { q: Quoted; figures?: string; also?: React.ReactNode }) {
+    const what = q.source === 'PsychonautWiki' ? tr('PsychonautWiki’s page on {0}', { 0: q.page ?? '' }) : tr('Wikipedia’s article on {0}', { 0: q.page ?? '' });
+    const same = !!q.text && q.source === 'Wikipedia' && q.page === figures;
+    if (!q.text && !figures && !also) return null;
+    return (
+        <p className="footnote">
+            {q.text && (
+                <>
+                    {tr('From ')}
+                    {q.url ? (
+                        <a href={q.url} target="_blank" rel="noreferrer">
+                            {what}
+                        </a>
+                    ) : (
+                        what
+                    )}
+                    {tr('. ')}
+                </>
+            )}
+            {figures && !same && (
+                <>
+                    {q.text ? tr('The rows are from ') : tr('From ')}
+                    <a href={wikipedia(figures)} target="_blank" rel="noreferrer">
+                        {tr('Wikipedia’s article on {0}', { 0: figures })}
+                    </a>
+                    {tr('. ')}
+                </>
+            )}
+            {also}
+        </p>
+    );
+}
+
+/** Up to the first full stop that ends a sentence: not the ones in "e.g.",
+ *  "vs." or an initial, nor one with no new sentence after it. */
 function firstSentence(s: string) {
-    const parts = s.match(/[^.!?]+[.!?]+(\s|$)/g);
-    return parts ? parts[0].trim() : s;
+    const stop = /[.!?]["”’)]*(?=\s+["“‘(]?[A-Z0-9]|\s*$)/g;
+    for (let m = stop.exec(s); m; m = stop.exec(s)) {
+        if (s[m.index] === '.' && /(?:\b(?:e\.g|i\.e|vs|etc|approx|ca|cf|Dr|St|No|al)|\b[A-Z])$/.test(s.slice(0, m.index))) continue;
+        return s.slice(0, m.index + m[0].length).trim();
+    }
+    return s;
 }
 
 /** A warning as hrt.mahiro.uk words one (components/DoseAdvisory.tsx there):
@@ -235,6 +331,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
     const muted = 'text-[var(--text-muted)]';
     const reference = detail.source === 'Wikidata';
+    const how = detail.pharmacology;
+    const uses = detail.uses;
+    const side = detail.sideEffects;
     const hrt = isHrt(detail.id);
 
     // What the journal says: the last time it was logged, and whether that's still working.
@@ -389,7 +488,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
                     {reference && (
                         <p className={`mt-5 text-sm leading-relaxed ${muted} max-w-prose`}>
-                            {tr('A reference entry: what it is, its names and what it’s known to interact with, from Wikidata and Wikipedia. No doses are given for it here; for a prescribed medicine, follow the prescription.')}
+                            {tr('A reference entry: what it is, how it works, what it’s used for and what it’s known to interact with, from Wikidata and Wikipedia. No doses are given for it here; for a prescribed medicine, follow the prescription.')}
                         </p>
                     )}
 
@@ -537,6 +636,121 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 {(
                                     detail.summarySources && <p className="footnote">{tr('From {0}.', { 0: detail.summarySources })}</p>
                                 )}
+                            </Fold>
+                        )}
+                        {how && (
+                            <Fold
+                                title={tr('How it works')}
+                                hint={
+                                    how.text
+                                        ? firstSentence(how.text)
+                                        : how.acts
+                                          ? how.acts.map(a => `${tr(ACTS[a.how][0])} ${targetNames(a.on.slice(0, 3)).join(', ')}`).join('; ')
+                                          : (how.kind ?? how.body?.map(r => tr('{0}: {1}', { 0: tr(BODY[r.what][0]), 1: r.says })).join('. '))
+                                }
+                            >
+                                {how.text && <p className="text-sm max-w-prose">{how.text}</p>}
+                                {(how.kind || how.acts) && (
+                                    <dl className={how.text ? 'mt-2' : undefined}>
+                                        {how.kind && <Fact about={tr('Kind of drug')}>{how.kind}</Fact>}
+                                        {how.acts?.map(a => (
+                                            <Fact key={a.how} about={tr(ACTS[a.how][0])} sub={ACTS[a.how][1] && tr(ACTS[a.how][1])}>
+                                                {/* One name never breaks across lines ("5-" / "HT2A"). */}
+                                                <span>
+                                                    {targetNames(a.on).map((t, k, all) => (
+                                                        <React.Fragment key={t}>
+                                                            <span className="whitespace-nowrap">{t}</span>
+                                                            {k < all.length - 1 ? ', ' : ''}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </span>
+                                            </Fact>
+                                        ))}
+                                    </dl>
+                                )}
+                                {how.body && (
+                                    <>
+                                        <h3 className={`group-heading mb-1 ${how.text || how.kind || how.acts ? 'mt-5' : ''}`}>{tr('In the body')}</h3>
+                                        <dl>
+                                            {how.body.map(r => (
+                                                <Fact key={r.what} about={tr(BODY[r.what][0])} sub={tr(BODY[r.what][1])}>
+                                                    {r.says}
+                                                </Fact>
+                                            ))}
+                                        </dl>
+                                    </>
+                                )}
+                                <QuotedFrom
+                                    q={how}
+                                    figures={how.figures}
+                                    also={
+                                        how.acts && (
+                                            <>
+                                                {tr('What it binds to is from ')}
+                                                <a
+                                                    href={`https://www.guidetopharmacology.org/GRAC/LigandDisplayForward?ligandId=${how.guide}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    {tr('the Guide to Pharmacology')}
+                                                </a>
+                                                {tr('. ')}
+                                            </>
+                                        )
+                                    }
+                                />
+                            </Fold>
+                        )}
+                        {uses && (
+                            <Fold
+                                title={tr('What it’s used for')}
+                                hint={
+                                    uses.text
+                                        ? firstSentence(uses.text)
+                                        : uses.treats
+                                          ? cap(uses.treats.slice(0, 4).join(', '))
+                                          : uses.brands
+                                            ? tr('Sold as {0}', { 0: uses.brands })
+                                            : uses.routes
+                                }
+                            >
+                                {uses.text && <p className="text-sm max-w-prose">{uses.text}</p>}
+                                {uses.recreational && <p className="text-sm max-w-prose mt-3">{uses.recreational}</p>}
+                                {(uses.treats || uses.brands || uses.routes) && (
+                                    <dl className={uses.text ? 'mt-2' : undefined}>
+                                        {uses.treats && <Fact about={tr('Listed as a treatment for')}>{cap(uses.treats.join(', '))}</Fact>}
+                                        {uses.brands && <Fact about={tr('Sold as')}>{uses.brands}</Fact>}
+                                        {uses.routes && <Fact about={tr('Taken')}>{uses.routes}</Fact>}
+                                    </dl>
+                                )}
+                                <QuotedFrom q={uses} figures={uses.figures} also={uses.treats ? tr('What it treats is from Wikidata.') : undefined} />
+                            </Fold>
+                        )}
+                        {side && (
+                            <Fold
+                                title={tr('Side effects')}
+                                hint={
+                                    side.text
+                                        ? firstSentence(side.text)
+                                        : [side.addiction && tr('Addiction: {0}', { 0: side.addiction }), side.dependence && tr('Dependence: {0}', { 0: side.dependence })].filter(Boolean).join(tr('. '))
+                                }
+                            >
+                                {side.text && <p className="text-sm max-w-prose">{side.text}</p>}
+                                {(side.addiction || side.dependence) && (
+                                    <dl className={side.text ? 'mt-2' : undefined}>
+                                        {side.addiction && (
+                                            <Fact about={tr('Addiction')} sub={tr('how likely')}>
+                                                {side.addiction}
+                                            </Fact>
+                                        )}
+                                        {side.dependence && (
+                                            <Fact about={tr('Dependence')} sub={tr('how likely')}>
+                                                {side.dependence}
+                                            </Fact>
+                                        )}
+                                    </dl>
+                                )}
+                                <QuotedFrom q={side} figures={side.figures} />
                             </Fold>
                         )}
                         {safety.length > 0 && (

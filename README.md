@@ -21,9 +21,16 @@ PubChem's own 2D layout.
   what it mustn't be mixed with.
 - How much of a dose gets into the blood, by route, where it's known (110
   routes), so the same amount isn't mistaken for the same dose another way.
+- How it works, what it's used for and its side effects, each in a few
+  sentences from its Wikipedia article (2,416, 2,200 and 560 substances).
+  Beside the words, rows of facts: what kind of drug it is (1,022); what it
+  binds to and what it does there, from the Guide to Pharmacology (214); what
+  the body does with it, from how soon it works to its half-life, what breaks
+  it down, what it turns into and how it leaves (789); what it's sold as
+  (514) and how it's taken (1,234).
 - 2,339 are reference entries from Wikidata and Wikipedia: what the substance
-  is, its names, its structure and its known interactions. They never have a
-  dose.
+  is, how it works, what it's used for, its names, its structure and its
+  known interactions. They never have a dose.
 - Search by name, street name or family, or browse by kind. Each kind lists
   the documented substances first, with the rest a tap away.
 
@@ -86,10 +93,11 @@ for chat apps and search engines.
 
 | Source | What it gives | Licence |
 | --- | --- | --- |
-| [PsychonautWiki](https://psychonautwiki.org) | Doses, durations, effects, tolerance, interactions | CC BY-SA 4.0 |
+| [PsychonautWiki](https://psychonautwiki.org) | Doses, durations, effects, tolerance, interactions, and how a substance works where Wikipedia doesn't say | CC BY-SA 4.0 |
 | [TripSit](https://tripsit.me) | Combinations, factsheets | See [TripSit/drugs](https://github.com/TripSit/drugs) |
 | [Wikidata](https://www.wikidata.org) | Kinds, interactions, and the substances the two above don't cover | CC0 |
-| [Wikipedia](https://www.wikipedia.org) | Summaries, linked from each page | CC BY-SA 4.0 |
+| [Wikipedia](https://www.wikipedia.org) | Summaries; how each works, what it's used for and its side effects; the drug infobox's figures. Linked from each page | CC BY-SA 4.0 |
+| [IUPHAR/BPS Guide to Pharmacology](https://www.guidetopharmacology.org) | What a drug binds to, and what it does there | CC BY-SA 4.0 |
 | [PubChem](https://pubchem.ncbi.nlm.nih.gov) | 2D structures | Public domain (NCBI) |
 
 A substance's Wikidata item is matched by structure, then checked by name:
@@ -97,6 +105,23 @@ an isomer, a salt or a labelled copy of it (esketamine for ketamine, 4-D for
 mescaline) isn't linked, and no link is better than a wrong one. Absorption
 figures from Wikipedia are only taken from the substance's own article, with
 the route named, and never from animal studies.
+
+How a substance works, what it's used for and its side effects are quoted,
+not written (`scripts/pharmacology.mjs`): the opening sentences of its
+article's sections on them, or, where the article is too short to have
+them, the sentences of its opening lines that say so. A sentence is quoted
+whole or not at all. The quote stops at one that can't be read as plain
+words (a formula, a table, a template the script doesn't know), and at one
+that gives a dose. The rows beside the words are the article's infobox,
+field by field, read the same way. Each names its article and links to the
+place. 202 substances say nothing of how they work or what they're for,
+because no source does: no line is better than a made-up one.
+
+What a drug binds to is the Guide to Pharmacology's record, and only for
+the drugs whose primary target the Guide marks. Its other rows can be stray
+findings (lorazepam's only row there is an orphan receptor), and Wikidata's
+copy of them gets the kind of action wrong (olanzapine an agonist of the
+receptors it blocks), so neither is used.
 
 A reference entry comes from Wikidata's classes of psychoactive drugs, from
 nervous-system ATC codes, or from Wikipedia's lists of drugs (PiHKAL, TiHKAL,
