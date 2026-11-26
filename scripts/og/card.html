@@ -252,17 +252,18 @@
                    then in English. The report's own picture is line art, so
                    it is drawn in the doodles' ink as it is on the page (the
                    picture is the mask), cut square about its middle; a
-                   report with only a closing picture shows that as it is. */
+                   report with only a closing picture shows that as it is. The
+                   logo and the host sit on the picture’s bottom edge. */
                 if (kind === 'report') {
                     card = $(`<div class="card">
                         ${d.line
                             ? `<div style="position:absolute;left:44px;top:63px;width:504px;height:504px;background:var(--brand);-webkit-mask:url('${esc(d.picture)}') center / cover no-repeat;mask:url('${esc(d.picture)}') center / cover no-repeat"></div>`
                             : `<img src="${esc(d.picture)}" alt="" style="position:absolute;left:44px;top:63px;width:504px;height:504px;object-fit:contain" />`}
-                        <div style="position:absolute;left:588px;top:0;width:564px;height:540px;display:flex;flex-direction:column;justify-content:center">
+                        <div style="position:absolute;left:588px;top:0;width:564px;height:524px;display:flex;flex-direction:column;justify-content:center">
                             <div id="wish" style="font-size:40px;line-height:1.42;letter-spacing:0.01em">${d.wish.map((l) => `<p style="white-space:nowrap">${esc(l)}</p>`).join('')}</div>
                             ${d.verse.length ? `<div id="verse" class="muted" style="margin-top:26px;font-size:24px;line-height:1.5">${d.verse.map((l) => `<p style="white-space:nowrap">${esc(l)}</p>`).join('')}</div>` : ''}
                         </div>
-                        <div class="foot" style="left:588px"><img src="../../public/logo.png" alt="" />${esc(d.host)}</div>
+                        <div class="foot" style="left:588px;bottom:63px"><img src="../../public/logo.png" alt="" />${esc(d.host)}</div>
                     </div>`);
                     root.appendChild(card);
                     for (const id of ['wish', 'verse']) {
