@@ -14,7 +14,8 @@ od.gdmu.net and trip.mahiro.uk.
 ## What it does
 
 **Look things up.** 3,041 substances, each with its skeletal formula drawn from
-PubChem's own 2D layout.
+PubChem's own 2D layout, and under its name its chemical formula and molar
+mass (2,949: a plant or a family of drugs has none of its own).
 
 - 702 come from PsychonautWiki and TripSit, with doses by route on a rail from
   light to heavy, how long it lasts drawn on a clock, tolerance, effects, and
@@ -98,7 +99,7 @@ for chat apps and search engines.
 | [Wikidata](https://www.wikidata.org) | Kinds, interactions, and the substances the two above don't cover | CC0 |
 | [Wikipedia](https://www.wikipedia.org) | Summaries; how each works, what it's used for and its side effects; the drug infobox's figures. Linked from each page | CC BY-SA 4.0 |
 | [IUPHAR/BPS Guide to Pharmacology](https://www.guidetopharmacology.org) | What a drug binds to, and what it does there | CC BY-SA 4.0 |
-| [PubChem](https://pubchem.ncbi.nlm.nih.gov) | 2D structures | Public domain (NCBI) |
+| [PubChem](https://pubchem.ncbi.nlm.nih.gov) | 2D structures, chemical formulas and molar masses | Public domain (NCBI) |
 
 A substance's Wikidata item is matched by structure, then checked by name:
 an isomer, a salt or a labelled copy of it (esketamine for ketamine, 4-D for

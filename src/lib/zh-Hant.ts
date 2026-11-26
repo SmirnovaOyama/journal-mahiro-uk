@@ -725,6 +725,8 @@ const zh: Record<string, string> = {
     'Drawn: the family\'s parent structure, {0}. ': '圖為此家族的母體結構 {0}。',
     'Drawn: the family\'s best-known member, {0}. ': '圖為此家族最知名的成員 {0}。',
     'Structure from PubChem': '結構圖來自 PubChem',
+    'Structure and formula from PubChem': '結構圖與化學式來自 PubChem',
+    ', {0} g/mol': '，{0} g/mol',
     'Still working: you logged {0} {1} ago, and it lasts about {2}.': '仍在作用中：你在 {1}前記錄了 {0}，藥效約持續 {2}。',
     'May still be working: you logged {0} {1} ago. Its timing taken that way isn’t documented; other ways, up to {2}.': '可能仍在作用中：你在 {1}前記錄了 {0}。這個途徑的時間沒有資料；其他途徑最長 {2}。',
     'You last logged {0} {1}.': '你上次記錄了 {0}，{1}。',
