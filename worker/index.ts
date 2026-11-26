@@ -10,7 +10,7 @@
    the same helpers (src/lib/preview.ts). */
 
 import { categoryInfo, nameOf, type ComboMatrix, type Detail, type IndexEntry } from '../src/lib/data';
-import { speak, type Lang } from '../src/lib/i18n';
+import { speak, tr, type Lang } from '../src/lib/i18n';
 import zhWords from '../src/lib/zh-Hant';
 import zhData from '../src/lib/zh-Hant-data';
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
@@ -156,6 +156,28 @@ export default {
 
         // Accounts and their encrypted journals (worker/api.ts).
         if (url.pathname.startsWith('/api/')) return handleApi(request, env);
+
+        /* The app's manifest: its name and the line under it in the
+           visitor's language, so an installed app is named in it. */
+        if (url.pathname === '/manifest.webmanifest') {
+            const res = await env.ASSETS.fetch(new Request(url.origin + url.pathname));
+            const lang = langOf(request);
+            if (lang === 'en' || !res.ok) return res;
+            const manifest = (await res.json()) as Record<string, unknown>;
+            speakFor(lang);
+            const headers = new Headers(res.headers);
+            headers.set('content-type', 'application/manifest+json; charset=utf-8');
+            return new Response(
+                JSON.stringify({
+                    ...manifest,
+                    lang: pageTag(lang, request),
+                    name: tr('Oyama Journal'),
+                    short_name: tr('Journal'),
+                    description: tr('{0}, for {1} psychoactive substances, and a journal kept on your device.', { 0: tr(SITE.tagline), 1: '3,000' }),
+                }),
+                { headers },
+            );
+        }
 
         // Links from before the paths: ?substance=lsd.
         const legacy = url.searchParams.get('substance');

@@ -959,6 +959,8 @@ const zh: Record<string, string> = {
     'Log what you take and when. Kept on your device, and synced encrypted if you want.': '記下你用了什麼、什麼時候用的。資料存在你的裝置上，也可以選擇加密同步。',
     // pages/Substance.tsx
     'the Chinese Wikipedia': '中文維基百科',
+    // worker/index.ts: the installed app's own name and line
+    '{0}, for {1} psychoactive substances, and a journal kept on your device.': '{0}，收錄 {1} 種精神活性物質，還有一份只存在你裝置上的日誌。',
 };
 
 export default zh;
