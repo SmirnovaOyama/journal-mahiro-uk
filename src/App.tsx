@@ -14,6 +14,7 @@ import { Saved } from './pages/Saved';
 import { Onboarding, useOnboarding } from './pages/Onboarding';
 import { Settings } from './pages/Settings';
 import { Substance } from './pages/Substance';
+import { Report } from './pages/Report';
 
 /* Oyama's app shell, as hrt.mahiro.uk has it: the sidebar on a wide window,
    the page area that scrolls on its own (and is what moves between pages),
@@ -72,6 +73,8 @@ function AppContent() {
     const key =
         route.page === 'substance'
             ? `s:${route.id}`
+            : route.page === 'report'
+            ? `r:${route.id}`
             : route.page === 'kind'
               ? `k:${route.category}`
               : route.page === 'settings'
@@ -125,6 +128,8 @@ function AppContent() {
                             </div>
                         ) : route.page === 'substance' ? (
                             <Substance id={route.id} index={index} byId={byId} />
+                        ) : route.page === 'report' ? (
+                            <Report id={route.id} />
                         ) : route.page === 'mix' ? (
                             <Mix ids={route.ids} index={index} byId={byId} />
                         ) : route.page === 'kind' ? (
