@@ -168,7 +168,7 @@ export function DoseRuler({
           still scrolls under a vertical swipe. The range input is for
           keyboards and screen readers. */}
       <div
-        className="relative mt-0.5 cursor-grab active:cursor-grabbing has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-[var(--accent-ink)]"
+        className="relative mt-0.5 cursor-grab rounded-[var(--radius-sm)] active:cursor-grabbing has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-[var(--accent-ink)]"
         style={{ touchAction: 'pan-y' }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;

@@ -68,7 +68,7 @@ const PageHeader: React.FC<{
                         {onBack ? (
                             <button
                                 onClick={onBack}
-                                className="flex min-w-0 max-w-full items-center gap-3 -ml-2 px-2 py-1.5 hover:bg-[var(--surface-hover)]"
+                                className="flex min-w-0 max-w-full items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
                             >
                                 <ArrowLeft size={22} aria-hidden="true" className={`${muted} shrink-0`} />
                                 <span

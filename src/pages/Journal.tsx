@@ -166,7 +166,7 @@ function DoseRow({
                 type="button"
                 onClick={onToggle}
                 aria-expanded={open}
-                className={`w-[calc(100%+1rem)] -mx-2 px-2 py-3 flex items-center gap-3 text-start hover:bg-[var(--surface-hover)] ${open ? 'bg-[var(--surface-hover)]' : ''}`}
+                className={`w-[calc(100%+1rem)] -mx-2 px-2 py-3 flex items-center gap-3 text-start rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)] ${open ? 'bg-[var(--surface-hover)]' : ''}`}
             >
                 <span className="flex-1 min-w-0">
                     <span className="flex items-baseline justify-between gap-3">
@@ -782,7 +782,7 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                             <Link
                                 key={k}
                                 to={{ page: 'journal', substance: k }}
-                                className="group -mx-2 flex items-center gap-3 px-2 py-1 no-underline hover:bg-[var(--surface-hover)]"
+                                className="group -mx-2 flex items-center gap-3 rounded-[var(--radius-sm)] px-2 py-1 no-underline hover:bg-[var(--surface-hover)]"
                                 aria-label={`${r.name}: ${r.sessions} sessions`}
                             >
                                 <span className={`w-24 shrink-0 truncate text-xs ${muted} group-hover:text-[var(--text)]`}>{r.name}</span>

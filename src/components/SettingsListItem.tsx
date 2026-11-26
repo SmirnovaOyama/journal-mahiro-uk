@@ -21,7 +21,7 @@ export const settingsSection = 'settings-section';
  * has room around the content, and tells the section divider to follow
  * (.row-bleed in index.css).
  */
-export const rowBleed = 'row-bleed hover:bg-[var(--surface-hover)]';
+export const rowBleed = 'row-bleed rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)]';
 
 // Any of the app's icons (components/icons), or a component that takes the same props.
 export type SettingsIcon = React.ComponentType<{ size?: number | string; className?: string }>;

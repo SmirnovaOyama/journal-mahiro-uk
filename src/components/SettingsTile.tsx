@@ -3,7 +3,7 @@ import { rowBleed } from './SettingsListItem';
 import { ChevronRight } from './icons';
 
 /* The tile Settings opens its groups with (General, Data, About): the icon in
-   a square, the name, a line under it, and the chevron. Account and
+   a rounded square, the name, a line under it, and the chevron. Account and
    Admin are made of the same tiles, so the three read as one place. */
 
 const muted = 'text-[var(--text-muted)]';
@@ -39,7 +39,7 @@ export function SettingsTile({
             className={`w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start ${rowBleed}`}
         >
             <div className="flex min-w-0 items-center gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center bg-[var(--surface-muted)]">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
                     <Icon size={20} strokeWidth={1.75} className={danger ? 'text-[var(--danger)]' : muted} />
                 </div>
                 <div className="min-w-0 text-start">

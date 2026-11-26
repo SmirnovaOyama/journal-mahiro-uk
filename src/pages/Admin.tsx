@@ -195,7 +195,7 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
 
                     {confirming && !self && (
                         <form
-                            className="m-appear space-y-3 bg-[var(--surface-muted)] p-4"
+                            className="m-appear space-y-3 rounded-[var(--radius-md)] bg-[var(--surface-muted)] p-4"
                             onSubmit={e => {
                                 e.preventDefault();
                                 if (confirming === 'delete') void run('delete', () => adminDelete(u.id, password), true);
