@@ -10,6 +10,8 @@ export type CaseReport = {
     summary: string;
     /** A line of dedication, set under the picture. */
     epigraph?: string;
+    /** Last words, set after the sections: one line each. */
+    closing?: string[];
     source: string;
     url: string;
     picture?: { src: string; alt: string; credit?: string };
@@ -82,6 +84,11 @@ export function Report({ id }: { id: string }) {
                                 {s.paragraphs.map((p, i) => <p key={i} className="text-[var(--text)]"><Linked text={p} /></p>)}
                             </section>
                         ))}
+                        {report.closing && (
+                            <div className="space-y-1 text-base text-[var(--text)]">
+                                {report.closing.map((line, i) => <p key={i}>{line}</p>)}
+                            </div>
+                        )}
                         <p className="text-xs text-[var(--text-muted)]">
                             {'Original, in Chinese: '}
                             <a href={report.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">FreeODwiki RP-74</a>
