@@ -99,8 +99,8 @@ function AppContent() {
     // Each tab is one of the hand-drawn doodles, the same the sidebar shows.
     const navItems = (
         [
-            ['search', tr('Search')],
             ['journal', tr('Journal')],
+            ['search', tr('Search')],
             ['mix', tr('Mix')],
             ['saved', tr('Saved')],
             ['settings', tr('Settings')],
