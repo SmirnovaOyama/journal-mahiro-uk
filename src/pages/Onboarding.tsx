@@ -5,7 +5,7 @@ import { Molecule } from '../components/Molecule';
 import { Odometer } from '../components/Odometer';
 import { SessionChart, type ChartDose } from '../components/SessionChart';
 import { SessionMark } from '../components/SessionMark';
-import { Check, ChevronLeft, Clover } from '../components/icons';
+import { Check, ChevronLeft, Clover, Heart } from '../components/icons';
 import { PALETTE } from '../lib/journal';
 import { VERDICT, type Verdict } from '../lib/mix';
 import type { Course } from '../lib/time';
@@ -264,18 +264,19 @@ function JournalStage({ active }: { active: boolean }) {
     ];
     return (
         <div className="w-full max-w-[24rem]">
-            {/* The chart runs a little past its column, as on the journal; here
-                that's inside the panel's padding, so nothing is cut off. */}
-            <div className="px-4">{active && <SessionChart doses={doses} now={now} />}</div>
+            <div>{active && <SessionChart doses={doses} now={now} />}</div>
             <div className="mt-1 flex flex-col gap-2.5">
                 {[
                     [[PALETTE[0], PALETTE[1]], tr('Saturday night'), tr('MDMA and Cannabis'), true],
                     [[PALETTE[2]], tr('Monday'), 'Caffeine', false],
                 ].map(([colors, title, what, star]) => (
                     <div key={title as string} className="flex items-center gap-3">
-                        <SessionMark colors={colors as string[]} size={24} star={star as boolean} />
+                        <SessionMark colors={colors as string[]} size={24} />
                         <span className="min-w-0">
-                            <span className="block text-sm font-medium text-[var(--text)]">{title as string}</span>
+                            <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text)]">
+                                {title as string}
+                                {(star as boolean) && <Heart size={13} fill="currentColor" className="text-[var(--text-muted)]" />}
+                            </span>
                             <span className="block text-xs text-[var(--text-muted)]">{what as string}</span>
                         </span>
                     </div>

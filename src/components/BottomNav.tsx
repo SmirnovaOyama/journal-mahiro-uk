@@ -9,19 +9,18 @@ interface NavTab {
 
 /**
  * The bottom bar on a phone: a frosted floating island that content scrolls
- * visibly beneath. The current tab's icon sits in a tonal terracotta pill,
- * and the pill is the bar's one motion: tap another tab and it glides there
- * (.chip-slide), the icon taking its colour as it arrives. The page itself is
- * simply there; nothing else in the bar moves, and nothing does on the first
- * render.
+ * visibly beneath, drawn with the same hairline as the rest of the page and
+ * no shadow. The current tab is black and the others grey: that is the whole
+ * difference. The colour eases over, icon and label as one, since the icon
+ * takes its ink from the label's (app.css, .nav-tab); a tab pressed sinks a
+ * little under the finger. (A tinted pill used to glide to the new tab while
+ * its label turned bold at once, so the two arrived at different moments.)
+ * The icons are the hand-drawn doodles, in one ink like the label under them.
  *
  * Labels stay on one line: a wrapped one raised its icon above the rest and
  * grew the island past the scroller's bottom padding. Below 340px they drop to
  * 10px rather than being cut off, and the packs keep them short enough for
- * that. The longest, Turkish Genel bakış, is the name that pack's other
- * strings give the page, so it stays, and its tab takes a few pixels more
- * than the rest. Each tab is rounded so the focus ring nests in the island
- * instead of cutting a square into the next tab's pill.
+ * that. Each tab is rounded so the focus ring nests in the island.
  *
  * Reading down a long page, the bar slides out of the way so it no longer
  * sits over what's being read; a short scroll back up, the top of the page or
@@ -39,37 +38,6 @@ const BottomNav: React.FC<{
     pageKey?: string;
 }> = ({ tabs, activeTab, onSelect, pageKey }) => {
     const navRef = useRef<HTMLElement>(null);
-    const rowRef = useRef<HTMLDivElement>(null);
-    const marks = useRef<Record<string, HTMLSpanElement | null>>({});
-    const [pill, setPill] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
-    // The first placement lands where it belongs; only later ones glide.
-    const [placed, setPlaced] = useState(false);
-
-    useLayoutEffect(() => {
-        const place = () => {
-            const el = marks.current[activeTab];
-            if (!el) {
-                setPill(null);
-                return;
-            }
-            const next = { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight };
-            setPill(prev =>
-                prev &&
-                prev.left === next.left &&
-                prev.top === next.top &&
-                prev.width === next.width &&
-                prev.height === next.height
-                    ? prev
-                    : next,
-            );
-        };
-        place();
-        const row = rowRef.current;
-        if (!row || typeof ResizeObserver === 'undefined') return;
-        const ro = new ResizeObserver(place);
-        ro.observe(row);
-        return () => ro.disconnect();
-    }, [activeTab, tabs]);
 
     // The bar's real height, for the page's bottom clearance (--nav-clearance):
     // larger text or a longer label makes it taller than any fixed figure.
@@ -95,26 +63,13 @@ const BottomNav: React.FC<{
     const held = useSyncExternalStore(watchHolds, () => holds > 0);
     const hidden = scrolledAway || held;
 
-    useEffect(() => {
-        if (!pill || placed) return;
-        const frame = requestAnimationFrame(() => setPlaced(true));
-        return () => cancelAnimationFrame(frame);
-    }, [pill, placed]);
-
     return (
         <nav
             ref={navRef}
             data-hidden={hidden ? '' : undefined}
-            className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)] shadow-[var(--shadow-xs)]"
+            className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)]"
         >
-            <div ref={rowRef} className="relative flex items-stretch p-1.5 gap-0.5">
-                {pill && (
-                    <span
-                        aria-hidden="true"
-                        className={`absolute rounded-full bg-[var(--accent-subtle)] ${placed ? 'chip-slide' : ''}`}
-                        style={pill}
-                    />
-                )}
+            <div className="flex items-stretch p-1.5 gap-0.5">
                 {tabs.map(({ id, icon, label }) => {
                     // Journal draws its own tab icons; the borrowed line set is only a fallback.
                     const TabIcon = icon ?? PHONE_TAB_ICONS[id];
@@ -124,16 +79,10 @@ const BottomNav: React.FC<{
                             key={id}
                             onClick={() => onSelect(id)}
                             aria-current={isActive ? 'page' : undefined}
-                            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] transition-none ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
+                            className={`nav-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
                         >
-                            {/* Above the pill, which is positioned too. */}
-                            <span
-                                ref={el => {
-                                    marks.current[id] = el;
-                                }}
-                                className={`relative z-10 grid h-[30px] w-[52px] place-items-center rounded-full transition-colors duration-200 ${isActive ? 'text-[var(--accent-ink)]' : ''}`}
-                            >
-                                <TabIcon size={22} strokeWidth={isActive ? 2 : 1.75} />
+                            <span className="nav-ico grid h-[30px] w-[52px] place-items-center">
+                                <TabIcon size={22} />
                             </span>
                             <span className="whitespace-nowrap text-xs leading-4 font-medium">{label}</span>
                         </button>

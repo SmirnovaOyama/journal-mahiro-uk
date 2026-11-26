@@ -106,7 +106,7 @@ export function mixPreview(names: string[], verdict?: Verdict, note?: string): P
     if (names.length < 2 || !verdict) {
         return {
             title: 'Mix',
-            description: 'Add everything you plan to take together, alcohol and medicines included, to see whether the mix is safe.',
+            description: 'What are the risks of taking these together? Add everything you plan to take, alcohol and medicines included.',
             image: verdictCard('Unknown'),
             imageAlt: 'Mix checker',
         };

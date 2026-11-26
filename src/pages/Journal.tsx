@@ -27,17 +27,18 @@ import Segmented from '../components/Segmented';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { StackedBars, type Bucket } from '../components/StackedBars';
 import { AlcoholLine } from '../components/AlcoholLine';
-import { SessionChart, type ChartDose } from '../components/SessionChart';
-import { SessionMark, starPath } from '../components/SessionMark';
+import { KeepNote } from '../components/KeepNote';
+import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChart';
+import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
-import { ChevronDown, ChevronRight, Plus } from '../components/icons';
+import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
 import { dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
 
 /* The journal, as PsychonautWiki Journal lays its own out, in Oyama's hand:
    the page's title with Log on the right and the form folding open under
    it; then the session still going, on its clock, with what it holds that
    doesn't mix; then every session before it, newest first, one row each:
-   a disc in the colours of what was taken (a star on it for a favourite),
+   a short line in the colour of each thing taken, as its curve is drawn,
    its name or its day, what was in it, and the time. A session opens to its
    own page: its doses, its total, its rating and notes. Stats sit beside
    the log: sessions month by month, the most used, and each substance's
@@ -269,39 +270,74 @@ const substancesOf = (s: Session) => [...new Set(s.ingestions.map(i => i.substan
 const nameOf = (x: string, s: Session | Ingestion[], byId: Map<string, IndexEntry>) =>
     byId.get(x)?.name ?? (Array.isArray(s) ? s : s.ingestions).find(i => i.substance === x)?.name ?? x;
 
-function SessionRow({ s, data, byId }: { s: Session; data: JournalData; byId: Map<string, IndexEntry> }) {
+function SessionRow({ s, data, byId, now }: { s: Session; data: JournalData; byId: Map<string, IndexEntry>; now?: number }) {
     const meta = data.meta?.[s.id] ?? {};
     const subs = substancesOf(s);
+    const what = andList(subs.map(x => nameOf(x, s, byId)));
+    // The session still going leads with what's in it and says how long it
+    // has been going; a past one is found by its name or its day.
+    const live = now !== undefined;
+    const title = live ? what : meta.title || dayLabel(s.start);
+    const sub = live ? tr('Started {0}, {1} in', { 0: clock(s.start), 1: since(s.start, now) }) : what;
     return (
         <Link
             to={{ page: 'journal', session: s.id }}
             className={`w-full min-h-16 flex items-center gap-3 py-3 text-start no-underline ${rowBleed}`}
             style={{ '--divider-inset': '2.75rem' } as CSSProperties}
         >
-            <SessionMark colors={subs.map(x => colorOf(data, x))} star={!!meta.favorite} />
+            <SessionMark colors={subs.map(x => colorOf(data, x))} />
             <span className="flex-1 min-w-0">
-                <span className={`block text-sm font-medium ${on} truncate`}>{meta.title || dayLabel(s.start)}</span>
-                <span className={`block text-xs ${muted} mt-0.5 truncate`}>{andList(subs.map(x => nameOf(x, s, byId)))}</span>
+                <span className={`flex items-center gap-1.5 text-sm font-medium ${on}`}>
+                    <span className="truncate">{title}</span>
+                    {meta.favorite && <Heart size={14} fill="currentColor" className={`${muted} shrink-0`} label={tr('Favourite')} />}
+                </span>
+                <span className={`block text-xs ${muted} mt-0.5 truncate`}>{sub}</span>
             </span>
-            <span className={`text-xs tabular-nums ${muted} shrink-0`}>{meta.title ? shortDate(s.start) : clock(s.start)}</span>
+            {!live && <span className={`text-xs tabular-nums ${muted} shrink-0`}>{meta.title ? shortDate(s.start) : clock(s.start)}</span>}
             <ChevronRight size={16} className={`${muted} shrink-0 opacity-70`} />
         </Link>
     );
 }
 
-/** A star, drawn as the icons are: a line, filled when on. */
-function Star({ on: filled, size = 17 }: { on: boolean; size?: number }) {
+/** Under the chart of the session still going: where each substance is now
+ *  and about when it will be over, and what the chart is a picture of. */
+function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }) {
+    // The latest dose of each substance says where it is.
+    const latest = new Map<string, ChartDose>();
+    for (const d of doses) {
+        const k = d.label ?? d.id;
+        if (!latest.has(k) || latest.get(k)!.time < d.time) latest.set(k, d);
+    }
+    const lines = [...latest.values()]
+        .filter(d => d.course)
+        .map(d => {
+            const end = d.time + d.course!.over * 60_000;
+            return {
+                d,
+                text:
+                    now >= end
+                        ? tr('{0} is over', { 0: d.label ?? '' })
+                        : tr('{0}: {1}, over around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) }),
+            };
+        });
     return (
-        <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-            <path
-                d={starPath(12, 12.6, 9.6, 4.2)}
-                fill={filled ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                strokeWidth={1.5}
-                strokeLinejoin="round"
-            />
-        </svg>
+        <div className="mt-1">
+            {lines.map(({ d, text }) => (
+                <p key={d.id} className={`text-sm ${on}`}>
+                    {text}
+                </p>
+            ))}
+            <p className={`text-xs ${muted} mt-1`}>
+                {tr('The curve’s height is how strong it is against its peak. Times are estimates from typical durations; yours can differ.')}
+            </p>
+        </div>
     );
+}
+
+/** A heart, drawn as the icons are: a line, filled when on. Favourite
+ *  sessions wear the same one as saved substances and the Saved tab. */
+function Fave({ on: filled }: { on: boolean }) {
+    return <Heart size={18} fill={filled ? 'currentColor' : 'none'} />;
 }
 
 /* ── the page ───────────────────────────────────────────────────────── */
@@ -378,13 +414,12 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                         {count > 0 && !view && (
                             <button
                                 type="button"
-                                className={`${onlyStarred ? headerActionAccent : headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
+                                className={`${onlyStarred ? headerActionAccent : headerAction} tap-target`}
                                 aria-pressed={onlyStarred}
-                                aria-label={tr('Favourites only')}
                                 onClick={() => setOnlyStarred(f => !f)}
                             >
-                                <Star on={onlyStarred} />
-                                <span className="max-sm:hidden">{tr('Favourites')}</span>
+                                <Fave on={onlyStarred} />
+                                {tr('Favourites')}
                             </button>
                         )}
                         {view !== 'weight' && (
@@ -445,6 +480,10 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                 <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
                                     {tr('Log a dose')}
                                 </button>
+                                {/* From the very first visit, while there's little to move. */}
+                                <div className="mt-10 w-full text-start">
+                                    <KeepNote />
+                                </div>
                             </div>
                         )
                     ) : (
@@ -453,10 +492,11 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                 <section className="mb-9">
                                     <h2 className="group-heading mb-1">{tr('Current')}</h2>
                                     <div className="settings-section">
-                                        <SessionRow s={live} data={data} byId={byId} />
+                                        <SessionRow s={live} data={data} byId={byId} now={now} />
                                     </div>
                                     <div className="mt-3">
                                         <SessionChart doses={chartDoses(live, details, color)} now={now} />
+                                        <ChartCaption doses={chartDoses(live, details, color)} now={now} />
                                         <AlcoholLine s={live} now={now} />
                                     </div>
                                     <div className="mt-3">
@@ -467,11 +507,14 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         to={{ page: 'mix', ids: substancesOf(live).filter(x => byId.has(x)) }}
                                         className={`${headerActionAccent} tap-target -ms-2.5 mt-2 no-underline`}
                                     >
-                                        {tr('Check something else against this')}
+                                        {tr('See the risks of mixing with {0}', { 0: andList(substancesOf(live).map(x => nameOf(x, live, byId))) })}
                                         <ChevronRight size={15} />
                                     </Link>
                                 </section>
                             )}
+
+                            {/* Below the session going on, which comes first. */}
+                            <KeepNote />
 
                             {previous.length > 0 ? (
                                 [...years.entries()].map(([y, list], k) => (
@@ -487,7 +530,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     </section>
                                 ))
                             ) : onlyStarred ? (
-                                <p className={`text-sm ${muted}`}>{tr('No favourites yet. Open a session and tap its star.')}</p>
+                                <p className={`text-sm ${muted}`}>{tr('No favourites yet. Open a session and tap its heart.')}</p>
                             ) : null}
                         </>
                     )}
@@ -551,13 +594,12 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                     <>
                         <button
                             type="button"
-                            className={`${meta.favorite ? headerActionAccent : headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
+                            className={`${meta.favorite ? headerActionAccent : headerAction} tap-target`}
                             aria-pressed={!!meta.favorite}
-                            aria-label={meta.favorite ? tr('Favourite') : tr('Add to favourites')}
                             onClick={() => setMeta(s.id, { favorite: !meta.favorite })}
                         >
-                            <Star on={!!meta.favorite} />
-                            <span className="max-sm:hidden">{meta.favorite ? tr('Favourite') : tr('Favourite')}</span>
+                            <Fave on={!!meta.favorite} />
+                            {tr('Favourite')}
                         </button>
                         <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
                             <Plus size={16} />

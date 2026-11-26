@@ -29,6 +29,9 @@ const pupil =
 const slash = 'M4.3 4.4c5.2 5.1 10.3 10.2 15.5 15.3';
 const bookmark =
     'M7.2 4.6c3.2-.2 6.4-.2 9.6 0 .2 5.1.2 10.2.05 15.3-1.6-1.35-3.2-2.65-4.85-3.95-1.6 1.3-3.2 2.6-4.85 3.9-.2-5.1-.15-10.2.05-15.25';
+// A heart, the saved tab's doodle drawn on this grid: what you keep, a
+// substance or a session.
+const heart = 'M12 19.93C7.68 16.76 3.65 13.74 3.79 9.42C3.94 6.25 6.53 4.38 8.98 4.67C10.56 4.81 11.57 5.96 12 7.26C12.58 5.82 13.73 4.67 15.46 4.67C18.05 4.67 20.35 6.68 20.06 9.85C19.78 13.88 16.03 16.91 11.71 20.22';
 const triangle = 'M12 4.1c2.8 4.9 5.6 9.7 8.4 14.6-5.6.3-11.2.3-16.8.05 2.7-4.9 5.5-9.8 8.6-14.85';
 
 export const GLYPHS = {
@@ -174,6 +177,7 @@ export const GLYPHS = {
     ],
     // Templates: a ribbon marker.
     bookmark: [bookmark],
+    heart: [heart],
     'bookmark-plus': [bookmark, 'M12.05 7.6c.05 1.4.05 2.75 0 4.1', 'M10 9.65c1.4-.05 2.7-.05 4.1 0'],
     // Choosing several: two ticked lines and one still open.
     select: [

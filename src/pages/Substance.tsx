@@ -30,7 +30,7 @@ import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../co
 import Segmented from '../components/Segmented';
 import { rowBleed } from '../components/SettingsListItem';
 import { Timeline } from '../components/Timeline';
-import { Alert, Bookmark, ChevronRight, Clover, External, Info, Plus } from '../components/icons';
+import { Alert, ChevronRight, Clover, External, Heart, Info, Plus } from '../components/icons';
 import { Waiting } from '../components/Waiting';
 import { Linked } from '../components/Linked';
 import { dateLocale, roaName, spanText, tr } from '../lib/i18n';
@@ -398,7 +398,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             aria-label={isSaved ? tr('Saved', undefined, 'bookmark') : tr('Save', undefined, 'bookmark')}
                             onClick={() => saved.toggle(detail.id)}
                         >
-                            <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
+                            <Heart size={18} fill={isSaved ? 'currentColor' : 'none'} />
                             <span className="max-sm:hidden">{isSaved ? tr('Saved', undefined, 'bookmark') : tr('Save', undefined, 'bookmark')}</span>
                         </button>
                     </>

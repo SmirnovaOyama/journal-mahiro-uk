@@ -10,9 +10,11 @@ import { CareNote } from '../components/CareNote';
 import { isCareSearch } from '../lib/care';
 import { rowBleed } from '../components/SettingsListItem';
 import { SubstanceRow } from '../components/SubstanceRow';
-import { ChevronRight, Clover, Close } from '../components/icons';
+import { ChevronRight, Clover, Close, Plus } from '../components/icons';
 import { Linked } from '../components/Linked';
 import { tr } from '../lib/i18n';
+import { sessionsOf, useJournal } from '../lib/journal';
+import { courseFor } from '../lib/time';
 
 const EXAMPLES: [string, string][] = [
     ['alcohol', 'ketamine'],
@@ -21,6 +23,29 @@ const EXAMPLES: [string, string][] = [
     ['cocaine', 'alcohol'],
     ['cannabis', 'mdma'],
 ];
+
+const TONE_TEXT: Record<string, string> = {
+    danger: 'text-[var(--danger)]',
+    warning: 'text-[var(--warning)]',
+    info: 'text-[var(--status-info)]',
+    positive: 'text-[var(--text-muted)]',
+    neutral: 'text-[var(--text-muted)]',
+};
+
+/** What the journal says is still working: the latest session's substances
+ *  whose effects aren't over yet (six hours, when how long isn't known). */
+function useStillActive(byId: Map<string, IndexEntry>, details: Record<string, Detail>) {
+    const { data } = useJournal();
+    const now = Date.now();
+    const latest = sessionsOf(data.ingestions)[0];
+    const ids = new Set<string>();
+    for (const i of latest?.ingestions ?? []) {
+        if (!byId.has(i.substance)) continue;
+        const c = courseFor(details[i.substance]?.durationRows, i.route);
+        if (now < i.time + (c ? c.course.over : 360) * 60_000) ids.add(i.substance);
+    }
+    return { ids: [...ids], candidates: [...new Set((latest?.ingestions ?? []).map(i => i.substance).filter(x => byId.has(x)))] };
+}
 
 /** The mix checker: put substances on the table, read one answer. */
 export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] | null; byId: Map<string, IndexEntry> }) {
@@ -42,13 +67,21 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
             .catch(() => {});
     }, []);
 
+    // What's still working from the journal, offered at the top to add.
+    const working = useStillActive(byId, details);
+    const activeOff = working.ids.filter(id => !ids.includes(id)).map(id => byId.get(id)!);
+    // With nothing chosen, the common checks show their answer, so their
+    // substances are read too.
+    const exampleIds = chosen.length ? [] : EXAMPLES.flat();
+    const wantedKey = [...new Set([...chosen.map(e => e.id), ...working.candidates, ...exampleIds])].filter(id => byId.has(id)).join();
+    const wanted = useMemo(() => wantedKey.split(',').filter(Boolean), [wantedKey]);
     useEffect(() => {
-        for (const e of chosen)
-            if (!details[e.id])
-                loadDetail(e.id)
+        for (const id of wanted)
+            if (!details[id])
+                loadDetail(id)
                     .then(d => setDetails(prev => ({ ...prev, [d.id]: d })))
                     .catch(() => {});
-    }, [chosen, details]);
+    }, [wanted, details]);
 
     const hits = useMemo(
         () => (index ? search(index, q, 30).filter(h => !ids.includes(h.entry.id)).slice(0, 6) : []),
@@ -85,11 +118,31 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
 
     return (
         <>
-            <PageHeader title={tr('Mix')} subtitle={tr('Is it safe to take these together?')} backTo={fromLink} />
+            <PageHeader title={tr('Mix')} backTo={fromLink} />
             <div className={`${PAGE_COLUMN} pb-8`}>
                 <p className="text-sm text-[var(--text-muted)] mb-4">
-                    {tr('Add everything you plan to take, including alcohol and any medication.')}
+                    {tr('What are the risks of taking these together? Add everything you plan to take, including alcohol and any medication.')}
                 </p>
+
+                {activeOff.length > 0 && (
+                    <section className="mb-4" aria-label={tr('Still working, from your journal')}>
+                        <h2 className="group-heading mb-2">{tr('Still working, from your journal')}</h2>
+                        <ul className="flex flex-wrap gap-2">
+                            {activeOff.map(e => (
+                                <li key={e.id}>
+                                    <button
+                                        type="button"
+                                        onClick={() => add(e)}
+                                        className="inline-flex items-center gap-1.5 h-11 ps-3 pe-3.5 rounded-full border-(length:--hairline) border-[var(--border-strong)] text-sm font-medium text-[var(--text)] hover:bg-[var(--surface-hover)]"
+                                    >
+                                        <Plus size={16} />
+                                        {e.name}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
 
                 {chosen.length > 0 && (
                     <ul className="flex flex-wrap gap-2 mb-4" aria-label={tr('On the table')}>
@@ -153,21 +206,30 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
 
                 {chosen.length === 0 && (
                     <section className="mt-8">
-                        <h2 className="group-heading mb-1">{tr('Or try one of these')}</h2>
+                        <h2 className="group-heading mb-1">{tr('Common checks')}</h2>
                         <div className="settings-section">
-                            {EXAMPLES.filter(([a, b]) => byId.has(a) && byId.has(b)).map(([a, b]) => (
-                                <Link
-                                    key={a + b}
-                                    to={{ page: 'mix', ids: [a, b] }}
-                                    move="none"
-                                    className={`w-full min-h-12 flex items-center gap-3 py-3 text-sm text-[var(--text)] no-underline ${rowBleed}`}
-                                >
-                                    <span className="flex-1">
-                                        {byId.get(a)!.name} {tr('and')} {byId.get(b)!.name}
-                                    </span>
-                                    <ChevronRight size={18} className="text-[var(--text-muted)] opacity-70" />
-                                </Link>
-                            ))}
+                            {EXAMPLES.filter(([a, b]) => byId.has(a) && byId.has(b)).map(([a, b]) => {
+                                // Its answer in words on the right, so a deadly pair
+                                // doesn't look like the others; none until it's read.
+                                const A = byId.get(a)!;
+                                const B = byId.get(b)!;
+                                const known = details[a] && details[b] && matrix;
+                                const v = known ? VERDICT[checkPair(A, B, details[a], details[b], matrix).verdict] : null;
+                                return (
+                                    <Link
+                                        key={a + b}
+                                        to={{ page: 'mix', ids: [a, b] }}
+                                        move="none"
+                                        className={`w-full min-h-12 flex items-center gap-3 py-3 text-sm text-[var(--text)] no-underline ${rowBleed}`}
+                                    >
+                                        <span className="flex-1 min-w-0">
+                                            {A.name} {tr('and')} {B.name}
+                                        </span>
+                                        {v && <span className={`shrink-0 text-sm font-medium ${TONE_TEXT[v.tone]}`}>{tr(v.label)}</span>}
+                                        <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)] opacity-70" />
+                                    </Link>
+                                );
+                            })}
                         </div>
                     </section>
                 )}
