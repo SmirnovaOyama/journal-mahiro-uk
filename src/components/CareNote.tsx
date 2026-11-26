@@ -8,18 +8,44 @@ import { isZh } from '../lib/i18n';
    talk to. It sits above the results and blocks nothing. In Chinese when the
    search was. */
 
-type Line = { where: string; name: string; number?: string; tel?: string; href?: string; zhOnly?: boolean };
+/* Each line, with what to call it where the two Chinese scripts differ
+   (`hant`: the name, where, and what the link says, for a reader in
+   正體中文). The ones nearest the reader come first. */
+type Line = {
+    where: string;
+    name: string;
+    number?: string;
+    tel?: string;
+    href?: string;
+    zhOnly?: boolean;
+    hant?: { where?: string; name?: string; number?: string };
+};
 
 const LINES: Line[] = [
-    { where: 'Twitter / X', name: '@lianyiganyu', number: '去私信', href: 'https://x.com/lianyiganyu', zhOnly: true },
-    { where: '中国大陆 Mainland China', name: '希望24热线', number: '400-161-9995', tel: '4001619995' },
-    { where: '中国大陆 Mainland China', name: '北京心理危机研究与干预中心', number: '010-8295 1332', tel: '+861082951332' },
+    { where: 'Twitter / X', name: '@lianyiganyu', number: '去私信', href: 'https://x.com/lianyiganyu', zhOnly: true, hant: { number: '傳私訊' } },
+    { where: '中国大陆 Mainland China', name: '希望24热线', number: '400-161-9995', tel: '4001619995', hant: { where: '中國大陸 Mainland China', name: '希望 24 熱線' } },
+    {
+        where: '中国大陆 Mainland China',
+        name: '北京心理危机研究与干预中心',
+        number: '010-8295 1332',
+        tel: '+861082951332',
+        hant: { where: '中國大陸 Mainland China', name: '北京心理危機研究與干預中心' },
+    },
     { where: '香港 Hong Kong', name: '撒瑪利亞防止自殺會 Samaritan Befrienders', number: '2389 2222', tel: '+85223892222' },
     { where: '台灣 Taiwan', name: '安心專線', number: '1925', tel: '1925' },
     { where: 'US & Canada', name: '988 Suicide & Crisis Lifeline', number: 'Call or text 988', tel: '988' },
     { where: 'UK & Ireland', name: 'Samaritans', number: '116 123', tel: '116123' },
-    { where: 'Anywhere else 其他地区', name: 'Find A Helpline', number: 'findahelpline.com', href: 'https://findahelpline.com' },
+    {
+        where: 'Anywhere else 其他地区',
+        name: 'Find A Helpline',
+        number: 'findahelpline.com',
+        href: 'https://findahelpline.com',
+        hant: { where: '其他地區 Anywhere else' },
+    },
 ];
+
+/** In 正體中文, Taiwan's and Hong Kong's lines first, then the rest in order. */
+const NEAR_HANT = ['撒瑪利亞防止自殺會 Samaritan Befrienders', '安心專線'];
 
 /** A sentence, and the kaomoji at its end kept whole on one line. */
 function Kao({ text }: { text: string }) {
@@ -90,7 +116,9 @@ export function CareNote({ q }: { q: string }) {
             </div>
             <h3 className="group-heading mt-5 mb-1">{t.heading}</h3>
             <ul className="care-lines">
-                {LINES.filter(l => zh || !l.zhOnly).map(l => (
+                {LINES.filter(l => zh || !l.zhOnly)
+                    .sort((a, b) => (isZh() ? NEAR_HANT.indexOf(b.name) - NEAR_HANT.indexOf(a.name) : 0))
+                    .map(l => (
                     <li key={l.name}>
                         <a
                             href={l.href ?? `tel:${l.tel}`}
@@ -98,11 +126,11 @@ export function CareNote({ q }: { q: string }) {
                             className="care-line no-underline"
                         >
                             <span className="min-w-0">
-                                <span className="block text-sm font-semibold text-[var(--text)]">{l.name}</span>
-                                <span className="block text-xs text-[var(--text-muted)]">{l.where}</span>
+                                <span className="block text-sm font-semibold text-[var(--text)]">{(isZh() && l.hant?.name) || l.name}</span>
+                                <span className="block text-xs text-[var(--text-muted)]">{(isZh() && l.hant?.where) || l.where}</span>
                             </span>
                             <span className="care-number">
-                                {l.number}
+                                {(isZh() && l.hant?.number) || l.number}
                                 {l.href ? <External size={13} /> : <Phone size={14} />}
                             </span>
                         </a>
