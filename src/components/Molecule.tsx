@@ -170,7 +170,7 @@ export function Molecule({ id, form, size = 'sm' }: { id: string; form: DosageFo
     return (
         <span ref={box} className={`molecule molecule-${size}`} aria-hidden="true">
             {markup ? (
-                <span className="molecule-ink m-appear" dangerouslySetInnerHTML={{ __html: markup }} />
+                <span className="molecule-ink" dangerouslySetInnerHTML={{ __html: markup }} />
             ) : markup === null ? (
                 <FormDoodle form={form} size={doodle} />
             ) : null}
