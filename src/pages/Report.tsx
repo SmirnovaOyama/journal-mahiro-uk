@@ -10,8 +10,8 @@ export type CaseReport = {
     summary: string;
     /** A line of dedication, set under the picture. */
     epigraph?: string;
-    /** Last words, set after the sections: one line each. */
-    closing?: string[];
+    /** Last words, set after the sections: each a few lines kept together. */
+    closing?: string[][];
     source: string;
     url: string;
     picture?: { src: string; alt: string; credit?: string };
@@ -85,8 +85,12 @@ export function Report({ id }: { id: string }) {
                             </section>
                         ))}
                         {report.closing && (
-                            <div className="space-y-1 text-base text-[var(--text)]">
-                                {report.closing.map((line, i) => <p key={i}>{line}</p>)}
+                            <div className="space-y-4 text-base text-[var(--text)]">
+                                {report.closing.map((lines, i) => (
+                                    <div key={i} className="space-y-1">
+                                        {lines.map((line, j) => <p key={j}>{line}</p>)}
+                                    </div>
+                                ))}
                             </div>
                         )}
                         <p className="text-xs text-[var(--text-muted)]">
