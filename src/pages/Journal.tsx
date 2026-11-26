@@ -19,6 +19,7 @@ import { useAccount } from '../lib/account';
 import { isHrt, sparkleFrom, toast } from '../lib/eggs';
 import { courseFor, courseOf, formatMinutes } from '../lib/time';
 import Doodle from '../components/Doodle';
+import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
 import { Link } from '../components/Link';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
@@ -307,7 +308,7 @@ export function Journal({
     index: IndexEntry[] | null;
     byId: Map<string, IndexEntry>;
     session?: string;
-    view?: 'stats';
+    view?: 'stats' | 'weight';
     substance?: string;
 }) {
     if (substance) return <SubstanceHistory id={substance} byId={byId} />;
@@ -315,13 +316,14 @@ export function Journal({
     return <JournalHome index={index} byId={byId} view={view} />;
 }
 
-const JOURNAL_TAB_ORDER = ['log', 'stats'] as const;
+const JOURNAL_TAB_ORDER = ['log', 'stats', 'weight'] as const;
 const JOURNAL_TABS = [
     { id: 'log', label: 'Log' },
     { id: 'stats', label: 'Stats' },
+    { id: 'weight', label: 'Weight' },
 ] as const;
 
-function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry>; view?: 'stats' }) {
+function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry>; view?: 'stats' | 'weight' }) {
     const { data, add } = useJournal();
     const now = useNow();
     // Opened from a substance's Log: the way back to it.
@@ -355,7 +357,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     const thisYear = new Date().getFullYear();
 
     const count = sessions.length;
-    const tab = view === 'stats' ? 'stats' : 'log';
+    const tab = view ?? 'log';
     const anim = useSwitchAnimation(tab, JOURNAL_TAB_ORDER);
     return (
         <div className="md:pb-32">
@@ -365,7 +367,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                 subtitle={count ? (count === 1 ? '1 session' : `${count} sessions`) : account ? 'Kept in sync with your account' : 'Only on this device'}
                 actions={
                     <>
-                        {count > 0 && view !== 'stats' && (
+                        {count > 0 && !view && (
                             <button
                                 type="button"
                                 className={`${onlyStarred ? headerActionAccent : headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
@@ -377,10 +379,12 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                 <span className="max-sm:hidden">{'Favourites'}</span>
                             </button>
                         )}
-                        <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
-                            <Plus size={16} />
-                            {adding ? 'Close' : 'Log'}
-                        </button>
+                        {view !== 'weight' && (
+                            <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
+                                <Plus size={16} />
+                                {adding ? 'Close' : 'Log'}
+                            </button>
+                        )}
                     </>
                 }
             />
@@ -391,7 +395,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                 <Tabs
                     tabs={JOURNAL_TABS}
                     value={tab}
-                    onChange={v => go(v === 'stats' ? { page: 'journal', view: 'stats' } : { page: 'journal' }, { replace: true })}
+                    onChange={v => go(v === 'log' ? { page: 'journal' } : { page: 'journal', view: v }, { replace: true })}
                     className="mb-6"
                 />
                 <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
@@ -418,7 +422,9 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                 </div>
 
                 <div key={tab} className={anim}>
-                    {view === 'stats' ? (
+                    {view === 'weight' ? (
+                        <WeightLog />
+                    ) : view === 'stats' ? (
                         <Stats byId={byId} now={now} />
                     ) : count === 0 ? (
                         adding ? null : (

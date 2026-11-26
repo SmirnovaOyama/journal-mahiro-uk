@@ -51,7 +51,8 @@ a copy it can't read. Two-step sign-in, with an authenticator app and backup
 codes, is there to turn on. See [Accounts](#accounts).
 
 **Body weight.** Set once in Settings (kg or lb, 20 to 400 kg), as hrt.mahiro.uk
-keeps it. With it, a dose given per kilogram (ibogaine's) reads as an amount,
+keeps it, or log each weighing under the journal's Weight tab, which keeps
+the history (synced and exported with the journal) and sets the newest one. With it, a dose given per kilogram (ibogaine's) reads as an amount,
 an amount reads per kilogram on the dose rail and in the journal, and a
 session with alcohol in it shows blood alcohol, roughly: how high it went,
 where it is now, and about when it's back to none (Widmark's formula, as a
@@ -71,7 +72,7 @@ for chat apps and search engines.
 | `/s/lsd` | A substance |
 | `/kind/Stimulant` | One kind, A to Z |
 | `/mix/mdma+tramadol` | The mix checker |
-| `/journal` | The journal; `/journal/stats` for its stats |
+| `/journal` | The journal; `/journal/stats` for its stats, `/journal/weight` for body weight |
 | `/journal/<session>` | One session |
 | `/journal/substance/<id>` | One substance's history in the journal |
 | `/saved`, `/settings` | Saved substances; settings |

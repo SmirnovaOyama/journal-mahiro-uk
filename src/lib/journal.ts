@@ -44,9 +44,22 @@ export interface SessionMeta {
     at?: number;
 }
 
+/** One weighing. Always kept in kilograms; shown in what Settings picks. */
+export interface WeightEntry {
+    id: string;
+    kg: number;
+    /** When it was weighed, ms since 1970. */
+    time: number;
+    note?: string;
+    /** When it was logged or last changed, ms; for merging copies. */
+    at?: number;
+}
+
 export interface JournalData {
     v: 1;
     ingestions: Ingestion[];
+    /** Body weight, oldest first. Deleted ones go in `gone` like doses. */
+    weights?: WeightEntry[];
     /** Each substance's colour, kept so it never changes once given. */
     colors: Record<string, string>;
     meta?: Record<string, SessionMeta>;
@@ -90,6 +103,7 @@ export function cleanJournal(raw: unknown): JournalData {
     return {
         v: 1,
         ingestions: d.ingestions.filter(valid),
+        weights: Array.isArray(d.weights) ? d.weights.filter(validWeight) : [],
         colors: obj(d.colors) as Record<string, string>,
         meta: obj(d.meta) as Record<string, SessionMeta>,
         gone: obj(d.gone) as Record<string, number>,
@@ -103,6 +117,20 @@ function read(): JournalData {
     } catch {
         return empty();
     }
+}
+
+function validWeight(w: unknown): w is WeightEntry {
+    const x = w as WeightEntry;
+    return (
+        !!x &&
+        typeof x.id === 'string' &&
+        typeof x.kg === 'number' &&
+        Number.isFinite(x.kg) &&
+        x.kg > 0 &&
+        x.kg < 1000 &&
+        typeof x.time === 'number' &&
+        Number.isFinite(x.time)
+    );
 }
 
 function valid(i: unknown): i is Ingestion {
@@ -192,16 +220,43 @@ export function useJournal() {
         commit({ ...data, meta: { ...(data.meta ?? {}), [session]: next } });
     }, []);
     // Everything goes, and says so, so it goes from the account's copy too.
+    // Weights stay: they're cleared on their own (clearWeights).
     const clear = useCallback(() => {
         const t = Date.now();
         const gone = { ...(data.gone ?? {}) };
         for (const i of data.ingestions) gone[i.id] = t;
         const meta: Record<string, SessionMeta> = {};
         for (const k of Object.keys(data.meta ?? {})) meta[k] = { at: t };
-        commit({ ...empty(), meta, gone });
+        commit({ ...empty(), weights: data.weights, meta, gone });
     }, []);
     const replace = useCallback((next: JournalData) => commit(next), []);
     return { data: snapshot, add, update, remove, setColor, setMeta, clear, replace };
+}
+
+const byTime = <T extends { time: number; id: string }>(a: T, b: T) => a.time - b.time || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/** Body weight: logged, changed and deleted like doses, in the same record,
+ *  so it syncs, exports and imports with the rest of the journal. */
+export function useWeights() {
+    const snapshot = useSyncExternalStore(subscribe, () => data);
+    const add = useCallback((w: Omit<WeightEntry, 'id' | 'at'>) => {
+        const entry: WeightEntry = { ...w, id: newId(), at: Date.now() };
+        commit({ ...data, weights: [...(data.weights ?? []), entry].sort(byTime) });
+        return entry;
+    }, []);
+    const update = useCallback((w: WeightEntry) => {
+        commit({ ...data, weights: (data.weights ?? []).map(x => (x.id === w.id ? { ...w, at: Date.now() } : x)).sort(byTime) });
+    }, []);
+    const remove = useCallback((id: string) => {
+        commit({ ...data, weights: (data.weights ?? []).filter(x => x.id !== id), gone: { ...(data.gone ?? {}), [id]: Date.now() } });
+    }, []);
+    const clear = useCallback(() => {
+        const t = Date.now();
+        const gone = { ...(data.gone ?? {}) };
+        for (const w of data.weights ?? []) gone[w.id] = t;
+        commit({ ...data, weights: [], gone });
+    }, []);
+    return { weights: snapshot.weights ?? [], add, update, remove, clear };
 }
 
 export const colorOf = (d: JournalData, substance: string) => d.colors[substance] ?? PALETTE[0];
@@ -227,13 +282,21 @@ export function syncMerge(local: JournalData, remote: JournalData): JournalData 
         .filter(i => !(i.id in gone))
         .sort((a, b) => a.time - b.time || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
+    const weightById = new Map<string, WeightEntry>();
+    for (const w of remote.weights ?? []) weightById.set(w.id, w);
+    for (const w of local.weights ?? []) {
+        const r = weightById.get(w.id);
+        if (!r || (w.at ?? 0) > (r.at ?? 0)) weightById.set(w.id, w);
+    }
+    const weights = [...weightById.values()].filter(w => !(w.id in gone)).sort(byTime);
+
     const meta: Record<string, SessionMeta> = { ...(remote.meta ?? {}) };
     for (const [k, m] of Object.entries(local.meta ?? {})) {
         const r = meta[k];
         if (!r || (m.at ?? 0) > (r.at ?? 0)) meta[k] = m;
     }
 
-    let next: JournalData = { v: 1, ingestions, colors: { ...remote.colors }, meta, gone };
+    let next: JournalData = { v: 1, ingestions, weights, colors: { ...remote.colors }, meta, gone };
     const taken = new Set(Object.values(next.colors));
     for (const [sub, color] of Object.entries(local.colors)) {
         if (next.colors[sub]) continue;
@@ -312,7 +375,8 @@ export function parseImport(text: string, resolve: (name: string) => { id: strin
     // Ours.
     if (Array.isArray(r.ingestions)) {
         const ingestions = (r.ingestions as unknown[]).filter(valid);
-        return { v: 1, ingestions, colors: (r.colors as Record<string, string>) ?? {}, meta: (r.meta as Record<string, SessionMeta>) ?? {} };
+        const weights = Array.isArray(r.weights) ? (r.weights as unknown[]).filter(validWeight) : [];
+        return { v: 1, ingestions, weights, colors: (r.colors as Record<string, string>) ?? {}, meta: (r.meta as Record<string, SessionMeta>) ?? {} };
     }
     // PsychonautWiki Journal: experiences, each with its ingestions.
     if (Array.isArray(r.experiences)) {
@@ -352,9 +416,10 @@ export function parseImport(text: string, resolve: (name: string) => { id: strin
     return null;
 }
 
-/** Adds imported ingestions to the journal, skipping ones already in it
- *  (same substance, same minute, same amount). */
-export function merge(into: JournalData, from: JournalData): { next: JournalData; added: number } {
+/** Adds imported ingestions and weights to the journal, skipping ones
+ *  already in it (same substance, same minute, same amount; a weight on the
+ *  same minute with the same kilograms). */
+export function merge(into: JournalData, from: JournalData): { next: JournalData; added: number; addedWeights: number } {
     const seen = new Set(into.ingestions.map(i => `${i.substance}|${Math.round(i.time / 60000)}|${i.dose}`));
     const ids = new Set(into.ingestions.map(i => i.id));
     // A dose deleted here and brought back from a file is a new dose, with
@@ -376,7 +441,23 @@ export function merge(into: JournalData, from: JournalData): { next: JournalData
     }
     const meta: Record<string, SessionMeta> = {};
     for (const [k, m] of Object.entries(from.meta ?? {})) meta[renamed.get(k) ?? k] = { ...m, at: t };
-    return { next: { ...next, meta: { ...meta, ...(into.meta ?? {}) } }, added };
+
+    const wKey = (w: WeightEntry) => `${Math.round(w.time / 60000)}|${Math.round(w.kg * 100)}`;
+    const wSeen = new Set((into.weights ?? []).map(wKey));
+    const wIds = new Set((into.weights ?? []).map(w => w.id));
+    const weights = [...(into.weights ?? [])];
+    let addedWeights = 0;
+    for (const w of from.weights ?? []) {
+        const key = wKey(w);
+        if (wSeen.has(key)) continue;
+        wSeen.add(key);
+        const id = wIds.has(w.id) || into.gone?.[w.id] ? newId() : w.id;
+        wIds.add(id);
+        weights.push({ ...w, id, at: t });
+        addedWeights++;
+    }
+    weights.sort(byTime);
+    return { next: { ...next, weights, meta: { ...meta, ...(into.meta ?? {}) } }, added, addedWeights };
 }
 
 /* ── logging from elsewhere ─────────────────────────────────────────── */
