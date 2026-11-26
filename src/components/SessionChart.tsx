@@ -110,7 +110,7 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     for (let t = d0.getTime(); t <= end; t += every) if (t >= start) ticks.push(t);
     // The time the session began, under its first dot; hours too close to it make way.
     const x0 = x(first);
-    const axis = [first, ...ticks.filter(t => Math.abs(x(t) - x0) > 44)];
+    const axis = [first, ...ticks.filter(t => Math.abs(x(t) - x0) > 56)];
 
     const showNow = now >= start && now <= end;
 
