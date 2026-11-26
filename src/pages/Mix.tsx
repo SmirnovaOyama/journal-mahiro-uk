@@ -11,6 +11,7 @@ import { isCareSearch } from '../lib/care';
 import { rowBleed } from '../components/SettingsListItem';
 import { SubstanceRow } from '../components/SubstanceRow';
 import { ChevronRight, Clover, Close } from '../components/icons';
+import { Linked } from '../components/Linked';
 
 const EXAMPLES: [string, string][] = [
     ['alcohol', 'ketamine'],
@@ -219,7 +220,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                                 {v.label}
                                             </span>
                                         </div>
-                                        {note && <p className="text-sm mt-1">{note}</p>}
+                                        {note && <p className="text-sm mt-1"><Linked text={note} /></p>}
                                         {pairs.length > 1 && !note && (
                                             <p className="text-sm mt-1">{v.meaning}</p>
                                         )}

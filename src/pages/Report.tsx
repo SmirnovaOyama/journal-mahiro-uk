@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useOpenedFromLink } from '../lib/router';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Doodle, { type DoodleName } from '../components/Doodle';
+import { Linked } from '../components/Linked';
 
 export type CaseReport = {
     id: string;
@@ -78,7 +79,7 @@ export function Report({ id }: { id: string }) {
                                     {s.icon && <Doodle name={s.icon} size={2} />}
                                     {s.heading}
                                 </h2>
-                                {s.paragraphs.map((p, i) => <p key={i} className="text-[var(--text)]">{p}</p>)}
+                                {s.paragraphs.map((p, i) => <p key={i} className="text-[var(--text)]"><Linked text={p} /></p>)}
                             </section>
                         ))}
                         <p className="text-xs text-[var(--text-muted)]">

@@ -29,6 +29,7 @@ import { rowBleed } from '../components/SettingsListItem';
 import { Timeline } from '../components/Timeline';
 import { Alert, Bookmark, ChevronRight, Clover, External, Info, Plus } from '../components/icons';
 import { Waiting } from '../components/Waiting';
+import { Linked } from '../components/Linked';
 
 const MIX_GROUPS: {
     title: string;tone: string;
@@ -360,10 +361,10 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {'Little is known about this one. Treat any dose as stronger than you expect.'}
                                 </Advisory>
                             )}
-                            {detail.advisory && <Advisory>{detail.advisory}</Advisory>}
+                            {detail.advisory && <Advisory><Linked text={detail.advisory} /></Advisory>}
                             {detail.warnings?.map(w => (
                                 <div key={w.url + w.text.slice(0, 24)}>
-                                    <Advisory>{w.text} {w.source}</Advisory>
+                                    <Advisory><Linked text={w.text} /> {w.source}</Advisory>
                                     {w.report && (
                                         <Link
                                             to={{ page: 'report', id: w.report }}
@@ -412,7 +413,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <div className="pb-5 space-y-3 text-sm leading-relaxed text-[var(--text-muted)] max-w-prose">
                                 {detail.doseBasis && (
                                     <p className="callout text-[var(--text)] font-medium">
-                                        {sentence(detail.doseBasis.replace(/^Note:\s*/i, ''))}
+                                        <Linked text={sentence(detail.doseBasis.replace(/^Note:\s*/i, ''))} />
                                     </p>
                                 )}
                                 <p>
@@ -525,7 +526,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     return first.length < text.trim().length - 2 ? first : undefined;
                                 })()}
                             >
-                                <p className="text-sm max-w-prose">{detail.summary}</p>
+                                <p className="text-sm max-w-prose"><Linked text={detail.summary} /></p>
                                 {(
                                     detail.summarySources && <p className="footnote">{`From ${detail.summarySources}.`}</p>
                                 )}
@@ -549,10 +550,10 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {detail.availability.map(a => (
                                         <div key={a.where}>
                                             <h3 className="text-sm font-medium">{a.where}</h3>
-                                            <p className="text-sm max-w-prose mt-1">{a.rule}</p>
+                                            <p className="text-sm max-w-prose mt-1"><Linked text={a.rule} /></p>
                                             <p className="footnote !mt-1">
                                                 {'From '}
-                                                <a href={a.url} target="_blank" rel="noreferrer">
+                                                <a href={a.url} target="_blank" rel="noreferrer" className="underline underline-offset-[3px]">
                                                     {a.source}
                                                 </a>
                                             </p>
