@@ -283,42 +283,96 @@ function MixStage({ active }: { active: boolean }) {
     );
 }
 
-/** A night on the journal's clock, and the sessions it keeps. */
+/** A night on the journal's clock: one session after another, each its
+ *  substances' curves in their colours, the "now" line partway through. */
+type Dose = [substance: string, minutesAgo: number, course: [number, number, number, number], strength: number];
+const SESSIONS: { title: string; what: string; star?: boolean; doses: Dose[] }[] = [
+    {
+        title: 'Saturday night',
+        what: 'MDMA and Cannabis',
+        star: true,
+        doses: [
+            ['MDMA', 150, [40, 90, 210, 330], 1],
+            ['Cannabis', 50, [10, 30, 100, 200], 0.7],
+        ],
+    },
+    {
+        title: 'Friday',
+        what: 'LSD and Cannabis',
+        doses: [
+            ['LSD', 300, [45, 150, 420, 660], 1],
+            ['Cannabis', 90, [10, 30, 100, 200], 0.5],
+        ],
+    },
+    {
+        title: 'Thursday',
+        what: 'Ketamine, taken twice',
+        doses: [
+            ['Ketamine', 100, [4, 12, 40, 80], 0.9],
+            ['Ketamine', 30, [4, 12, 40, 80], 0.6],
+        ],
+    },
+    {
+        title: 'Sunday afternoon',
+        what: 'Mushrooms and a Cannabis edible',
+        doses: [
+            ['Mushrooms', 130, [40, 100, 200, 360], 1],
+            ['Cannabis', 70, [60, 150, 330, 540], 0.6],
+        ],
+    },
+    {
+        title: 'Monday',
+        what: 'Caffeine, twice, and L-Theanine',
+        doses: [
+            ['Caffeine', 200, [15, 45, 150, 300], 0.9],
+            ['L-Theanine', 200, [30, 60, 180, 360], 0.7],
+            ['Caffeine', 70, [15, 45, 150, 300], 0.6],
+        ],
+    },
+];
+/** Each substance keeps its colour from one session to the next. */
+const HUE: Record<string, string> = {
+    MDMA: PALETTE[0],
+    Cannabis: PALETTE[1],
+    LSD: PALETTE[4],
+    Ketamine: PALETTE[5],
+    Mushrooms: PALETTE[3],
+    Caffeine: PALETTE[2],
+    'L-Theanine': PALETTE[7],
+};
+
 function JournalStage({ active }: { active: boolean }) {
     const [now] = useState(() => Date.now());
-    const course = (a: number, b: number, c: number, d: number): Course => ({
-        firstEffects: a,
-        peakStart: b,
-        peakEnd: c,
-        over: d,
-        afterEnd: null,
-        total: null,
-        spans: {},
-    });
-    const doses: ChartDose[] = [
-        { id: 'a', time: now - 150 * 60_000, color: PALETTE[0], course: course(40, 90, 210, 330), strength: 1, label: 'MDMA' },
-        { id: 'b', time: now - 50 * 60_000, color: PALETTE[1], course: course(10, 30, 100, 200), strength: 0.7, label: 'Cannabis' },
-    ];
+    const k = useCycle(SESSIONS.length, 4200, active);
+    const doses = (i: number): ChartDose[] =>
+        SESSIONS[i].doses.map(([name, ago, [a, b, c, d], strength], j) => ({
+            id: `${i}-${j}`,
+            time: now - ago * 60_000,
+            color: HUE[name],
+            course: { firstEffects: a, peakStart: b, peakEnd: c, over: d, afterEnd: null, total: null, spans: {} } as Course,
+            strength,
+            label: name,
+        }));
+    const chart = (i: number) => <SessionChart doses={doses(i)} now={now} />;
+    const row = (i: number) => {
+        const s = SESSIONS[i];
+        return (
+            <div className="flex items-center gap-3">
+                <SessionMark colors={[...new Set(s.doses.map(d => HUE[d[0]]))]} size={24} />
+                <span className="min-w-0">
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text)]">
+                        {tr(s.title)}
+                        {s.star && <Heart size={13} fill="currentColor" className="text-[var(--text-muted)]" />}
+                    </span>
+                    <span className="block truncate text-xs text-[var(--text-muted)]">{tr(s.what)}</span>
+                </span>
+            </div>
+        );
+    };
     return (
         <div className="w-full max-w-[24rem]">
-            <div>{active && <SessionChart doses={doses} now={now} />}</div>
-            <div className="mt-1 flex flex-col gap-2.5">
-                {[
-                    [[PALETTE[0], PALETTE[1]], tr('Saturday night'), tr('MDMA and Cannabis'), true],
-                    [[PALETTE[2]], tr('Monday'), 'Caffeine', false],
-                ].map(([colors, title, what, star]) => (
-                    <div key={title as string} className="flex items-center gap-3">
-                        <SessionMark colors={colors as string[]} size={24} />
-                        <span className="min-w-0">
-                            <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text)]">
-                                {title as string}
-                                {(star as boolean) && <Heart size={13} fill="currentColor" className="text-[var(--text-muted)]" />}
-                            </span>
-                            <span className="block text-xs text-[var(--text-muted)]">{what as string}</span>
-                        </span>
-                    </div>
-                ))}
-            </div>
+            {active && <Crossfade k={k} render={chart} />}
+            <Crossfade k={k} delay={110} render={row} className="mt-1" />
         </div>
     );
 }
