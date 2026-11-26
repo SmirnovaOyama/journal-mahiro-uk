@@ -226,7 +226,6 @@ export function DoseRuler({
               className="tap-target flex w-full items-center justify-between gap-3 py-1.5 text-start"
             >
               <span className="flex min-w-0 items-center gap-3">
-                <span className={`band-dot band-${b}`} aria-hidden="true" />
                 <span className="min-w-0">
                   <span className={`block text-sm ${here ? on : muted}`}>{name(b)}</span>
                   <span className={`block text-xs tabular-nums ${muted}`}>{text}</span>
