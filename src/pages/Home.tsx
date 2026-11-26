@@ -5,6 +5,7 @@ import { isHrtSearch } from '../lib/eggs';
 import { HrtEgg } from '../components/HrtEgg';
 import { isCareSearch } from '../lib/care';
 import { CareNote } from '../components/CareNote';
+import { N55Egg, isN55Search } from '../components/N55Egg';
 import { useRecent } from '../lib/store';
 import { Link } from '../components/Link';
 import PixelCat from '../components/PixelCat';
@@ -27,6 +28,10 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
 
     const hits = useMemo(() => (index ? search(index, q, 200) : []), [index, q]);
     const care = isCareSearch(q);
+    // N55 opens its window once each time the search becomes it.
+    const n55 = isN55Search(q);
+    const [n55Open, setN55Open] = useState(false);
+    useEffect(() => setN55Open(n55), [n55]);
     useEffect(() => {
         setActive(0);
         setLimit(20);
@@ -68,6 +73,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     </span>
                 }
             />
+            {n55Open && <N55Egg onClose={() => setN55Open(false)} />}
             <div className={`${PAGE_COLUMN} pt-1 pb-8`}>
                 <SearchField
                     ref={input}
@@ -86,7 +92,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     <section className="m-appear mt-6" aria-live="polite">
                         {hits.length === 0 ? (
                             // After the check-in, "nothing called that" would only be cold.
-                            !care && <div className="py-8">
+                            !care && !n55 && <div className="py-8">
                                 <p className="text-sm font-semibold">
                                     {`Nothing called “${q.trim()}”`}
                                 </p>
