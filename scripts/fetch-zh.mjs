@@ -51,11 +51,56 @@ async function sparql(query) {
     return json.results.bindings.map(b => Object.fromEntries(Object.entries(b).map(([k, v]) => [k, { v: v.value, l: v['xml:lang'] }])));
 }
 
+/* Which Wikidata item each substance is: the one sync-wikidata.mjs linked,
+   or, for a substance it couldn't link (Cannabis, Cocaine, MDMA and 160-odd
+   more), the item behind its English Wikipedia article of the same name. */
 const qids = [];
+const byId = {};
+const unlinked = [];
 for (const f of await fs.readdir(SUBS)) {
     const d = JSON.parse(await fs.readFile(path.join(SUBS, f), 'utf8'));
-    if (d.wikidata) qids.push(d.wikidata);
+    if (d.wikidata) {
+        qids.push(d.wikidata);
+        byId[d.id] = d.wikidata;
+    } else if (d.name) unlinked.push({ id: d.id, name: d.name });
 }
+
+/** Each title's Wikidata item on the English Wikipedia, redirects followed. */
+async function itemsForTitles(titles) {
+    const found = {};
+    for (const part of chunks(titles, 40)) {
+        const url =
+            `https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2` +
+            `&prop=pageprops&ppprop=wikibase_item&redirects=1&titles=${encodeURIComponent(part.join('|'))}`;
+        const json = await (await fetchRetry(url)).json();
+        const back = new Map();
+        for (const r of json.query?.redirects ?? []) back.set(r.to, r.from);
+        for (const r of json.query?.normalized ?? []) back.set(r.to, r.from);
+        for (const p of json.query?.pages ?? []) {
+            let t = p.title;
+            while (back.has(t)) t = back.get(t);
+            const q = p.pageprops?.wikibase_item;
+            if (q) found[t] = q;
+        }
+        await sleep(600);
+    }
+    return found;
+}
+
+if (unlinked.length) {
+    // "Datura (botany)" is asked for as "Datura": the catalogue's own titles.
+    const titles = [...new Set(unlinked.map(u => u.name.replace(/\s*\([^()]*\)\s*$/, '')))];
+    const found = await itemsForTitles(titles);
+    for (const u of unlinked) {
+        const q = found[u.name.replace(/\s*\([^()]*\)\s*$/, '')];
+        if (q) {
+            byId[u.id] = q;
+            qids.push(q);
+        }
+    }
+    console.log(`${unlinked.length} substances had no Wikidata item; ${unlinked.filter(u => byId[u.id]).length} were found by their Wikipedia article`);
+}
+
 const wanted = [...new Set(qids)];
 console.log(`${wanted.length} Wikidata items`);
 
@@ -107,5 +152,5 @@ for (const [i, part] of chunks(titles, 20).entries()) {
 console.log();
 
 await fs.mkdir(path.dirname(OUT), { recursive: true });
-await fs.writeFile(OUT, JSON.stringify({ fetched: new Date().toISOString(), items, wiki }));
+await fs.writeFile(OUT, JSON.stringify({ fetched: new Date().toISOString(), byId, items, wiki }));
 console.log(`wrote ${path.relative(ROOT, OUT)}: ${Object.keys(items).length} items, ${Object.keys(wiki).length} articles`);

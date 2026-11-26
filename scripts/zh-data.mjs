@@ -17,7 +17,17 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = path.join(ROOT, 'public/data');
 const SUBS = path.join(DATA, 'substances');
-const { items, wiki } = JSON.parse(await fs.readFile(path.join(ROOT, 'scripts/data/zh-wiki.json'), 'utf8'));
+const { byId: qidOf = {}, items, wiki } = JSON.parse(await fs.readFile(path.join(ROOT, 'scripts/data/zh-wiki.json'), 'utf8'));
+// Taiwan's and the mainland's writing of each name (scripts/fetch-zh-variants.mjs).
+let variants = { tw: {}, cn: {} };
+try {
+    variants = JSON.parse(await fs.readFile(path.join(ROOT, 'scripts/data/zh-variants.json'), 'utf8'));
+} catch {
+    console.warn('no scripts/data/zh-variants.json: run scripts/fetch-zh-variants.mjs for Taiwan\'s wording');
+}
+/** A name in Taiwan's writing, and in both writings for searching by. */
+const twForm = n => (n && variants.tw[n]) || n;
+const bothForms = n => [n, variants.tw[n], variants.cn[n]].filter(Boolean);
 
 const CJK = /[㐀-鿿]/;
 const cjkShare = s => [...s].filter(c => CJK.test(c)).length / Math.max(1, [...s].length);
@@ -63,25 +73,29 @@ for (const e of index) {
     delete d.zh;
     delete d.summaryZh;
     d.helpfulLinks = (d.helpfulLinks ?? []).filter(l => !/zh\.wikipedia\.org/.test(l.url));
-    const it = d.wikidata && items[d.wikidata];
+    const qid = d.wikidata ?? qidOf[e.id];
+    const it = qid && items[qid];
     if (it) {
         const w = it.zhwiki ? wiki[it.zhwiki] : undefined;
         const t = w?.titles ?? {};
         const L = it.labels;
         // Taiwan's name first, then Hong Kong's, then any traditional one.
-        const name = [L['zh-tw'], bare(t['zh-tw']), L['zh-hant'], L['zh-hk'], bare(t['zh-hk'])].find(showable);
+        // Taiwan's name first, then Hong Kong's, then any Chinese name put
+        // into Taiwan's writing by Wikipedia's own converter.
+        const name = [L['zh-tw'], bare(t['zh-tw']), L['zh-hant'], L['zh-hk'], bare(t['zh-hk']), twForm(L['zh']), twForm(bare(t['zh']))].find(showable);
         // An acronym or a code ("LSD", "2C-B", "MDMA") is what people call it here too.
         const keepLatin = /^[A-Z0-9αβγ][A-Za-z0-9αβγ,()\-]{0,9}$/.test(e.name) && /[A-Z0-9]{2}/.test(e.name);
         if (name && !keepLatin) {
             e.zh = d.zh = name;
             named++;
         }
+        // Searched by any of its Chinese names, in either writing, so
+        // 愷他命 and 氯胺酮 both find ketamine.
         const all = new Set(
-            [
-                ...Object.values(L),
-                ...Object.values(t).map(bare),
-                ...Object.values(it.aliases).flat(),
-            ].filter(searchable),
+            [...Object.values(L), ...Object.values(t).map(bare), ...Object.values(it.aliases).flat()]
+                .filter(Boolean)
+                .flatMap(bothForms)
+                .filter(searchable),
         );
         if (e.zh) all.delete(e.zh);
         if (all.size) e.zhAliases = [...all].join(', ');

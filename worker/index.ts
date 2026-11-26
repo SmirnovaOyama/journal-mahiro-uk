@@ -9,7 +9,10 @@
    It reads the same data the app does, from the build, and words it with
    the same helpers (src/lib/preview.ts). */
 
-import { categoryInfo, type ComboMatrix, type Detail, type IndexEntry } from '../src/lib/data';
+import { categoryInfo, nameOf, type ComboMatrix, type Detail, type IndexEntry } from '../src/lib/data';
+import { speak, type Lang } from '../src/lib/i18n';
+import zhWords from '../src/lib/zh-Hant';
+import zhData from '../src/lib/zh-Hant-data';
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
 import { SITE, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, type Preview } from '../src/lib/preview';
 import { parse } from '../src/lib/routes';
@@ -46,27 +49,60 @@ interface Page extends Preview {
     privatePage?: boolean;
 }
 
-async function pageFor(env: Env, url: URL): Promise<Page> {
+/** The language a link previewer or a search engine asked for: 正體中文 for
+ *  any Chinese, since it's the only Chinese here. The app itself settles
+ *  this again on the device (src/lib/lang.ts). */
+function langOf(request: Request): Lang {
+    const header = request.headers.get('accept-language') ?? '';
+    for (const part of header.split(',')) {
+        const tag = part.split(';')[0].trim();
+        if (/^zh\b/i.test(tag)) return 'zh-Hant';
+        if (/^en\b/i.test(tag)) return 'en';
+    }
+    return 'en';
+}
+
+/** The tag the page is served with, which picks its typeface (index.css). */
+const pageTag = (lang: Lang, request: Request) =>
+    lang === 'en' ? 'en' : /\bzh[\w-]*-(HK|MO)\b/i.test(request.headers.get('accept-language') ?? '') ? 'zh-Hant-HK' : 'zh-Hant';
+
+/** Every line this Worker words is settled here, with nothing awaited
+ *  after it: one request's language can't reach another's. */
+function speakFor(lang: Lang) {
+    speak(lang, lang === 'en' ? null : zhWords, lang === 'en' ? null : zhData);
+}
+
+async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
     const origin = url.origin;
     const route = parse(url.pathname);
     const index = (await json<IndexEntry[]>(env, origin, '/data/index.json')) ?? [];
     const byId = new Map(index.map(e => [e.id, e]));
+    speakFor(lang);
     const site = sitePreview(index.length || undefined);
 
     switch (route.page) {
         case 'substance': {
             const detail = await json<Detail>(env, origin, `/data/substances/${encodeURIComponent(route.id)}.json`);
             if (!detail) return { ...site, path: url.pathname, found: false };
+            speakFor(lang);
             return { ...substancePreview(detail, byId.get(detail.id)), path: `/s/${detail.id}`, found: true };
         }
         case 'report': {
-            const report = await json<{ id: string; title: string; summary: string }>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.json`);
+            // The report's own telling in that language, where there is one.
+            const report =
+                (lang === 'zh-Hant'
+                    ? await json<{ id: string; title: string; summary: string }>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.zh-Hant.json`)
+                    : undefined) ??
+                (await json<{ id: string; title: string; summary: string }>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.json`));
             if (!report) return { ...site, path: url.pathname, found: false };
             return { ...site, title: report.title, description: report.summary, path: `/report/${report.id}`, found: true };
         }
         case 'mix': {
             const chosen = route.ids.map(id => byId.get(id)).filter((e): e is IndexEntry => !!e);
-            if (chosen.length < 2) return { ...mixPreview(chosen.map(e => e.name)), path: url.pathname, found: true };
+            if (chosen.length < 2) {
+                speakFor(lang);
+                return { ...mixPreview(chosen.map(e => nameOf(e))), path: url.pathname, found: true };
+            }
             const [matrix, ...details] = await Promise.all([
                 json<ComboMatrix>(env, origin, '/data/combos.json'),
                 ...chosen.map(e => json<Detail>(env, origin, `/data/substances/${encodeURIComponent(e.id)}.json`)),
@@ -79,9 +115,10 @@ async function pageFor(env: Env, url: URL): Promise<Page> {
                     );
             const top = worst(pairs);
             const note = top?.note;
+            speakFor(lang);
             return {
                 ...mixPreview(
-                    chosen.map(e => e.name),
+                    chosen.map(e => nameOf(e)),
                     top?.verdict,
                     note && note.length < 140 ? note : undefined,
                 ),
@@ -92,17 +129,21 @@ async function pageFor(env: Env, url: URL): Promise<Page> {
         case 'kind': {
             const info = categoryInfo(route.category);
             const count = index.filter(e => e.category === info.id).length;
+            speakFor(lang);
             return { ...kindPreview(info.id, count), path: `/kind/${info.id}`, found: count > 0 };
         }
         case 'browse':
         case 'saved':
+            speakFor(lang);
             return { ...pagePreview(route.page, index.length || undefined), path: `/${route.page}`, found: true };
         case 'settings': {
             // An account's own pages, and the admin's: nothing for a search engine.
             const own = !!route.sub && !['general', 'data', 'about', 'appearance', 'language', 'disclaimer'].includes(route.sub);
+            speakFor(lang);
             return { ...pagePreview('settings', index.length || undefined), path: '/settings', found: true, privatePage: own };
         }
         case 'journal':
+            speakFor(lang);
             return { ...pagePreview('journal', index.length || undefined), path: '/journal', found: true, privatePage: true };
         default:
             return { ...site, path: '/', found: url.pathname === '/' };
@@ -120,7 +161,8 @@ export default {
         const legacy = url.searchParams.get('substance');
         if (legacy) return Response.redirect(`${url.origin}/s/${encodeURIComponent(legacy)}`, 301);
 
-        const [shell, page] = await Promise.all([env.ASSETS.fetch(new Request(url.origin + '/')), pageFor(env, url)]);
+        const lang = langOf(request);
+        const [shell, page] = await Promise.all([env.ASSETS.fetch(new Request(url.origin + '/')), pageFor(env, url, lang)]);
         const canonical = SITE.origin + page.path;
         // Always https: some previewers won't fetch a picture over http.
         const image = `https://${url.host}${page.image}`;
@@ -131,6 +173,12 @@ export default {
         });
 
         const res = new HTMLRewriter()
+            .on('html', {
+                element(el) {
+                    el.setAttribute('lang', pageTag(lang, request));
+                },
+            })
+            .on('meta[property="og:locale"]', content(lang === 'zh-Hant' ? 'zh_TW' : 'en_US'))
             .on('title', {
                 element(el) {
                     el.setInnerContent(page.title);
