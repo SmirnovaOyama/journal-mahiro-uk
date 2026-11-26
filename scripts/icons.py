@@ -1,11 +1,13 @@
-"""Makes the site's icons from design/logo.jpg, cut as rounded rectangles.
+"""Makes the site's icons from design/logo.jpg.
 
     python3 scripts/icons.py
 
-favicon.png and the small icons are cut closer, on the face, so it still
-reads at 16 to 32 pixels; the large ones show the whole picture. The
-apple-touch icon and the maskable one are full squares, since iOS and
-Android round them themselves."""
+The favicons and the manifest's "any" icons are the whole picture cut to
+the circle inside it, as on mahiro.uk: her cat ears sit right on the
+circle's edge, and the corners are see-through.
+The apple-touch icon and the maskable one are full squares, since iOS and
+Android cut them to their own shape. The in-app logos (pwa-192x192.png,
+logo.png) stay rounded rectangles, as the pages frame them that way."""
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -14,7 +16,6 @@ SRC = Image.open(ROOT / 'design/logo.jpg').convert('RGB')
 OUT = ROOT / 'public'
 W, H = SRC.size
 RADIUS = 0.2237  # an app icon's corner, as a share of its side
-
 
 def crop(share, cx=0.5, cy=0.5):
     """A square of `share` of the picture's side, centred on (cx, cy)."""
@@ -34,8 +35,18 @@ def rounded(img, size):
     return out
 
 
-face = crop(0.74, 0.5, 0.47)  # ears to chin, clover clip in
+def circle(img, size):
+    """The square at `size`, cut to the circle inside it, see-through outside."""
+    big = size * 4
+    mask = Image.new('L', (big, big), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, big - 1, big - 1), fill=255)
+    out = img.resize((size, size), Image.LANCZOS).convert('RGBA')
+    out.putalpha(mask.resize((size, size), Image.LANCZOS))
+    return out
+
+
 whole = crop(1.0)
+
 
 def small(img):
     """256 colours: a drawing in flat pastels loses nothing, the file a fifth the size."""
@@ -44,10 +55,11 @@ def small(img):
     return img.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
 
 
-rounded(face, 64).save(OUT / 'favicon.png', optimize=True)
-rounded(face, 32).save(OUT / 'favicon-32.png', optimize=True)
+circle(whole, 64).save(OUT / 'favicon.png', optimize=True)
+circle(whole, 32).save(OUT / 'favicon-32.png', optimize=True)
+small(circle(whole, 192)).save(OUT / 'icon-192.png', optimize=True)
+small(circle(whole, 512)).save(OUT / 'app-icon-512.png', optimize=True)
 small(rounded(whole, 192)).save(OUT / 'pwa-192x192.png', optimize=True)
-small(rounded(whole, 512)).save(OUT / 'app-icon-512.png', optimize=True)
 small(rounded(whole, 256)).save(OUT / 'logo.png', optimize=True)
 small(whole.resize((180, 180), Image.LANCZOS)).save(OUT / 'apple-touch-icon.png', optimize=True)
 small(whole.resize((512, 512), Image.LANCZOS)).save(OUT / 'app-icon-512-maskable.png', optimize=True)
