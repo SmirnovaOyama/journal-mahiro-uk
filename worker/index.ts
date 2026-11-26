@@ -12,7 +12,7 @@
 import { categoryInfo, nameOf, type ComboMatrix, type Detail, type IndexEntry } from '../src/lib/data';
 import { speak, tr, type Lang } from '../src/lib/i18n';
 import zhWords from '../src/lib/zh-Hant';
-import zhData from '../src/lib/zh-Hant-data';
+import zhData, { terms as zhTerms } from '../src/lib/zh-Hant-data';
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
 import { SITE, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, type Preview } from '../src/lib/preview';
 import { parse } from '../src/lib/routes';
@@ -69,7 +69,7 @@ const pageTag = (lang: Lang, request: Request) =>
 /** Every line this Worker words is settled here, with nothing awaited
  *  after it: one request's language can't reach another's. */
 function speakFor(lang: Lang) {
-    speak(lang, lang === 'en' ? null : zhWords, lang === 'en' ? null : zhData);
+    speak(lang, lang === 'en' ? null : zhWords, lang === 'en' ? null : zhData, lang === 'en' ? null : zhTerms);
 }
 
 async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {

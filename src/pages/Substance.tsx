@@ -34,7 +34,7 @@ import { Timeline } from '../components/Timeline';
 import { Alert, ChevronRight, Clover, External, Heart, Info, Plus } from '../components/icons';
 import { Waiting } from '../components/Waiting';
 import { Linked } from '../components/Linked';
-import { dataText, dateLocale, isZh, roaName, spanText, tr } from '../lib/i18n';
+import { dataText, dateLocale, isZh, roaName, termText, tr } from '../lib/i18n';
 
 /** A link's line. The sync writes a handful of these, in English. */
 const linkSays = (d: string) => {
@@ -684,13 +684,13 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         ? firstSentence(how.text)
                                         : how.acts
                                           ? how.acts.map(a => `${tr(ACTS[a.how][0])} ${targetNames(a.on.slice(0, 3)).join(', ')}`).join('; ')
-                                          : (how.kind ?? how.body?.map(r => tr('{0}: {1}', { 0: tr(BODY[r.what][0]), 1: r.says })).join('. '))
+                                          : (termText(how.kind ?? '') || how.body?.map(r => tr('{0}: {1}', { 0: tr(BODY[r.what][0]), 1: termText(r.says) })).join(tr('. ')))
                                 }
                             >
                                 {how.text && <p className="text-sm max-w-prose">{how.text}</p>}
                                 {(how.kind || how.acts) && (
                                     <dl className={how.text ? 'mt-2' : undefined}>
-                                        {how.kind && <Fact about={tr('Kind of drug')}>{how.kind}</Fact>}
+                                        {how.kind && <Fact about={tr('Kind of drug')}>{termText(how.kind)}</Fact>}
                                         {how.acts?.map(a => (
                                             <Fact key={a.how} about={tr(ACTS[a.how][0])} sub={ACTS[a.how][1] && tr(ACTS[a.how][1])}>
                                                 {/* One name never breaks across lines ("5-" / "HT2A"). */}
@@ -712,7 +712,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         <dl>
                                             {how.body.map(r => (
                                                 <Fact key={r.what} about={tr(BODY[r.what][0])} sub={tr(BODY[r.what][1])}>
-                                                    {r.says}
+                                                    {termText(r.says)}
                                                 </Fact>
                                             ))}
                                         </dl>
@@ -747,19 +747,19 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     uses.text
                                         ? firstSentence(uses.text)
                                         : uses.treats
-                                          ? cap(uses.treats.slice(0, 4).join(', '))
+                                          ? cap(uses.treats.slice(0, 4).map(termText).join(tr(', ')))
                                           : uses.brands
                                             ? tr('Sold as {0}', { 0: uses.brands })
-                                            : uses.routes
+                                            : termText(uses.routes ?? "")
                                 }
                             >
                                 {uses.text && <p className="text-sm max-w-prose">{uses.text}</p>}
                                 {uses.recreational && <p className="text-sm max-w-prose mt-3">{uses.recreational}</p>}
                                 {(uses.treats || uses.brands || uses.routes) && (
                                     <dl className={uses.text ? 'mt-2' : undefined}>
-                                        {uses.treats && <Fact about={tr('Listed as a treatment for')}>{cap(uses.treats.join(', '))}</Fact>}
+                                        {uses.treats && <Fact about={tr('Listed as a treatment for')}>{cap(uses.treats.map(termText).join(tr(', ')))}</Fact>}
                                         {uses.brands && <Fact about={tr('Sold as')}>{uses.brands}</Fact>}
-                                        {uses.routes && <Fact about={tr('Taken')}>{uses.routes}</Fact>}
+                                        {uses.routes && <Fact about={tr('Taken')}>{termText(uses.routes)}</Fact>}
                                     </dl>
                                 )}
                                 <QuotedFrom q={uses} figures={uses.figures} also={uses.treats ? tr('What it treats is from Wikidata.') : undefined} />
@@ -772,7 +772,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 hint={
                                     side.text
                                         ? firstSentence(side.text)
-                                        : [side.addiction && tr('Addiction: {0}', { 0: side.addiction }), side.dependence && tr('Dependence: {0}', { 0: side.dependence })].filter(Boolean).join(tr('. '))
+                                        : [side.addiction && tr('Addiction: {0}', { 0: dataText(side.addiction) }), side.dependence && tr('Dependence: {0}', { 0: dataText(side.dependence) })].filter(Boolean).join(tr('. '))
                                 }
                             >
                                 {side.text && <p className="text-sm max-w-prose">{side.text}</p>}
@@ -780,12 +780,12 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     <dl className={side.text ? 'mt-2' : undefined}>
                                         {side.addiction && (
                                             <Fact about={tr('Addiction')} sub={tr('how likely')}>
-                                                {side.addiction}
+                                                {dataText(side.addiction)}
                                             </Fact>
                                         )}
                                         {side.dependence && (
                                             <Fact about={tr('Dependence')} sub={tr('how likely')}>
-                                                {side.dependence}
+                                                {dataText(side.dependence)}
                                             </Fact>
                                         )}
                                     </dl>
@@ -829,7 +829,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 icon="chart"
                                 hint={
                                     detail.tolerance.reset
-                                        ? tr('Back to normal after about {0}', { 0: spanText(detail.tolerance.reset) })
+                                        ? /\d/.test(detail.tolerance.reset)
+                                            ? tr('Back to normal after about {0}', { 0: dataText(detail.tolerance.reset) })
+                                            : dataText(detail.tolerance.reset)
                                         : undefined
                                 }
                             >
@@ -843,7 +845,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {detail.tolerance.reset && (
                                         <div className="fact-row">
                                             <dt>{tr('Back to normal')}</dt>
-                                            <dd>{tr('After about {0}', { 0: spanText(detail.tolerance.reset) })}</dd>
+                                            <dd>
+                                                {/\d/.test(detail.tolerance.reset)
+                                                    ? tr('After about {0}', { 0: dataText(detail.tolerance.reset) })
+                                                    : dataText(detail.tolerance.reset)}
+                                            </dd>
                                         </div>
                                     )}
                                     {detail.tolerance.crossTolerances?.map(c => (

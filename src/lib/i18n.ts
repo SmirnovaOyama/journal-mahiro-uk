@@ -29,11 +29,63 @@ const loose = (s: string) =>
         .replace(/[.。]$/, '')
         .toLowerCase();
 
-/** Sets the language to speak, with its words (none for English) and the catalogue's. */
-export function speak(next: Lang, words: Record<string, string> | null, catalogue?: Record<string, string> | null) {
+/** The words an infobox phrase is put into Chinese with, longest first
+ *  (lib/zh-Hant-data.ts). */
+let terms: [RegExp, string][] | null = null;
+
+/** Sets the language to speak, with its words (none for English), the
+ *  catalogue's, and the words an infobox phrase is taken apart with. */
+export function speak(
+    next: Lang,
+    words: Record<string, string> | null,
+    catalogue?: Record<string, string> | null,
+    vocabulary?: [string, string][] | null,
+) {
     lang = next;
     dict = words;
     data = catalogue ? new Map(Object.entries(catalogue).map(([k, v]) => [loose(k), v])) : null;
+    terms = vocabulary
+        ? [...vocabulary]
+              .sort((a, b) => b[0].length - a[0].length)
+              .map(([en, zh]) => [new RegExp(`(^|[^A-Za-z])${en.replace(/[-\s]/g, '[-\\s]')}(s|es)?(?![A-Za-z])`, 'gi'), zh])
+        : null;
+}
+
+/** An infobox phrase word by word: "Serotonin 5-HT2A receptor agonist"
+ *  becomes "血清素 5-HT2A 受體促效劑", and whatever has no word here stays
+ *  in English. Nothing is translated unless at least one word was. */
+export function termText(raw: string): string {
+    if (lang === 'en' || !raw || !terms) return raw;
+    // A phrase the catalogue's own words already have, whole or as a list.
+    const whole = data?.get(loose(raw));
+    if (whole) return whole;
+    let out = raw;
+    let hit = false;
+    for (const [re, zh] of terms) {
+        out = out.replace(re, (_m, before: string) => {
+            hit = true;
+            return `${before}${zh}`;
+        });
+    }
+    // "3–7 hours" inside it reads as a span of time either way.
+    const timed = spanText(out);
+    if (timed !== out) {
+        out = timed;
+        hit = true;
+    }
+    if (!hit) return raw;
+    // Chinese punctuation, and no space where the English left one between
+    // two words that are now both Chinese ("受體 拮抗劑"). A phrase that
+    // names its parts ("Common: Oral") keeps its spaces: they hold it apart.
+    const named = out.includes(':');
+    return spaced(
+        (named ? out : out.replace(/([\u3400-\u9fff])\s+(?=[\u3400-\u9fff])/g, '$1'))
+            .replace(/;\s*/g, '；')
+            .replace(/:\s*/g, '：')
+            .replace(/,\s*(?=[\u3400-\u9fff])/g, '、')
+            .replace(/\s{2,}/g, ' ')
+            .trim(),
+    );
 }
 
 /** A phrase from the catalogue (an effect, an interaction's note, a family,

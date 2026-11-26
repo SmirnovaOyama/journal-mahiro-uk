@@ -48,12 +48,14 @@ const subs = new Set<() => void>();
 
 let words: Record<string, string> | null = null;
 let catalogue: Record<string, string> | null = null;
+let vocabulary: [string, string][] | null = null;
 async function wordsFor(l: Lang): Promise<Record<string, string> | null> {
     if (l === 'en') return null;
     if (!words) {
         const [w, c] = await Promise.all([import('./zh-Hant'), import('./zh-Hant-data')]);
         words = w.default;
         catalogue = c.default;
+        vocabulary = c.terms;
     }
     return words;
 }
@@ -68,7 +70,7 @@ async function apply() {
         if (next !== 'en') return;
     }
     lang = next;
-    speak(lang, w, w ? catalogue : null);
+    speak(lang, w, w ? catalogue : null, w ? vocabulary : null);
     document.documentElement.lang = pageTag(lang);
     snap = `${choice}|${lang}`;
     subs.forEach(f => f());
