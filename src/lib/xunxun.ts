@@ -3,7 +3,8 @@ import { isZh } from './i18n';
 
 /* 寻寻, kept as the catalogue keeps a substance. Not in the catalogue's
    files (it isn't counted, listed by kind, mixed or put in the sitemap): a
-   search for the name finds it as a row like any other, and the row opens a
+   search finds it as it finds a substance, from the first letters of a name
+   ("xu", "寻", "尋"), as a row like any other, and the row opens a
    page set out as a substance's is (pages/Xunxun.tsx), with the picture
    where a structure is drawn.
 
@@ -24,9 +25,6 @@ export const XUNXUN_ID = 'xunxun';
 
 /** Drawn where a structure would be, at any size. */
 export const PICTURES: Record<string, string> = { [XUNXUN_ID]: '/xunxun.webp' };
-
-/** 寻寻, 尋尋 or xunxun as the whole search, in any case, with or without spaces. */
-export const isXunxunSearch = (q: string) => /^(寻寻|尋尋|xunxun)$/.test(q.toLowerCase().replace(/[\s\-_.]+/g, ''));
 
 type Said<T> = { zhHant: T; en: T };
 
