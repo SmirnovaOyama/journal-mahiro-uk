@@ -181,7 +181,7 @@ function DoseRow({
                 </span>
                 <ChevronDown size={16} className={`chev ${muted} shrink-0 ${open ? 'rotate-180' : ''}`} />
             </button>
-            <div className="disclosure" data-open={open} {...(open ? {} : { inert: '' })}>
+            <div className="disclosure disclosure-bleed" data-open={open} {...(open ? {} : { inert: '' })}>
                 <div className="disclosure-inner">
                     {open && (
                         <div className="pt-3 pb-5">
@@ -376,7 +376,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                 }
             />
             <div className={`${PAGE_COLUMN} pb-10`}>
-                <div className="disclosure" data-open={adding} {...(adding ? {} : { inert: '' })}>
+                <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
                     <div className="disclosure-inner">
                         {adding && (
                             <div className="pt-2 pb-8">
@@ -544,7 +544,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                 }
             />
             <div className={`${PAGE_COLUMN} pb-10`}>
-                <div className="disclosure" data-open={adding} {...(adding ? {} : { inert: '' })}>
+                <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
                     <div className="disclosure-inner">
                         {adding && (
                             <div className="pt-2 pb-8">
