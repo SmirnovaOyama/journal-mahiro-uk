@@ -9,6 +9,7 @@ export type CaseReport = {
     summary: string;
     source: string;
     url: string;
+    picture?: { src: string; alt: string; credit?: string };
     sections: { heading: string; icon?: DoodleName; paragraphs: string[] }[];
 };
 
@@ -45,6 +46,28 @@ export function Report({ id }: { id: string }) {
                     <p className="pt-8 text-sm text-[var(--text-muted)]">{'There’s no report here.'}</p>
                 ) : report ? (
                     <article className="space-y-6 text-sm leading-relaxed max-w-prose">
+                        {report.picture && (
+                            <figure className="pt-2">
+                                {/* Line art drawn in the doodles' ink: the picture is the mask. */}
+                                <div
+                                    role="img"
+                                    aria-label={report.picture.alt}
+                                    className="w-full bg-[var(--illustration-line)]"
+                                    style={{
+                                        aspectRatio: '2217 / 1173',
+                                        WebkitMaskImage: `url(${report.picture.src})`,
+                                        maskImage: `url(${report.picture.src})`,
+                                        WebkitMaskSize: 'contain',
+                                        maskSize: 'contain',
+                                        WebkitMaskRepeat: 'no-repeat',
+                                        maskRepeat: 'no-repeat',
+                                    }}
+                                />
+                                {report.picture.credit && (
+                                    <figcaption className="mt-2 text-xs text-[var(--text-muted)]">{report.picture.credit}</figcaption>
+                                )}
+                            </figure>
+                        )}
                         <p className="text-[var(--text-muted)]">{report.source}</p>
                         {report.sections.map(s => (
                             <section key={s.heading} className="space-y-2">
