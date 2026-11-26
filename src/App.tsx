@@ -15,6 +15,8 @@ import { Saved } from './pages/Saved';
 import { Onboarding, useOnboarding } from './pages/Onboarding';
 import { Settings } from './pages/Settings';
 import { Substance } from './pages/Substance';
+import { Xunxun } from './pages/Xunxun';
+import { XUNXUN_ID } from './lib/xunxun';
 import { Report } from './pages/Report';
 import { tr } from './lib/i18n';
 
@@ -131,6 +133,8 @@ function AppContent() {
                                     {tr('Check your connection and reload the page.')}
                                 </p>
                             </div>
+                        ) : route.page === 'substance' && route.id === XUNXUN_ID ? (
+                            <Xunxun />
                         ) : route.page === 'substance' ? (
                             <Substance id={route.id} index={index} byId={byId} />
                         ) : route.page === 'report' ? (

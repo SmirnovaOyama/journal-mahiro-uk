@@ -6,7 +6,7 @@ import { HrtEgg } from '../components/HrtEgg';
 import { isCareSearch } from '../lib/care';
 import { CareNote } from '../components/CareNote';
 import { N55Egg, isN55Search } from '../components/N55Egg';
-import { XunxunEgg, isXunxunSearch } from '../components/XunxunEgg';
+import { isXunxunSearch, xunxunEntry } from '../lib/xunxun';
 import { useRecent } from '../lib/store';
 import { Link } from '../components/Link';
 import PixelCat from '../components/PixelCat';
@@ -28,10 +28,14 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
     const input = useRef<HTMLInputElement>(null);
     const recent = useRecent();
 
-    const hits = useMemo(() => (index ? search(index, q, 200) : []), [index, q]);
+    // 寻寻 isn't in the list: a search for the name finds it as a row all the same.
+    const xunxun = isXunxunSearch(q);
+    const hits = useMemo(() => {
+        const found = index ? search(index, q, 200) : [];
+        return xunxun ? [{ entry: xunxunEntry() }, ...found] : found;
+    }, [index, q, xunxun]);
     const care = isCareSearch(q);
     const n55 = isN55Search(q);
-    const xunxun = isXunxunSearch(q);
     useEffect(() => {
         setActive(0);
         setLimit(20);
@@ -86,12 +90,12 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     autoFocus={!('ontouchstart' in window)}
                 />
 
-                {care ? <CareNote q={q} /> : n55 ? <N55Egg /> : xunxun ? <XunxunEgg /> : isHrtSearch(q) && <HrtEgg q={q} />}
+                {care ? <CareNote q={q} /> : n55 ? <N55Egg /> : isHrtSearch(q) && <HrtEgg q={q} />}
                 {q.trim() ? (
                     <section className="m-appear mt-6" aria-live="polite">
                         {hits.length === 0 ? (
                             // After the check-in, "nothing called that" would only be cold.
-                            !care && !n55 && !xunxun && <div className="py-8">
+                            !care && !n55 && <div className="py-8">
                                 <p className="text-sm font-semibold">
                                     {tr('Nothing called “{0}”', { 0: q.trim() })}
                                 </p>

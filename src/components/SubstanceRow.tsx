@@ -27,7 +27,7 @@ export function SubstanceRow({ entry, sub, active, onPick, id }: Props) {
             <span className="flex-1 min-w-0">
                 <span className="block text-sm font-medium">{nameOf(entry)}</span>
                 <span className="block text-xs text-[var(--text-muted)] mt-0.5 truncate">
-                    {sub ?? describe(entry)}
+                    {sub ?? entry.says ?? describe(entry)}
                 </span>
             </span>
             {band && (

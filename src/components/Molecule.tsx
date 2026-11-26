@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { molToSvg, type Mol } from '../lib/molsvg';
 import { FormDoodle, type DosageForm } from './doodles';
+import { PICTURES } from '../lib/xunxun';
 
 /* A substance drawn as its skeletal formula, laid out as PubChem lays it
    out (the standard depiction, as in textbooks and on Wikipedia) and drawn
@@ -144,6 +145,7 @@ export function Molecule({ id, form, size = 'sm' }: { id: string; form: DosageFo
     const [markup, setMarkup] = useState<string | null | undefined>(() => drawn.get(id));
 
     useEffect(() => {
+        if (PICTURES[id]) return;
         if (drawn.has(id)) {
             setMarkup(drawn.get(id));
             return;
@@ -169,7 +171,10 @@ export function Molecule({ id, form, size = 'sm' }: { id: string; form: DosageFo
     const doodle = { xs: 1.1, sm: 1.75, lg: 3.25 }[size];
     return (
         <span ref={box} className={`molecule molecule-${size}`} aria-hidden="true">
-            {markup ? (
+            {PICTURES[id] ? (
+                // A picture where a structure would be drawn (lib/xunxun.ts).
+                <img src={PICTURES[id]} alt="" decoding="async" draggable={false} className="block size-full rounded-[22%] object-cover" />
+            ) : markup ? (
                 <span className="molecule-ink" dangerouslySetInnerHTML={{ __html: markup }} />
             ) : markup === null ? (
                 <FormDoodle form={form} size={doodle} />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadDetail, loadIndex, type Detail, type IndexEntry } from './data';
+import { xunxunEntry } from './xunxun';
 
 export function useIndex() {
   const [index, setIndex] = useState<IndexEntry[] | null>(null);
@@ -13,7 +14,8 @@ export function useIndex() {
       live = false;
     };
   }, []);
-  const byId = useMemo(() => new Map((index ?? []).map((e) => [e.id, e])), [index]);
+  // 寻寻 is found by id (Saved, "Looked at lately") without being in the list.
+  const byId = useMemo(() => new Map([...(index ?? []), xunxunEntry()].map((e) => [e.id, e])), [index]);
   return { index, byId, failed };
 }
 
