@@ -543,6 +543,24 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 </dl>
                             </Fold>
                         )}
+                        {detail.availability && detail.availability.length > 0 && (
+                            <Fold title={'Where it’s sold'} hint={detail.availability.map(a => a.where).join(', ')}>
+                                <div className="grid gap-5">
+                                    {detail.availability.map(a => (
+                                        <div key={a.where}>
+                                            <h3 className="text-sm font-medium">{a.where}</h3>
+                                            <p className="text-sm max-w-prose mt-1">{a.rule}</p>
+                                            <p className="footnote !mt-1">
+                                                {'From '}
+                                                <a href={a.url} target="_blank" rel="noreferrer">
+                                                    {a.source}
+                                                </a>
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Fold>
+                        )}
                         {detail.tolerance && (detail.tolerance.buildUp || detail.tolerance.reset) && (
                             <Fold
                                 title={'Tolerance'}
