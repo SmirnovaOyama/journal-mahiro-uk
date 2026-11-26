@@ -92,7 +92,7 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
         }
         case 'report': {
             // The report's own telling in that language, where there is one.
-            type Shared = { id: string; title: string; summary: string; closing?: string[][]; closingPicture?: { alt: string } };
+            type Shared = { id: string; title: string; summary: string; closing?: string[][]; picture?: { alt: string }; closingPicture?: { alt: string } };
             const report =
                 (lang === 'zh-Hant' ? await json<Shared>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.zh-Hant.json`) : undefined) ??
                 (await json<Shared>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.json`));
@@ -104,11 +104,12 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
                written in as its first line). A search engine still gets the
                summary. */
             const wish = report.closing?.[0];
-            if (!wish?.length || !report.closingPicture) return page;
+            const picture = report.picture ?? report.closingPicture;
+            if (!wish?.length || !picture) return page;
             return {
                 ...page,
                 image: `/og/report/${report.id}.png`,
-                imageAlt: report.closingPicture.alt,
+                imageAlt: picture.alt,
                 shareDescription: (wish.length > 1 ? wish.slice(1) : wish).join(' '),
             };
         }

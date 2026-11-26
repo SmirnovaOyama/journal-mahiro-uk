@@ -129,7 +129,10 @@ for (const [verdict, v] of Object.entries(lib.VERDICT)) {
     );
 }
 
-// One card per report that closes on a wish: its last picture and the wish.
+// One card per report that closes on a wish: its picture and the wish. The
+// picture is the report's own line drawing, or its closing picture if it has
+// no drawing. A drawing goes in as a data URL: the card draws it as a mask,
+// and Chromium won't use a file from disk as one.
 // The wish's first line is the one it was written in, a clause to a line;
 // the lines after it are its English.
 await fs.mkdir(path.join(OUT, 'report'), { recursive: true });
@@ -138,12 +141,15 @@ for (const f of await fs.readdir(path.join(ROOT, 'public/data/reports'))) {
     if (!/^[^.]+\.json$/.test(f)) continue;
     const r = await readJson(`public/data/reports/${f}`);
     const wish = r.closing?.[0];
-    if (!wish?.length || !r.closingPicture) continue;
+    const picture = r.picture ?? r.closingPicture;
+    if (!wish?.length || !picture) continue;
+    const file = path.join(ROOT, 'public', picture.src);
     await shoot(
         'report',
         {
             host,
-            picture: pathToFileURL(path.join(ROOT, 'public', r.closingPicture.src)).href,
+            picture: r.picture ? `data:image/png;base64,${(await fs.readFile(file)).toString('base64')}` : pathToFileURL(file).href,
+            line: !!r.picture,
             wish: wish[0].split(/[，,]\s*/).filter(Boolean),
             verse: wish.slice(1),
         },
