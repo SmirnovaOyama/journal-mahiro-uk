@@ -85,7 +85,7 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
             const detail = await json<Detail>(env, origin, `/data/substances/${encodeURIComponent(route.id)}.json`);
             if (!detail) return { ...site, path: url.pathname, found: false };
             speakFor(lang);
-            return { ...substancePreview(detail, byId.get(detail.id)), path: `/s/${detail.id}`, found: true };
+            return { ...substancePreview(detail, byId.get(detail.id), index), path: `/s/${detail.id}`, found: true };
         }
         case 'report': {
             // The report's own telling in that language, where there is one.

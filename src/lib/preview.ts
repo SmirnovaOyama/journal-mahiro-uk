@@ -3,13 +3,14 @@ import {
     categoryInfo,
     describe,
     nameOf,
+    resolveName,
     squash,
     type ComboStatus,
     type Detail,
     type DoseRow,
     type IndexEntry,
 } from './data';
-import { dataText, isZh, phraseList, roaName, tr } from './i18n';
+import { dataText, isZh, phraseList, roaName, spaced, tr } from './i18n';
 import { RANK, VERDICT, type Verdict } from './mix';
 import { formatSpan, parseSpan } from './time';
 
@@ -48,10 +49,12 @@ const thousands = (n: number) => (n >= 1000 ? `${Math.floor(n / 1000).toLocaleSt
 export function sitePreview(count?: number): Preview {
     return {
         title: siteName(),
-        description: tr('{0}, for {1} psychoactive substances. Log what you take, on your device only. No sign-up.', {
-            0: tagline(),
-            1: count ? thousands(count) : '3,000',
-        }),
+        description: spaced(
+            tr('{0}, for {1} psychoactive substances. Log what you take, on your device only. No sign-up.', {
+                0: tagline(),
+                1: count ? thousands(count) : '3,000',
+            }),
+        ),
         image: '/og/site.png',
         imageAlt: `${SITE.name}: ${SITE.tagline.toLowerCase()}`,
     };
@@ -91,14 +94,20 @@ const orList = (xs: string[]) => phraseList(xs, 'or');
 
 /** What kind of drug it is, as a short phrase: "A psychedelic in the lysergamide family". */
 export function kindLine(d: Pick<Detail, 'category' | 'chemicalClass'>, entry?: IndexEntry): string {
-    return describe({ category: d.category, chemicalClass: d.chemicalClass ?? entry?.chemicalClass ?? '' }).replace(/\.$/, '');
+    return describe({ category: d.category, chemicalClass: d.chemicalClass ?? entry?.chemicalClass ?? '' }).replace(/[.。]$/, '');
 }
 
-export function substancePreview(d: Detail, entry?: IndexEntry): Preview {
+export function substancePreview(d: Detail, entry?: IndexEntry, index?: IndexEntry[]): Preview {
     const { roa, dose } = primaryRoute(d);
     const total = totalTime(d, roa);
-    // Chinese keeps each name as the catalogue writes it, in its own case.
-    const avoid = avoidList(d, 3).map(s => (isZh() ? dataText(s) : s.toLowerCase()));
+    /* What not to mix it with: each under the name the catalogue has for it
+       in the reader's language ("酒精"), or, for a group the catalogue has no
+       entry for ("MAOIs"), the one lib/zh-Hant-data.ts gives. */
+    const avoid = avoidList(d, 3).map(s => {
+        if (!isZh()) return s.toLowerCase();
+        const found = index && resolveName(index, s);
+        return found ? nameOf(found) : dataText(s);
+    });
     const parts = [tr('{0}.', { 0: kindLine(d, entry) })];
     const way = roa ? (isZh() ? roaName(roa) : roa.toLowerCase()) : '';
     if (dose?.common)
@@ -112,7 +121,7 @@ export function substancePreview(d: Detail, entry?: IndexEntry): Preview {
     if (d.status === 'Limited data') parts.push(tr('Little is known about it: take extra care with any amount.'));
     return {
         title: nameOf(d),
-        description: parts.join(' '),
+        description: spaced(parts.join(' ')),
         image: `/og/s/${encodeURIComponent(d.id)}.png`,
         imageAlt: d.name,
     };
@@ -133,8 +142,8 @@ export function mixPreview(names: string[], verdict?: Verdict, note?: string): P
     const v = VERDICT[verdict];
     const who = phraseList(names);
     return {
-        title: who,
-        description: `${tr(v.label)}${tr('. ')}${tr(v.meaning)}${note ? ` ${dataText(note)}` : ''}`,
+        title: spaced(who),
+        description: spaced(`${tr(v.label)}${tr('. ')}${tr(v.meaning)}${note ? ` ${dataText(note)}` : ''}`),
         image: verdictCard(verdict),
         imageAlt: `${who}: ${v.label.toLowerCase()}`,
     };
@@ -144,7 +153,7 @@ export function kindPreview(category: string, count: number): Preview {
     const info = categoryInfo(category);
     return {
         title: tr(info.plural),
-        description: tr('{0}. All {1}, A to Z, each with its doses, durations and what not to mix.', { 0: tr(info.blurb), 1: count }),
+        description: spaced(tr('{0}. All {1}, A to Z, each with its doses, durations and what not to mix.', { 0: tr(info.blurb), 1: count })),
         image: '/og/site.png',
         imageAlt: info.plural,
     };
