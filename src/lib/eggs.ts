@@ -17,21 +17,21 @@ const HRT_IDS = new Set([
 
 export const isHrt = (id: string) => HRT_IDS.has(id) || /estradiol|oestradiol/i.test(id);
 
-/** A line for each ester, form and friend, as people who take them say them. */
+/** A plain line for each ester, form and friend: what it is, and no more. */
 const LINES: [RegExp, string][] = [
-    [/titty skittles|girl ?pills|girl juice|bloobs/i, 'We know exactly what you mean.'],
-    [/\b(ev|valerate|progynova|delestrogen)\b/i, 'Valerate: the classic.'],
-    [/\b(ec|cypionate|depo-?estradiol)\b/i, 'Cypionate: slow and steady.'],
-    [/\b(een|enanthate)\b/i, 'Enanthate: weekly, and iconic.'],
-    [/\b(eun|undecylate)\b/i, 'Undecylate: in it for the long haul.'],
-    [/\b(eb|benzoate)\b/i, 'Benzoate: in and out in a hurry.'],
-    [/\bgel\b/i, 'Gel: rub it in, let it dry, wash your hands.'],
-    [/\bpatch(es)?\b/i, 'Patches: stick one on and get on with your day.'],
-    [/\bspray\b/i, 'Spray: psst.'],
-    [/\bspiro(nolactone)?\b/i, 'Spiro: the reason you know where every bathroom is.'],
-    [/\b(cypro(terone)?|cpa|androcur)\b/i, 'Cyproterone: a little goes a long way.'],
-    [/\bbica(lutamide)?\b/i, 'Bicalutamide: the quiet one.'],
-    [/\b(prog(esterone)?|prometrium|utrogestan)\b/i, 'Progesterone: sleepy, in the best way.'],
+    [/titty skittles|girl ?pills|girl juice|bloobs/i, 'Also known as estradiol.'],
+    [/\b(ev|valerate|progynova|delestrogen)\b/i, 'Valerate: the most common ester.'],
+    [/\b(ec|cypionate|depo-?estradiol)\b/i, 'Cypionate: a longer-acting ester.'],
+    [/\b(een|enanthate)\b/i, 'Enanthate: a longer ester than valerate.'],
+    [/\b(eun|undecylate)\b/i, 'Undecylate: the longest-acting ester.'],
+    [/\b(eb|benzoate)\b/i, 'Benzoate: the shortest-acting ester.'],
+    [/\bgel\b/i, 'Gel: absorbed through the skin.'],
+    [/\bpatch(es)?\b/i, 'Patch: a steady supply through the skin.'],
+    [/\bspray\b/i, 'Spray: a metered dose on the skin.'],
+    [/\bspiro(nolactone)?\b/i, 'Spironolactone: an antiandrogen and a diuretic.'],
+    [/\b(cypro(terone)?|cpa|androcur)\b/i, 'Cyproterone: an antiandrogen and a progestin.'],
+    [/\bbica(lutamide)?\b/i, 'Bicalutamide: an antiandrogen that blocks the receptor.'],
+    [/\b(prog(esterone)?|prometrium|utrogestan)\b/i, 'Progesterone: the body’s own progestogen.'],
 ];
 
 /** The line for a search, or a substance's id. */

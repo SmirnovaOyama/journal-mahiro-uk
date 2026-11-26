@@ -406,7 +406,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         add(i);
                                         if (isHrt(i.substance)) {
                                             sparkleFrom(document.activeElement);
-                                            toast('Logged. Proud of you.');
+                                            toast('Dose logged.');
                                         }
                                         setAdding(false);
                                     }}
@@ -565,7 +565,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                                         add(i);
                                         if (isHrt(i.substance)) {
                                             sparkleFrom(document.activeElement);
-                                            toast('Logged. Proud of you.');
+                                            toast('Dose logged.');
                                         }
                                         setAdding(false);
                                     }}
