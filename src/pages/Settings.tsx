@@ -16,6 +16,7 @@ import { AccountPage, AccountTile, DeleteAccountPage, DevicesPage, PasswordPage,
 import { AdminPage } from './Admin';
 import { TwoFactorPage } from './TwoFactor';
 import { WeightPage } from './Weight';
+import { EssayPage } from './Essay';
 import { useWide } from '../hooks/useWide';
 import { LANG_NAMES, useLang, type LangChoice } from '../lib/lang';
 import { SettingsTile } from '../components/SettingsTile';
@@ -352,6 +353,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                 <div className={section}>
                     <NavRow label={tr('Disclaimer')} onClick={() => open('disclaimer')} />
                     <NavRow label={tr('Show the intro again')} onClick={showOnboardingAgain} />
+                    <NavRow label={tr('A Borrowed Spring')} value={tr('Essay')} onClick={() => open('essay')} />
                 </div>
             </div>
             <div>
@@ -389,6 +391,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     if (sub === 'recovery-key') return <RecoveryKeyPage />;
     if (sub === 'two-factor') return <TwoFactorPage />;
     if (sub === 'weight') return <WeightPage />;
+    if (sub === 'essay') return <EssayPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;
     if (sub === 'recover') return <RecoverPage />;
     if (sub === 'admin' || sub === 'admin-overview' || sub === 'admin-accounts') return <AdminPage sub={sub} />;

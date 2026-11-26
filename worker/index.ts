@@ -14,7 +14,7 @@ import { speak, tr, type Lang } from '../src/lib/i18n';
 import zhWords from '../src/lib/zh-Hant';
 import zhData, { terms as zhTerms } from '../src/lib/zh-Hant-data';
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
-import { SITE, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, type Preview } from '../src/lib/preview';
+import { SITE, essayPreview, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, type Preview } from '../src/lib/preview';
 import { parse } from '../src/lib/routes';
 import { handleApi, type ApiEnv } from './api';
 
@@ -156,8 +156,9 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
             return { ...pagePreview(route.page, index.length || undefined), path: `/${route.page}`, found: true };
         case 'settings': {
             // An account's own pages, and the admin's: nothing for a search engine.
-            const own = !!route.sub && !['general', 'data', 'about', 'appearance', 'language', 'disclaimer'].includes(route.sub);
+            const own = !!route.sub && !['general', 'data', 'about', 'appearance', 'language', 'disclaimer', 'essay'].includes(route.sub);
             speakFor(lang);
+            if (route.sub === 'essay') return { ...essayPreview(index.length || undefined), path: '/settings/essay', found: true };
             return { ...pagePreview('settings', index.length || undefined), path: '/settings', found: true, privatePage: own };
         }
         case 'journal':
