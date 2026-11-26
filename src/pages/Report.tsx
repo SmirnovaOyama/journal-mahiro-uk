@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useOpenedFromLink } from '../lib/router';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
+import Doodle, { type DoodleName } from '../components/Doodle';
 
 export type CaseReport = {
     id: string;
@@ -8,7 +9,7 @@ export type CaseReport = {
     summary: string;
     source: string;
     url: string;
-    sections: { heading: string; paragraphs: string[] }[];
+    sections: { heading: string; icon?: DoodleName; paragraphs: string[] }[];
 };
 
 const cache = new Map<string, Promise<CaseReport | null>>();
@@ -47,7 +48,10 @@ export function Report({ id }: { id: string }) {
                         <p className="text-[var(--text-muted)]">{report.source}</p>
                         {report.sections.map(s => (
                             <section key={s.heading} className="space-y-2">
-                                <h2 className="font-medium text-[var(--text)]">{s.heading}</h2>
+                                <h2 className="flex items-center gap-2 font-medium text-[var(--text)]">
+                                    {s.icon && <Doodle name={s.icon} size={2} />}
+                                    {s.heading}
+                                </h2>
                                 {s.paragraphs.map((p, i) => <p key={i} className="text-[var(--text)]">{p}</p>)}
                             </section>
                         ))}
