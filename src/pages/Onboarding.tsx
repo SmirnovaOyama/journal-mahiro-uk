@@ -9,6 +9,7 @@ import { Check, ChevronLeft, Clover, Heart } from '../components/icons';
 import { PALETTE } from '../lib/journal';
 import { VERDICT, type Verdict } from '../lib/mix';
 import type { Course } from '../lib/time';
+import type { DosageForm } from '../components/doodles';
 import { tr } from '../lib/i18n';
 
 /* The intro: a short story told with the app itself. Each screen is a
@@ -101,12 +102,28 @@ function WelcomeStage() {
     );
 }
 
-const BANDS = [
-    { v: 30, name: 'Light', tone: 'text-[var(--status-info)]' },
-    { v: 113, name: 'Common', tone: 'text-[var(--accent-ink)]' },
-    { v: 225, name: 'Strong', tone: 'text-[var(--warning)]' },
+/* The substances the dose screen reads off one after another: each its own
+   route, unit, common band and scale, landing in a different band. Bands
+   are PsychonautWiki's common range for that route. */
+const DOSES: { id: string; name: string; form: DosageForm; route: string; unit: string; band: [number, number]; domain: [number, number]; v: number }[] = [
+    { id: 'lsd', name: 'LSD', form: 'blotter', route: 'Sublingual', unit: 'µg', band: [75, 150], domain: [12, 405], v: 113 },
+    { id: 'caffeine', name: 'Caffeine', form: 'tablet', route: 'Oral', unit: 'mg', band: [50, 150], domain: [8, 800], v: 35 },
+    { id: 'mdma', name: 'MDMA', form: 'capsule', route: 'Oral', unit: 'mg', band: [80, 120], domain: [15, 300], v: 100 },
+    { id: 'alcohol', name: 'Alcohol', form: 'dropper', route: 'Oral', unit: 'g', band: [20, 30], domain: [4, 80], v: 36 },
+    { id: 'ketamine', name: 'Ketamine', form: 'spray', route: 'Insufflated', unit: 'mg', band: [30, 75], domain: [4, 300], v: 50 },
+    { id: '2c-b', name: '2C-B', form: 'tablet', route: 'Oral', unit: 'mg', band: [15, 25], domain: [4, 80], v: 12 },
 ];
-const bandFor = (v: number) => (v >= 150 ? BANDS[2] : v >= 75 ? BANDS[1] : BANDS[0]);
+const BANDS = {
+    light: { name: 'Light', tone: 'text-[var(--status-info)]' },
+    common: { name: 'Common', tone: 'text-[var(--accent-ink)]' },
+    strong: { name: 'Strong', tone: 'text-[var(--warning)]' },
+};
+/** Where `v` sits on a substance's scale, 0 at its left end to 1 at its right. */
+const along = (v: number, [lo, hi]: [number, number]) => Math.log(v / lo) / Math.log(hi / lo);
+/* Each scale is drawn on one shared 1–1000 rail, so moving from one
+   substance to the next glides the reading and the band together. */
+const RAIL: [number, number] = [1, 1000];
+const onRail = (f: number) => 1000 ** f;
 
 const GLIDE_MS = 1100;
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
@@ -136,28 +153,48 @@ function useGlide(target: number, ms = GLIDE_MS) {
     return v;
 }
 
-/** LSD's dose, read off its rail: the tick glides from band to band and the
- *  number rolls with it, both easing in and out over the same time. */
+/** One substance's dose after another, read off its rail: the tick and the
+ *  band glide to the next substance's scale while the number rolls with
+ *  them and the name and route give way, all over the same time. */
 function DoseStage({ active }: { active: boolean }) {
-    const k = useCycle(BANDS.length, 2800, active, 1);
-    const target = BANDS[k].v;
-    const v = useGlide(target);
-    const b = bandFor(v);
-    return (
-        <div className="w-full max-w-[22rem]">
+    const k = useCycle(DOSES.length, 2800, active);
+    const d = DOSES[k];
+    const v = useGlide(along(d.v, d.domain));
+    const low = useGlide(along(d.band[0], d.domain));
+    const high = useGlide(along(d.band[1], d.domain));
+    const b = v < low - 1e-6 ? BANDS.light : v > high + 1e-6 ? BANDS.strong : BANDS.common;
+    const head = (i: number) => {
+        const x = DOSES[i];
+        return (
             <div className="flex items-center gap-3">
-                <Molecule id="lsd" form="blotter" size="sm" />
+                <Molecule id={x.id} form={x.form} size="sm" />
                 <div>
-                    <p className="text-sm font-medium text-[var(--text)]">{'LSD'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{tr('Sublingual, in µg')}</p>
+                    <p className="text-sm font-medium text-[var(--text)]">{x.name}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{tr('{0}, in {1}', { 0: tr(x.route), 1: x.unit })}</p>
                 </div>
             </div>
+        );
+    };
+    return (
+        <div className="w-full max-w-[22rem]">
+            <Crossfade k={k} render={head} />
             <div className="mt-4 flex items-baseline gap-2 font-display font-light leading-none tracking-[-0.035em] text-[3.25rem] text-[var(--text)]">
-                <Odometer value={target} decimals={0} places={3} rollMs={GLIDE_MS} gentle />
-                <span className="text-sm font-normal tracking-normal text-[var(--text-muted)]">{'µg'}</span>
+                <Odometer value={d.v} decimals={0} places={3} rollMs={GLIDE_MS} gentle />
+                <Crossfade
+                    k={k}
+                    delay={110}
+                    render={i => <span className="text-sm font-normal tracking-normal text-[var(--text-muted)]">{DOSES[i].unit}</span>}
+                />
             </div>
             <div className="mt-1">
-                <LevelRail value={v} band={{ low: 75, high: 150 }} domain={[12, 405]} label={tr(b.name)} tone={b.tone} />
+                <LevelRail
+                    value={onRail(v)}
+                    band={{ low: onRail(low), high: onRail(high) }}
+                    domain={RAIL}
+                    marks={d.band}
+                    label={tr(b.name)}
+                    tone={b.tone}
+                />
             </div>
         </div>
     );
