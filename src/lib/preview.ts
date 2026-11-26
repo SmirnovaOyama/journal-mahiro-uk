@@ -2,12 +2,15 @@ import {
     CATEGORIES,
     categoryInfo,
     describe,
+    nameOf,
+    resolveName,
     squash,
     type ComboStatus,
     type Detail,
     type DoseRow,
     type IndexEntry,
 } from './data';
+import { dataText, isZh, phraseList, roaName, spaced, tr } from './i18n';
 import { RANK, VERDICT, type Verdict } from './mix';
 import { formatSpan, parseSpan } from './time';
 
@@ -17,7 +20,10 @@ import { formatSpan, parseSpan } from './time';
    the picture cards (scripts/og/render.mjs) are drawn from the same facts.
 
    The title is the page's own name and nothing else ("LSD"); the facts go
-   in the line under it, in English, short. */
+   in the line under it, short, in the language the visitor's browser asked
+   for: the Worker settles that before it words any of this (lib/i18n.ts).
+   The picture cards are drawn in English, as the catalogue writes the
+   names. */
 
 export const SITE = {
     name: 'Oyama Journal',
@@ -25,6 +31,10 @@ export const SITE = {
     origin: 'https://journal.mahiro.uk',
     tagline: 'Doses, durations and what not to mix',
 };
+
+/** The site's name and its line, in the visitor's language. */
+const siteName = () => tr('Oyama Journal');
+const tagline = () => tr(SITE.tagline);
 
 export interface Preview {
     title: string;
@@ -38,8 +48,13 @@ const thousands = (n: number) => (n >= 1000 ? `${Math.floor(n / 1000).toLocaleSt
 
 export function sitePreview(count?: number): Preview {
     return {
-        title: SITE.name,
-        description: `${SITE.tagline}, for ${count ? thousands(count) : '3,000'} psychoactive substances. Log what you take, on your device only. No sign-up.`,
+        title: siteName(),
+        description: spaced(
+            tr('{0}, for {1} psychoactive substances. Log what you take, on your device only. No sign-up.', {
+                0: tagline(),
+                1: count ? thousands(count) : '3,000',
+            }),
+        ),
         image: '/og/site.png',
         imageAlt: `${SITE.name}: ${SITE.tagline.toLowerCase()}`,
     };
@@ -74,26 +89,39 @@ export function totalTime(d: Detail, roa?: string): string | undefined {
     return span ? formatSpan(span) : undefined;
 }
 
-/** "a, b or c" */
-const orList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} or ${xs[xs.length - 1]}`);
+/** "a, b or c", "a、b 或 c" */
+const orList = (xs: string[]) => phraseList(xs, 'or');
 
 /** What kind of drug it is, as a short phrase: "A psychedelic in the lysergamide family". */
 export function kindLine(d: Pick<Detail, 'category' | 'chemicalClass'>, entry?: IndexEntry): string {
-    return describe({ category: d.category, chemicalClass: d.chemicalClass ?? entry?.chemicalClass ?? '' }).replace(/\.$/, '');
+    return describe({ category: d.category, chemicalClass: d.chemicalClass ?? entry?.chemicalClass ?? '' }).replace(/[.。]$/, '');
 }
 
-export function substancePreview(d: Detail, entry?: IndexEntry): Preview {
+export function substancePreview(d: Detail, entry?: IndexEntry, index?: IndexEntry[]): Preview {
     const { roa, dose } = primaryRoute(d);
     const total = totalTime(d, roa);
-    const avoid = avoidList(d, 3).map(s => s.toLowerCase());
-    const parts = [`${kindLine(d, entry)}.`];
-    if (dose?.common) parts.push(`Common dose ${dose.common}${roa ? ` ${roa.toLowerCase()}` : ''}${total ? `, lasting ${total}` : ''}.`);
-    else if (total) parts.push(`Lasts ${total}.`);
-    if (avoid.length) parts.push(`Don’t mix with ${orList(avoid)}.`);
-    if (d.status === 'Limited data') parts.push('Little is known about it: take extra care with any amount.');
+    /* What not to mix it with: each under the name the catalogue has for it
+       in the reader's language ("酒精"), or, for a group the catalogue has no
+       entry for ("MAOIs"), the one lib/zh-Hant-data.ts gives. */
+    const avoid = avoidList(d, 3).map(s => {
+        if (!isZh()) return s.toLowerCase();
+        const found = index && resolveName(index, s);
+        return found ? nameOf(found) : dataText(s);
+    });
+    const parts = [tr('{0}.', { 0: kindLine(d, entry) })];
+    const way = roa ? (isZh() ? roaName(roa) : roa.toLowerCase()) : '';
+    if (dose?.common)
+        parts.push(
+            total
+                ? tr('Common dose {0}{1}, lasting {2}.', { 0: dose.common, 1: way ? tr(' {0}', { 0: way }) : '', 2: total })
+                : tr('Common dose {0}{1}.', { 0: dose.common, 1: way ? tr(' {0}', { 0: way }) : '' }),
+        );
+    else if (total) parts.push(tr('Lasts {0}.', { 0: total }));
+    if (avoid.length) parts.push(tr('Don’t mix with {0}.', { 0: orList(avoid) }));
+    if (d.status === 'Limited data') parts.push(tr('Little is known about it: take extra care with any amount.'));
     return {
-        title: d.name,
-        description: parts.join(' '),
+        title: nameOf(d),
+        description: spaced(parts.join(' ')),
         image: `/og/s/${encodeURIComponent(d.id)}.png`,
         imageAlt: d.name,
     };
@@ -105,17 +133,17 @@ export const verdictCard = (v: Verdict) => `/og/mix/${v.toLowerCase().replace(/\
 export function mixPreview(names: string[], verdict?: Verdict, note?: string): Preview {
     if (names.length < 2 || !verdict) {
         return {
-            title: 'Mix',
-            description: 'What are the risks of taking these together? Add everything you plan to take, alcohol and medicines included.',
+            title: tr('Mix'),
+            description: tr('What are the risks of taking these together? Add everything you plan to take, alcohol and medicines included.'),
             image: verdictCard('Unknown'),
             imageAlt: 'Mix checker',
         };
     }
     const v = VERDICT[verdict];
-    const who = names.length === 2 ? `${names[0]} and ${names[1]}` : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    const who = phraseList(names);
     return {
-        title: who,
-        description: `${v.label}. ${v.meaning}${note ? ` ${note}` : ''}`,
+        title: spaced(who),
+        description: spaced(`${tr(v.label)}${tr('. ')}${tr(v.meaning)}${note ? ` ${dataText(note)}` : ''}`),
         image: verdictCard(verdict),
         imageAlt: `${who}: ${v.label.toLowerCase()}`,
     };
@@ -124,8 +152,8 @@ export function mixPreview(names: string[], verdict?: Verdict, note?: string): P
 export function kindPreview(category: string, count: number): Preview {
     const info = categoryInfo(category);
     return {
-        title: info.plural,
-        description: `${info.blurb}. All ${count}, A to Z, each with its doses, durations and what not to mix.`,
+        title: tr(info.plural),
+        description: spaced(tr('{0}. All {1}, A to Z, each with its doses, durations and what not to mix.', { 0: tr(info.blurb), 1: count })),
         image: '/og/site.png',
         imageAlt: info.plural,
     };
@@ -136,15 +164,17 @@ export function pagePreview(page: 'browse' | 'saved' | 'settings' | 'journal', c
     if (page === 'browse')
         return {
             ...base,
-            title: 'Browse',
-            description: `${CATEGORIES.map(c => c.plural.toLowerCase()).join(', ')}: every kind of drug, A to Z.`,
+            title: tr('Browse'),
+            description: tr('{0}: every kind of drug, A to Z.', {
+                0: CATEGORIES.map(c => (isZh() ? tr(c.plural) : c.plural.toLowerCase())).join(tr(', ')),
+            }),
         };
     if (page === 'journal')
         return {
             ...base,
-            title: 'Journal',
-            description: 'Log what you take and when. Kept on your device, and synced encrypted if you want.',
+            title: tr('Journal'),
+            description: tr('Log what you take and when. Kept on your device, and synced encrypted if you want.'),
         };
-    if (page === 'saved') return { ...base, title: 'Saved' };
-    return { ...base, title: 'Settings' };
+    if (page === 'saved') return { ...base, title: tr('Saved') };
+    return { ...base, title: tr('Settings') };
 }

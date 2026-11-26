@@ -1,5 +1,5 @@
 import type { DoseRow } from '../lib/data';
-import { roaName, tr } from '../lib/i18n';
+import { dataText, roaName, spaced, tr } from '../lib/i18n';
 
 /* How much of a dose gets into the blood, by route: why the same amount
    isn't the same dose another way (oral estradiol, a few percent; a depot
@@ -34,12 +34,14 @@ export function Absorption({ rows, roa, onPick }: { rows: DoseRow[]; roa: string
                 {cur?.absorbed ? (
                     <>
                         <span className="font-medium">{absorbedText(cur.absorbed).replace(/^./, c => c.toUpperCase())}</span>
-                        {tr(' of a dose taken this way reaches the blood{0}.', { 0: cur.absorbed.note ? ` (${cur.absorbed.note})` : '' })}
+                        {spaced(tr(' of a dose taken this way reaches the blood{0}.', { 0: cur.absorbed.note ? ` (${dataText(cur.absorbed.note)})` : '' }))}
                     </>
                 ) : (
                     tr('Not known for this route.')
                 )}
-                {cur?.note && <span className={muted}>{` ${cur.note.replace(/^./, c => c.toUpperCase()).replace(/\.?$/, '.')}`}</span>}
+                {cur?.note && (
+                    <span className={muted}>{` ${dataText(cur.note).replace(/^[a-z]/, c => c.toUpperCase()).replace(/([^.。])$/, '$1.')}`}</span>
+                )}
             </p>
 
             {known.length > 1 && (

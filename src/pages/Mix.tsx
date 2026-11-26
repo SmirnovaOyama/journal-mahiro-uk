@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type IndexEntry } from '../lib/data';
+import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type IndexEntry, nameOf } from '../lib/data';
 import { RANK, VERDICT, checkPair, worst, type PairResult } from '../lib/mix';
 import { go, useOpenedFromLink } from '../lib/router';
 import { Link } from '../components/Link';
@@ -12,7 +12,7 @@ import { rowBleed } from '../components/SettingsListItem';
 import { SubstanceRow } from '../components/SubstanceRow';
 import { ChevronRight, Clover, Close, Plus } from '../components/icons';
 import { Linked } from '../components/Linked';
-import { tr } from '../lib/i18n';
+import { dataText, tr } from '../lib/i18n';
 import { sessionsOf, useJournal } from '../lib/journal';
 import { courseFor } from '../lib/time';
 
@@ -136,7 +136,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                         className="inline-flex items-center gap-1.5 h-11 ps-3 pe-3.5 rounded-full border-(length:--hairline) border-[var(--border-strong)] text-sm font-medium text-[var(--text)] hover:bg-[var(--surface-hover)]"
                                     >
                                         <Plus size={16} />
-                                        {e.name}
+                                        {nameOf(e)}
                                     </button>
                                 </li>
                             ))}
@@ -156,12 +156,12 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                     to={{ page: 'substance', id: e.id }}
                                     className="text-sm font-medium text-[var(--text)] no-underline"
                                 >
-                                    {e.name}
+                                    {nameOf(e)}
                                 </Link>
                                 <button
                                     type="button"
                                     className="btn-ghost !size-8 !p-0"
-                                    aria-label={tr('Take {0} off', { 0: e.name })}
+                                    aria-label={tr('Take {0} off', { 0: nameOf(e) })}
                                     onClick={() => remove(e.id)}
                                 >
                                     <Close size={18} />
@@ -274,7 +274,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                     <div className="py-3.5" key={p.a.id + p.b.id}>
                                         <div className="flex items-baseline justify-between gap-3">
                                             <span className="text-sm font-medium">
-                                                {p.a.name} {tr('with')} {p.b.name}
+                                                {nameOf(p.a)} {tr('with')} {nameOf(p.b)}
                                             </span>
                                             <span
                                                 className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold tone-${v.tone}`}
@@ -283,7 +283,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                                 {tr(v.label)}
                                             </span>
                                         </div>
-                                        {note && <p className="text-sm mt-1"><Linked text={note} /></p>}
+                                        {note && <p className="text-sm mt-1"><Linked text={dataText(note)} /></p>}
                                         {pairs.length > 1 && !note && (
                                             <p className="text-sm mt-1">{tr(v.meaning)}</p>
                                         )}
