@@ -9,6 +9,7 @@ import { Check, ChevronLeft, Clover, Heart } from '../components/icons';
 import { PALETTE } from '../lib/journal';
 import { VERDICT, type Verdict } from '../lib/mix';
 import type { Course } from '../lib/time';
+import type { DosageForm } from '../components/doodles';
 import { tr } from '../lib/i18n';
 
 /* The intro: a short story told with the app itself. Each screen is a
@@ -101,12 +102,28 @@ function WelcomeStage() {
     );
 }
 
-const BANDS = [
-    { v: 30, name: 'Light', tone: 'text-[var(--status-info)]' },
-    { v: 113, name: 'Common', tone: 'text-[var(--accent-ink)]' },
-    { v: 225, name: 'Strong', tone: 'text-[var(--warning)]' },
+/* The substances the dose screen reads off one after another: each its own
+   route, unit, common band and scale, landing in a different band. Bands
+   are PsychonautWiki's common range for that route. */
+const DOSES: { id: string; name: string; form: DosageForm; route: string; unit: string; band: [number, number]; domain: [number, number]; v: number }[] = [
+    { id: 'lsd', name: 'LSD', form: 'blotter', route: 'Sublingual', unit: 'µg', band: [75, 150], domain: [12, 405], v: 113 },
+    { id: 'caffeine', name: 'Caffeine', form: 'tablet', route: 'Oral', unit: 'mg', band: [50, 150], domain: [8, 800], v: 35 },
+    { id: 'mdma', name: 'MDMA', form: 'capsule', route: 'Oral', unit: 'mg', band: [80, 120], domain: [15, 300], v: 100 },
+    { id: 'alcohol', name: 'Alcohol', form: 'dropper', route: 'Oral', unit: 'g', band: [20, 30], domain: [4, 80], v: 36 },
+    { id: 'ketamine', name: 'Ketamine', form: 'spray', route: 'Insufflated', unit: 'mg', band: [30, 75], domain: [4, 300], v: 50 },
+    { id: '2c-b', name: '2C-B', form: 'tablet', route: 'Oral', unit: 'mg', band: [15, 25], domain: [4, 80], v: 12 },
 ];
-const bandFor = (v: number) => (v >= 150 ? BANDS[2] : v >= 75 ? BANDS[1] : BANDS[0]);
+const BANDS = {
+    light: { name: 'Light', tone: 'text-[var(--status-info)]' },
+    common: { name: 'Common', tone: 'text-[var(--accent-ink)]' },
+    strong: { name: 'Strong', tone: 'text-[var(--warning)]' },
+};
+/** Where `v` sits on a substance's scale, 0 at its left end to 1 at its right. */
+const along = (v: number, [lo, hi]: [number, number]) => Math.log(v / lo) / Math.log(hi / lo);
+/* Each scale is drawn on one shared 1–1000 rail, so moving from one
+   substance to the next glides the reading and the band together. */
+const RAIL: [number, number] = [1, 1000];
+const onRail = (f: number) => 1000 ** f;
 
 const GLIDE_MS = 1100;
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
@@ -136,28 +153,48 @@ function useGlide(target: number, ms = GLIDE_MS) {
     return v;
 }
 
-/** LSD's dose, read off its rail: the tick glides from band to band and the
- *  number rolls with it, both easing in and out over the same time. */
+/** One substance's dose after another, read off its rail: the tick and the
+ *  band glide to the next substance's scale while the number rolls with
+ *  them and the name and route give way, all over the same time. */
 function DoseStage({ active }: { active: boolean }) {
-    const k = useCycle(BANDS.length, 2800, active, 1);
-    const target = BANDS[k].v;
-    const v = useGlide(target);
-    const b = bandFor(v);
-    return (
-        <div className="w-full max-w-[22rem]">
+    const k = useCycle(DOSES.length, 2800, active);
+    const d = DOSES[k];
+    const v = useGlide(along(d.v, d.domain));
+    const low = useGlide(along(d.band[0], d.domain));
+    const high = useGlide(along(d.band[1], d.domain));
+    const b = v < low - 1e-6 ? BANDS.light : v > high + 1e-6 ? BANDS.strong : BANDS.common;
+    const head = (i: number) => {
+        const x = DOSES[i];
+        return (
             <div className="flex items-center gap-3">
-                <Molecule id="lsd" form="blotter" size="sm" />
+                <Molecule id={x.id} form={x.form} size="sm" />
                 <div>
-                    <p className="text-sm font-medium text-[var(--text)]">{'LSD'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{tr('Sublingual, in µg')}</p>
+                    <p className="text-sm font-medium text-[var(--text)]">{x.name}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{tr('{0}, in {1}', { 0: tr(x.route), 1: x.unit })}</p>
                 </div>
             </div>
+        );
+    };
+    return (
+        <div className="w-full max-w-[22rem]">
+            <Crossfade k={k} render={head} />
             <div className="mt-4 flex items-baseline gap-2 font-display font-light leading-none tracking-[-0.035em] text-[3.25rem] text-[var(--text)]">
-                <Odometer value={target} decimals={0} places={3} rollMs={GLIDE_MS} gentle />
-                <span className="text-sm font-normal tracking-normal text-[var(--text-muted)]">{'µg'}</span>
+                <Odometer value={d.v} decimals={0} places={3} rollMs={GLIDE_MS} gentle />
+                <Crossfade
+                    k={k}
+                    delay={110}
+                    render={i => <span className="text-sm font-normal tracking-normal text-[var(--text-muted)]">{DOSES[i].unit}</span>}
+                />
             </div>
             <div className="mt-1">
-                <LevelRail value={v} band={{ low: 75, high: 150 }} domain={[12, 405]} label={tr(b.name)} tone={b.tone} />
+                <LevelRail
+                    value={onRail(v)}
+                    band={{ low: onRail(low), high: onRail(high) }}
+                    domain={RAIL}
+                    marks={d.band}
+                    label={tr(b.name)}
+                    tone={b.tone}
+                />
             </div>
         </div>
     );
@@ -246,42 +283,96 @@ function MixStage({ active }: { active: boolean }) {
     );
 }
 
-/** A night on the journal's clock, and the sessions it keeps. */
+/** A night on the journal's clock: one session after another, each its
+ *  substances' curves in their colours, the "now" line partway through. */
+type Dose = [substance: string, minutesAgo: number, course: [number, number, number, number], strength: number];
+const SESSIONS: { title: string; what: string; star?: boolean; doses: Dose[] }[] = [
+    {
+        title: 'Saturday night',
+        what: 'MDMA and Cannabis',
+        star: true,
+        doses: [
+            ['MDMA', 150, [40, 90, 210, 330], 1],
+            ['Cannabis', 50, [10, 30, 100, 200], 0.7],
+        ],
+    },
+    {
+        title: 'Friday',
+        what: 'LSD and Cannabis',
+        doses: [
+            ['LSD', 300, [45, 150, 420, 660], 1],
+            ['Cannabis', 90, [10, 30, 100, 200], 0.5],
+        ],
+    },
+    {
+        title: 'Thursday',
+        what: 'Ketamine, taken twice',
+        doses: [
+            ['Ketamine', 100, [4, 12, 40, 80], 0.9],
+            ['Ketamine', 30, [4, 12, 40, 80], 0.6],
+        ],
+    },
+    {
+        title: 'Sunday afternoon',
+        what: 'Mushrooms and a Cannabis edible',
+        doses: [
+            ['Mushrooms', 130, [40, 100, 200, 360], 1],
+            ['Cannabis', 70, [60, 150, 330, 540], 0.6],
+        ],
+    },
+    {
+        title: 'Monday',
+        what: 'Caffeine, twice, and L-Theanine',
+        doses: [
+            ['Caffeine', 200, [15, 45, 150, 300], 0.9],
+            ['L-Theanine', 200, [30, 60, 180, 360], 0.7],
+            ['Caffeine', 70, [15, 45, 150, 300], 0.6],
+        ],
+    },
+];
+/** Each substance keeps its colour from one session to the next. */
+const HUE: Record<string, string> = {
+    MDMA: PALETTE[0],
+    Cannabis: PALETTE[1],
+    LSD: PALETTE[4],
+    Ketamine: PALETTE[5],
+    Mushrooms: PALETTE[3],
+    Caffeine: PALETTE[2],
+    'L-Theanine': PALETTE[7],
+};
+
 function JournalStage({ active }: { active: boolean }) {
     const [now] = useState(() => Date.now());
-    const course = (a: number, b: number, c: number, d: number): Course => ({
-        firstEffects: a,
-        peakStart: b,
-        peakEnd: c,
-        over: d,
-        afterEnd: null,
-        total: null,
-        spans: {},
-    });
-    const doses: ChartDose[] = [
-        { id: 'a', time: now - 150 * 60_000, color: PALETTE[0], course: course(40, 90, 210, 330), strength: 1, label: 'MDMA' },
-        { id: 'b', time: now - 50 * 60_000, color: PALETTE[1], course: course(10, 30, 100, 200), strength: 0.7, label: 'Cannabis' },
-    ];
+    const k = useCycle(SESSIONS.length, 4200, active);
+    const doses = (i: number): ChartDose[] =>
+        SESSIONS[i].doses.map(([name, ago, [a, b, c, d], strength], j) => ({
+            id: `${i}-${j}`,
+            time: now - ago * 60_000,
+            color: HUE[name],
+            course: { firstEffects: a, peakStart: b, peakEnd: c, over: d, afterEnd: null, total: null, spans: {} } as Course,
+            strength,
+            label: name,
+        }));
+    const chart = (i: number) => <SessionChart doses={doses(i)} now={now} />;
+    const row = (i: number) => {
+        const s = SESSIONS[i];
+        return (
+            <div className="flex items-center gap-3">
+                <SessionMark colors={[...new Set(s.doses.map(d => HUE[d[0]]))]} size={24} />
+                <span className="min-w-0">
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text)]">
+                        {tr(s.title)}
+                        {s.star && <Heart size={13} fill="currentColor" className="text-[var(--text-muted)]" />}
+                    </span>
+                    <span className="block truncate text-xs text-[var(--text-muted)]">{tr(s.what)}</span>
+                </span>
+            </div>
+        );
+    };
     return (
         <div className="w-full max-w-[24rem]">
-            <div>{active && <SessionChart doses={doses} now={now} />}</div>
-            <div className="mt-1 flex flex-col gap-2.5">
-                {[
-                    [[PALETTE[0], PALETTE[1]], tr('Saturday night'), tr('MDMA and Cannabis'), true],
-                    [[PALETTE[2]], tr('Monday'), 'Caffeine', false],
-                ].map(([colors, title, what, star]) => (
-                    <div key={title as string} className="flex items-center gap-3">
-                        <SessionMark colors={colors as string[]} size={24} />
-                        <span className="min-w-0">
-                            <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text)]">
-                                {title as string}
-                                {(star as boolean) && <Heart size={13} fill="currentColor" className="text-[var(--text-muted)]" />}
-                            </span>
-                            <span className="block text-xs text-[var(--text-muted)]">{what as string}</span>
-                        </span>
-                    </div>
-                ))}
-            </div>
+            {active && <Crossfade k={k} render={chart} />}
+            <Crossfade k={k} delay={110} render={row} className="mt-1" />
         </div>
     );
 }
