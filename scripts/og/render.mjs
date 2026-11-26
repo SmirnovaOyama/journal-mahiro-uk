@@ -2,6 +2,7 @@
 //   site.png              the home page and the pages without their own card
 //   s/<id>.png            one per substance
 //   mix/<verdict>.png     one per answer the mix checker can give
+//   report/<id>.png       one per report that closes on a wish
 //
 //   npm run og                    everything
 //   npm run og -- --only=lsd,mdma just those substances (and the rest)
@@ -128,6 +129,29 @@ for (const [verdict, v] of Object.entries(lib.VERDICT)) {
     );
 }
 
+// One card per report that closes on a wish: its last picture and the wish.
+// The wish's first line is the one it was written in, a clause to a line;
+// the lines after it are its English.
+await fs.mkdir(path.join(OUT, 'report'), { recursive: true });
+let reports = 0;
+for (const f of await fs.readdir(path.join(ROOT, 'public/data/reports'))) {
+    if (!/^[^.]+\.json$/.test(f)) continue;
+    const r = await readJson(`public/data/reports/${f}`);
+    const wish = r.closing?.[0];
+    if (!wish?.length || !r.closingPicture) continue;
+    await shoot(
+        'report',
+        {
+            host,
+            picture: pathToFileURL(path.join(ROOT, 'public', r.closingPicture.src)).href,
+            wish: wish[0].split(/[，,]\s*/).filter(Boolean),
+            verse: wish.slice(1),
+        },
+        path.join(OUT, 'report', `${r.id}.png`),
+    );
+    reports++;
+}
+
 // One card per substance.
 let n = 0;
 for (const e of index) {
@@ -150,4 +174,4 @@ for (const e of index) {
 
 await browser.close();
 await fs.rm(tmp, { recursive: true, force: true });
-console.log(`done: the site card, ${Object.keys(lib.VERDICT).length} mix cards and ${n} substance cards in public/og`);
+console.log(`done: the site card, ${Object.keys(lib.VERDICT).length} mix cards, ${reports} report cards and ${n} substance cards in public/og`);

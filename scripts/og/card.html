@@ -247,6 +247,28 @@
                     return;
                 }
 
+                /* A report that closes on a wish: its last picture on the
+                   left, the wish beside it, in the language it was written
+                   in and then in English. */
+                if (kind === 'report') {
+                    card = $(`<div class="card">
+                        <img src="${esc(d.picture)}" alt="" style="position:absolute;left:44px;top:63px;width:504px;height:504px;object-fit:contain" />
+                        <div style="position:absolute;left:588px;top:0;width:564px;height:540px;display:flex;flex-direction:column;justify-content:center">
+                            <div id="wish" style="font-size:40px;line-height:1.42;letter-spacing:0.01em">${d.wish.map((l) => `<p style="white-space:nowrap">${esc(l)}</p>`).join('')}</div>
+                            ${d.verse.length ? `<div id="verse" class="muted" style="margin-top:26px;font-size:24px;line-height:1.5">${d.verse.map((l) => `<p style="white-space:nowrap">${esc(l)}</p>`).join('')}</div>` : ''}
+                        </div>
+                        <div class="foot" style="left:588px"><img src="../../public/logo.png" alt="" />${esc(d.host)}</div>
+                    </div>`);
+                    root.appendChild(card);
+                    for (const id of ['wish', 'verse']) {
+                        const el = card.querySelector('#' + id);
+                        let size = el ? parseFloat(el.style.fontSize) : 0;
+                        while (el && el.scrollWidth > 564 && size > 16) el.style.fontSize = --size + 'px';
+                    }
+                    await settle(card);
+                    return;
+                }
+
                 if (kind === 'mix') {
                     card = $(`<div class="card">
                         <p class="muted" style="position:absolute;left:80px;top:76px;font-size:34px">Can these be mixed?</p>
