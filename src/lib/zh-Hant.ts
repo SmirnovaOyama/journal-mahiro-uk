@@ -22,7 +22,7 @@ const zh: Record<string, string> = {
     'up to {0}%': '最多 {0}%',
     'about {0}%': '約 {0}%',
     'How much gets in': '實際吸收多少',
-    ' of a dose taken this way reaches the blood{0}.': '的劑量會經此途徑進入血液{0}。',
+    ' of a dose taken this way reaches the blood{0}.': ' 的劑量會經此途徑進入血液{0}。',
     'Not known for this route.': '此途徑的吸收率不明。',
     'Routes, by how much gets in': '各途徑的吸收比例',
     'So the same amount isn’t the same dose by another route: go by each route’s own doses. ': '所以同樣的量，換一種途徑就不是同樣的劑量：請以各途徑自己的劑量為準。',
