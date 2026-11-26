@@ -98,6 +98,32 @@ export interface Combination {
   note?: string;
 }
 
+/** A few sentences quoted from an article, and where they are in it. */
+export interface Quoted {
+  text?: string;
+  /** 'Wikipedia' or 'PsychonautWiki'. */
+  source?: string;
+  page?: string;
+  url?: string;
+}
+
+/** How a substance acts on something it binds to, as the Guide to Pharmacology records it. */
+export type ActHow =
+  | 'agonist'
+  | 'partial agonist'
+  | 'activator'
+  | 'positive modulator'
+  | 'inhibitor'
+  | 'antagonist'
+  | 'inverse agonist'
+  | 'negative modulator'
+  | 'blocker'
+  | 'modulator'
+  | 'ligand';
+
+/** What the body does with a dose, in the order it happens. */
+export type BodyStep = 'absorbed' | 'onset' | 'lasts' | 'halfLife' | 'brokenDown' | 'turnsInto' | 'leaves';
+
 export interface Detail {
   id: string;
   name: string;/** 'Wikidata' for a reference entry: what it is, no doses. */
@@ -118,6 +144,27 @@ export interface Detail {
   toxicity?: string[];
   summarySources?: string;
   summary: string;
+  /** How it works (scripts/pharmacology.mjs): the opening of what its article
+   *  says of its mechanism; the receptors, transporters and channels the
+   *  IUPHAR/BPS Guide to Pharmacology records it binding to, by what it does
+   *  to them (`guide` is its number there); and, from the article's infobox,
+   *  what kind of drug it is and what the body does with it. `figures` is the
+   *  Wikipedia article the infobox rows are from. */
+  pharmacology?: Quoted & {
+    acts?: { how: ActHow; on: string[] }[];
+    guide?: number;
+    kind?: string;
+    body?: { what: BodyStep; says: string }[];
+    figures?: string;
+  };
+  /** What it's used for: the opening of the article's section on its use,
+   *  and of the one on recreational use if it has both; what it's sold as
+   *  and how it's taken, from the infobox. `treats` is what Wikidata lists it
+   *  for, kept only where there are no words. */
+  uses?: Quoted & { recreational?: string; treats?: string[]; brands?: string; routes?: string; figures?: string };
+  /** Its side effects, as the article sums them up, and how likely it is to
+   *  be habit-forming, from the infobox. */
+  sideEffects?: Quoted & { addiction?: string; dependence?: string; figures?: string };
   advisory?: string;
   /** Warnings added by hand from a case report, each with where it comes from. */
   warnings?: { text: string; source: string; url: string; report?: string }[];

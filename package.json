@@ -12,7 +12,7 @@
     "deploy": "npm run og && npm run sitemap && tsc -b && vite build && wrangler deploy",
     "sitemap": "node scripts/sitemap.mjs",
     "check-i18n": "node scripts/check-i18n.mjs",
-    "data": "node scripts/sync-substances.mjs && node scripts/sync-wikidata.mjs && node scripts/fetch-structures.mjs && node scripts/absorption.mjs && node scripts/check-doses.mjs"
+    "data": "node scripts/sync-substances.mjs && node scripts/sync-wikidata.mjs && node scripts/fetch-structures.mjs && node scripts/absorption.mjs && node scripts/pharmacology.mjs && node scripts/check-doses.mjs"
   },
   "dependencies": {
     "qrcode.react": "^4.2.0",

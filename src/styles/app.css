@@ -43,6 +43,15 @@
   line-height: 18px;
   color: var(--text-muted);
 }
+/* Where a quote is from: a link that reads as one, as .link-button does. */
+.footnote a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+}
+:where(:root:not([data-input='touch'])) .footnote a:hover {
+  text-decoration-color: currentColor;
+}
 
 .fact-row {
   display: flex;
