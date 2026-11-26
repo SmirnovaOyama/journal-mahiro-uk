@@ -228,7 +228,7 @@ tables is a new file in `migrations/`, applied with
   - `IngestionForm`: logging a dose.
   - `scrub.ts`: reading the charts by touch.
   - `StackedBars`: the column charts, read by touch too.
-  - `MemberCard`: the account's card, which turns over to show how it's kept.
+  - `ProfileHeader`: the top of the account page.
   - `Absorption`: how much gets in, by route.
 - `src/lib/`:
   - `data.ts`, `mix.ts`: the data and the mix checker.

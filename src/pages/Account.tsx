@@ -25,7 +25,8 @@ import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { SettingsListItem, settingsSection } from '../components/SettingsListItem';
 import { SettingsTile } from '../components/SettingsTile';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
-import { MemberCard } from '../components/MemberCard';
+import { ProfileHeader } from '../components/ProfileHeader';
+import Point from '../components/Point';
 import {
     CodeField,
     ErrorLine,
@@ -388,8 +389,8 @@ function SignedIn({ s, sub }: { s: AccountState; sub: SettingsSub }) {
     return (
         <div className="relative md:pb-32">
             <PageHeader backTo title={'Account'} />
-            <div className={`${PAGE_COLUMN} mt-8 space-y-8 pb-8`}>
-                <MemberCard name={account.user.username} since={account.user.created} devices={devices} />
+            <div className={`${PAGE_COLUMN} mt-3 space-y-8 pb-8`}>
+                <ProfileHeader name={account.user.username} since={account.user.created} devices={devices} />
 
                 {wide ? (
                     <div>
@@ -536,7 +537,7 @@ function SignedOut({
     };
 
     return (
-        <div className={`${PAGE_COLUMN} mt-8 [&>*]:mx-auto [&>*]:max-w-sm`}>
+        <div className={`${PAGE_COLUMN} mt-3 [&>*]:mx-auto [&>*]:max-w-sm`}>
             {note && (
                 <div className="callout m-appear mb-6 flex items-start gap-2" role="status">
                     <p className="flex-1">{note}</p>
@@ -545,11 +546,13 @@ function SignedOut({
                     </button>
                 </div>
             )}
-            <div className="mb-8">
-                <MemberCard name={username.trim()} preview />
-                <p className={`mt-4 text-xs leading-relaxed ${muted}`}>
-                    {'An account is optional. Your journal is kept in this browser either way; with an account it’s the same on every device you sign in on, locked on each before it’s sent.'}
-                </p>
+            <div className="mb-4">
+                <Point mark="lock" title={'It stays on this device'} desc={'Your journal is kept in this browser. Without an account, nothing is sent anywhere.'} />
+                <Point
+                    mark="cloud"
+                    title={'An account is optional'}
+                    desc={'With one, your journal and saved list are the same on every device you sign in on, encrypted on each before it’s sent.'}
+                />
             </div>
             <Tabs
                 tabs={[

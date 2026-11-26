@@ -259,36 +259,22 @@ type Part = 'overview' | 'accounts';
 const PARTS: readonly Part[] = ['overview', 'accounts'];
 const PART_LABEL: Record<Part, string> = { overview: 'Overview', accounts: 'Accounts' };
 
-/** The admin's card, in the account card's style: what the server holds,
- *  and what it can't see. */
-function AdminCard({ stats }: { stats: AdminStats | null }) {
+/** The top of the admin page: what the server holds, and what it can't see.
+ *  Plain figures, as the account's and the journal's pages have them. */
+function AdminHeader({ stats }: { stats: AdminStats | null }) {
     return (
-        <div className="member-card">
-            <section className="member-face">
-                <span className="member-light" style={{ background: 'radial-gradient(circle at 80% 0%, color-mix(in oklab, #5bcefa 18%, transparent), color-mix(in oklab, #f5a9b8 12%, transparent) 35%, transparent 65%)' }} />
-                <div className="relative flex items-center justify-between gap-3">
-                    <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-                        <img src="/logo.png" alt="" className="size-6 rounded-[7px]" />
-                        <span className="font-display text-sm">
-                            <span className="font-normal">{'Oyama'}</span> <span className={`font-light ${muted}`}>{'Journal'}</span>
-                        </span>
-                        <span className="rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent-ink)]">{'Admin'}</span>
-                    </span>
-                    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-[var(--bg)]/60 px-2 py-0.5 text-[11px] font-medium text-[var(--accent-ink)] backdrop-blur-sm">
-                        <Lock size={11} />
-                        <span className="sm:hidden">{'Encrypted'}</span>
-                        <span className="max-sm:hidden">{'End-to-end encrypted'}</span>
-                    </span>
-                </div>
-                <div className="relative mt-6 grid grid-cols-3 gap-3">
-                    <Figure value={stats ? stats.accounts.toLocaleString('en-GB') : '–'} label={'accounts'} />
-                    <Figure value={stats ? stats.activeWeek.toLocaleString('en-GB') : '–'} label={'seen this week'} />
-                    <Figure value={stats ? formatBytes(stats.bytes) : '–'} label={'stored, encrypted'} />
-                </div>
-                <p className={`relative mt-5 text-xs leading-relaxed ${muted}`}>
+        <div>
+            <div className="grid grid-cols-3 gap-3">
+                <Figure value={stats ? stats.accounts.toLocaleString('en-GB') : '–'} label={'accounts'} />
+                <Figure value={stats ? stats.activeWeek.toLocaleString('en-GB') : '–'} label={'seen this week'} />
+                <Figure value={stats ? formatBytes(stats.bytes) : '–'} label={'stored, encrypted'} />
+            </div>
+            <p className={`mt-5 flex items-start gap-2 text-xs leading-relaxed ${muted}`}>
+                <Lock size={13} className="mt-0.5 shrink-0" />
+                <span>
                     {'Every journal is encrypted on its owner’s devices, with a key that never reaches the server. This page sees accounts, devices and sizes; nobody here can read what’s in a journal, the admin included, or reset a password.'}
-                </p>
-            </section>
+                </span>
+            </p>
         </div>
     );
 }
@@ -515,7 +501,7 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
         <div className="relative md:pb-32">
             <PageHeader backTo title={'Admin'} actions={refresh} />
             <div className={`${PAGE_COLUMN} mt-3 space-y-8 pb-10`}>
-                <AdminCard stats={stats} />
+                <AdminHeader stats={stats} />
                 {errorLine}
                 {wide ? (
                     <div>
