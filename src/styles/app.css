@@ -656,6 +656,39 @@ input[type='search']::-webkit-search-cancel-button {
   }
 }
 
+/* The journal screen moves from one night to the next (JournalStage in
+   Onboarding.tsx). The gridlines never move. What's drawn on them, and the
+   line underneath, fade out in place. Then the next night is drawn on: its
+   clock times fade up as its curves are inked, and its line settles in. The
+   fade-out sits on wrappers that have no animation of their own, because an
+   animation that has finished still holds its final opacity and would win
+   over it. */
+.ob-night .session-drawing,
+.ob-night .ob-night-fade {
+  transition: none;
+}
+.ob-night[data-fading] .session-drawing,
+.ob-night[data-fading] .ob-night-fade {
+  opacity: 0;
+  transition: opacity 260ms var(--ease-standard);
+}
+.ob-night .session-drawing > .tl-axis {
+  animation: fade-in var(--duration-slow) var(--ease-standard) both;
+}
+.ob-night-in {
+  animation: appear var(--duration-slow) var(--ease-standard) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ob-night .session-drawing > .tl-axis,
+  .ob-night-in {
+    animation: none;
+  }
+  .ob-night[data-fading] .session-drawing,
+  .ob-night[data-fading] .ob-night-fade {
+    transition: none;
+  }
+}
+
 /* What a chart reads under the cursor (SessionChart, Timeline, the stats bars). */
 .chart-readout {
   z-index: 2;

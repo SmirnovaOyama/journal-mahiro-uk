@@ -153,48 +153,52 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                 {[0, 0.5, 1].map(l => (
                     <line key={l} x1={LEFT} x2={LEFT + plotW} y1={y(l)} y2={y(l)} className="tl-grid" />
                 ))}
-                {axis
-                    .filter(t => t === first || (x(t) > LEFT + 18 && x(t) < LEFT + plotW - 18))
-                    .map(t => (
-                        <text key={t} x={x(t)} y={H - 10} className="tl-axis" textAnchor={t === first && x(t) < 20 ? 'start' : 'middle'}>
-                            {clock(t)}
-                        </text>
-                    ))}
-                {doses.map(d =>
-                    d.course ? (
-                        <DrawnCurve
-                            key={d.id}
-                            d={path(pieces(d))}
-                            color={d.color}
-                            fillOpacity={cx === null ? 0.1 : 0.07}
-                            delay={(order.get(d.id) ?? 0) + 60}
-                            height={H}
+                {/* What's drawn on the grid, apart from it: the intro fades this
+                    away and leaves the grid standing when it moves to the next night. */}
+                <g className="session-drawing">
+                    {axis
+                        .filter(t => t === first || (x(t) > LEFT + 18 && x(t) < LEFT + plotW - 18))
+                        .map(t => (
+                            <text key={t} x={x(t)} y={H - 10} className="tl-axis" textAnchor={t === first && x(t) < 20 ? 'start' : 'middle'}>
+                                {clock(t)}
+                            </text>
+                        ))}
+                    {doses.map(d =>
+                        d.course ? (
+                            <DrawnCurve
+                                key={d.id}
+                                d={path(pieces(d))}
+                                color={d.color}
+                                fillOpacity={cx === null ? 0.1 : 0.07}
+                                delay={(order.get(d.id) ?? 0) + 60}
+                                height={H}
+                            />
+                        ) : null,
+                    )}
+                    {doses.map(d => (
+                        <circle
+                            key={`dot-${d.id}`}
+                            cx={x(d.time)}
+                            cy={y(0)}
+                            r={4}
+                            fill="var(--bg)"
+                            stroke={d.color}
+                            strokeWidth={2}
+                            className="chart-mark"
+                            style={{ animationDelay: `${order.get(d.id) ?? 0}ms` }}
                         />
-                    ) : null,
-                )}
-                {doses.map(d => (
-                    <circle
-                        key={`dot-${d.id}`}
-                        cx={x(d.time)}
-                        cy={y(0)}
-                        r={4}
-                        fill="var(--bg)"
-                        stroke={d.color}
-                        strokeWidth={2}
-                        className="chart-mark"
-                        style={{ animationDelay: `${order.get(d.id) ?? 0}ms` }}
-                    />
-                ))}
-                {/* Kept on the page while reading a moment, only hidden, so
-                    letting go doesn't play its entrance again. */}
-                {showNow && (
-                    <g className="chart-appear" style={{ animationDelay: `${landed}ms` }} visibility={cx === null ? 'visible' : 'hidden'}>
-                        <line x1={x(now)} x2={x(now)} y1={TOP} y2={BASE} className="tl-now" />
-                        <text x={x(now)} y={TOP - 2} textAnchor={x(now) > LEFT + plotW - 30 ? 'end' : 'middle'} className="tl-axis">
-                            {tr('now')}
-                        </text>
-                    </g>
-                )}
+                    ))}
+                    {/* Kept on the page while reading a moment, only hidden, so
+                        letting go doesn't play its entrance again. */}
+                    {showNow && (
+                        <g className="chart-appear" style={{ animationDelay: `${landed}ms` }} visibility={cx === null ? 'visible' : 'hidden'}>
+                            <line x1={x(now)} x2={x(now)} y1={TOP} y2={BASE} className="tl-now" />
+                            <text x={x(now)} y={TOP - 2} textAnchor={x(now) > LEFT + plotW - 30 ? 'end' : 'middle'} className="tl-axis">
+                                {tr('now')}
+                            </text>
+                        </g>
+                    )}
+                </g>
                 {cx !== null && (
                     <g>
                         <line x1={cx} x2={cx} y1={TOP} y2={BASE} stroke="var(--text)" strokeWidth={1} opacity={0.5} />
