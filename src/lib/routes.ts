@@ -18,6 +18,7 @@ export type SettingsSub =
     | 'data'
     | 'about'
     | 'appearance'
+    | 'weight'
     | 'disclaimer'
     | 'account'
     | 'password'
@@ -25,12 +26,18 @@ export type SettingsSub =
     | 'devices'
     | 'delete-account'
     | 'recover'
-    | 'admin';
+    | 'sync'
+    | 'security'
+    | 'two-factor'
+    | 'admin'
+    | 'admin-overview'
+    | 'admin-accounts';
 const SETTINGS_SUBS: readonly SettingsSub[] = [
     'general',
     'data',
     'about',
     'appearance',
+    'weight',
     'disclaimer',
     'account',
     'password',
@@ -38,7 +45,12 @@ const SETTINGS_SUBS: readonly SettingsSub[] = [
     'devices',
     'delete-account',
     'recover',
+    'sync',
+    'security',
+    'two-factor',
     'admin',
+    'admin-overview',
+    'admin-accounts',
 ];
 
 export function parse(path: string): Route {

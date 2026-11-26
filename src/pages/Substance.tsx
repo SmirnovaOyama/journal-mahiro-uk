@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     describe,
     resolveName,
@@ -7,13 +7,18 @@ import {
     type ComboStatus,
     type Detail,
     type IndexEntry,
+    convertAmount,
+    fmtAmount,
+    isPerKg,
 } from '../lib/data';
 import { historyOf, logFrom, useJournal } from '../lib/journal';
 import { RANK } from '../lib/mix';
-import { pushRecent, useSaved } from '../lib/store';
-import { courseOf, formatMinutes } from '../lib/time';
+import { pushRecent, useSaved, formatWeight, useWeight } from '../lib/store';
+import { courseFor, formatMinutes } from '../lib/time';
 import { useDetail } from '../lib/useIndex';
 import { DoseRuler } from '../components/DoseRuler';
+import { Absorption } from '../components/Absorption';
+import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
 import { Fold } from '../components/Fold';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
@@ -138,6 +143,27 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     const [picked, setPicked] = useState<number | null>(null);
     const journal = useJournal();
     const structure = useStructure(id);
+    const inkRef = useRef<HTMLSpanElement>(null);
+    const weight = useWeight();
+    /** The amount per kilogram of the reader's weight, or a per-kilogram dose
+     *  as an amount; nothing for units that aren't a mass. */
+    const weightAside = (unit: string, v: number): React.ReactNode => {
+        const mass = unit.split('/')[0].trim();
+        const isMass = /^(g|mg|μg|µg)$/.test(mass);
+        if (!isMass) return null;
+        if (isPerKg(unit)) {
+            if (!weight.kg)
+                return (
+                    <Link to={{ page: 'settings', sub: 'weight' }} className="text-[var(--accent-ink)] no-underline">
+                        {'Set your body weight to see this as an amount'}
+                    </Link>
+                );
+            return `≈ ${fmtAmount(v * weight.kg)} ${mass} at ${formatWeight(weight.kg, weight.unit)}`;
+        }
+        if (!weight.kg) return null;
+        return `${fmtAmount(v / weight.kg)} ${unit}/kg at ${formatWeight(weight.kg, weight.unit)}`;
+    };
+    const taps = useRef(0);
     const roa = route && routes.includes(route) ? route : routes[0];
     const roaName = (r: string) => (r);
 
@@ -197,10 +223,13 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
     const muted = 'text-[var(--text-muted)]';
     const reference = detail.source === 'Wikidata';
+    const hrt = isHrt(detail.id);
 
     // What the journal says: the last time it was logged, and whether that's still working.
     const last = historyOf(journal.data.ingestions, detail.id)[0];
-    const lastCourse = last ? courseOf(detail.durationRows.find(r => r.roa === last.route) ?? detail.durationRows[0]) : null;
+    // By the route it was taken; if that isn't documented, the longest any route lasts.
+    const lastC = last ? courseFor(detail.durationRows, last.route) : null;
+    const lastCourse = lastC?.course ?? null;
     const sinceLast = last ? Math.max(1, Math.round((Date.now() - last.time) / 60000)) : 0;
     const stillOn = !!(last && lastCourse && sinceLast < lastCourse.over && last.time <= Date.now());
     const lastAmount = last ? (last.dose != null ? `${last.estimate ? '~' : ''}${last.dose} ${last.unit}` : 'an unknown amount') : '';
@@ -222,7 +251,16 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         <button
                             type="button"
                             className={`${headerActionAccent} tap-target`}
-                            onClick={() => logFrom({ id: detail.id, route: roa, dose: picked ?? undefined, unit: dose?.unit })}
+                            onClick={() => {
+                                // A dose given per kilogram goes in the journal as the amount.
+                                const asMg = dose && picked != null && isPerKg(dose.unit) && weight.kg ? convertAmount(picked, dose.unit, 'mg', weight.kg) : null;
+                                logFrom({
+                                    id: detail.id,
+                                    route: roa,
+                                    dose: asMg != null ? Math.round(asMg) : (picked ?? undefined),
+                                    unit: asMg != null ? 'mg' : dose?.unit,
+                                });
+                            }}
                         >
                             <Plus size={16} />
                             {'Log'}
@@ -246,9 +284,27 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
             <header className="pt-2 pb-5 border-b-(length:--hairline) border-[var(--border)]">
                 <div className={PAGE_COLUMN}>
                     <div className="flex items-center gap-4">
-                        <Molecule id={detail.id} form={detail.form} size="lg" />
+                        {hrt ? (
+                            // A hormone: its structure in the flag's colours, and five taps for a burst.
+                            <span
+                                ref={inkRef}
+                                className="trans-ink"
+                                onClick={() => {
+                                    taps.current += 1;
+                                    if (taps.current % 5 === 0) {
+                                        sparkleFrom(inkRef.current);
+                                        toast('You’re doing amazing, sweetie.');
+                                    }
+                                }}
+                            >
+                                <Molecule id={detail.id} form={detail.form} size="lg" />
+                            </span>
+                        ) : (
+                            <Molecule id={detail.id} form={detail.form} size="lg" />
+                        )}
                         <div className="min-w-0">
                             <p className="text-sm text-[var(--text)]">{whatItIs}</p>
+                            {hrt && hrtLine(detail.id) && <p className="trans-text mt-1 text-xs font-semibold">{hrtLine(detail.id)}</p>}
                             {aliases.length > 0 && (
                                 <p className={`text-xs ${muted} mt-1`}>
                                     {'Also called '}
@@ -282,10 +338,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             to={{ page: 'journal', session: last.id }}
                             className={`mt-4 flex items-start gap-2 text-sm leading-relaxed no-underline ${stillOn ? 'text-[var(--warning)]' : muted}`}
                         >
-                            <span className="mt-[7px] size-2 shrink-0 rounded-full" style={{ background: journal.data.colors[detail.id] }} />
                             <span>
                                 {stillOn
-                                    ? `Still working: you logged ${lastAmount} ${formatMinutes(sinceLast)} ago, and it lasts about ${formatMinutes(lastCourse!.over)}.`
+                                    ? lastC!.exact
+                                        ? `Still working: you logged ${lastAmount} ${formatMinutes(sinceLast)} ago, and it lasts about ${formatMinutes(lastCourse!.over)}.`
+                                        : `May still be working: you logged ${lastAmount} ${formatMinutes(sinceLast)} ago. Its timing taken that way isn’t documented; other ways, up to ${formatMinutes(lastCourse!.over)}.`
                                     : `You last logged ${lastAmount} ${sinceLast < 2880 ? `${formatMinutes(sinceLast)} ago` : `on ${new Date(last.time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}.`}
                                 {baselineText}
                             </span>
@@ -355,6 +412,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             key={detail.id}
                             row={dose}
                             onPick={setPicked}
+                            aside={v => weightAside(dose.unit, v)}
                             label={roa ? `${roaName(roa)}, in ${dose.unit}` : dose.unit}
                             footer={
                                 <Link
@@ -371,6 +429,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             {'No dosage is documented for this route.'}
                         </p>
                     )}
+                    <Absorption rows={detail.doseRows} roa={roa} onPick={setRoute} />
                     </>
                     )}
                 </div>

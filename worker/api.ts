@@ -18,7 +18,8 @@
    One account is the admin's, by its name (ADMIN_USERNAME). Nobody else can
    take that name: it can only be made with the password it was set up
    with, which the server knows only as SHA-256 of the sign-in key it makes
-   (ADMIN_KEY_HASH), never as the password. The admin sees accounts, devices
+   (ADMIN_KEY_HASH), never as the password, and its admin page works only
+   with two-step sign-in on. The admin sees accounts, devices
    and sizes, and can sign an account out, lift a lock or delete it; no
    journal can be read here, the admin's included. */
 
@@ -144,6 +145,113 @@ function isWrapped(w: unknown): w is Wrapped {
 /** The encrypted journal: "v1.", the nonce, ".", the ciphertext. */
 const VAULT = /^v1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{22,}$/;
 
+/* ── two-step sign-in ───────────────────────────────────────────────── */
+
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+function base32(bytes: Uint8Array): string {
+    let out = '';
+    let value = 0;
+    let bits = 0;
+    for (const b of bytes) {
+        value = (value << 8) | b;
+        bits += 8;
+        while (bits >= 5) {
+            out += B32[(value >>> (bits - 5)) & 31];
+            bits -= 5;
+        }
+    }
+    return bits > 0 ? out + B32[(value << (5 - bits)) & 31] : out;
+}
+
+function unbase32(text: string): Uint8Array {
+    const out: number[] = [];
+    let value = 0;
+    let bits = 0;
+    for (const c of text.toUpperCase().replace(/[\s=]/g, '')) {
+        const v = B32.indexOf(c);
+        if (v < 0) throw new Error('not base32');
+        value = (value << 5) | v;
+        bits += 5;
+        if (bits >= 8) {
+            out.push((value >>> (bits - 8)) & 255);
+            bits -= 8;
+        }
+    }
+    return new Uint8Array(out);
+}
+
+/** The six digits an authenticator app shows for 30-second step `step` (RFC 6238). */
+async function totpAt(secret: string, step: number): Promise<string> {
+    const key = await crypto.subtle.importKey('raw', unbase32(secret), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const msg = new DataView(new ArrayBuffer(8));
+    msg.setUint32(0, Math.floor(step / 2 ** 32));
+    msg.setUint32(4, step >>> 0);
+    const h = new Uint8Array(await crypto.subtle.sign('HMAC', key, msg.buffer));
+    const o = h[h.length - 1] & 15;
+    const n = ((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+    return String(n % 1_000_000).padStart(6, '0');
+}
+
+/** The step `code` is for, now or a step either side (a phone's clock may be
+ *  off by a little), or null. */
+async function totpStep(secret: string, code: string): Promise<number | null> {
+    const t = Math.floor(Date.now() / 30_000);
+    for (const step of [t, t - 1, t + 1]) if (same(await totpAt(secret, step), code)) return step;
+    return null;
+}
+
+/** Backup codes read aloud and copy by hand: no 0/o, 1/l/i. */
+const CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+const plainCode = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+const codeHash = async (s: string) => b64url(await sha256(utf8(plainCode(s))));
+
+function newBackupCode(): string {
+    let out = '';
+    while (out.length < 8)
+        for (const b of random(16)) {
+            // Only bytes that fall evenly on the alphabet, so no letter comes up more.
+            if (b < 248 && out.length < 8) out += CODE_ALPHABET[b % 31];
+        }
+    return `${out.slice(0, 4)}-${out.slice(4)}`;
+}
+
+/** Ten new backup codes in place of any before; returned once, kept as hashes. */
+async function freshBackupCodes(db: D1Database, userId: string): Promise<string[]> {
+    const codes = Array.from({ length: 10 }, newBackupCode);
+    const hashes = await Promise.all(codes.map(codeHash));
+    await db.batch([
+        db.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(userId),
+        ...hashes.map(h => db.prepare('INSERT INTO backup_codes (id, user_id, code_hash) VALUES (?, ?, ?)').bind(crypto.randomUUID(), userId, h)),
+    ]);
+    return codes;
+}
+
+/** The second step: six digits from the app, or a backup code. Either works
+ *  once: an app code's step is remembered, and a backup code is crossed off. */
+async function secondStep(db: D1Database, user: UserRow, code: unknown, secret = user.totp_secret, appOnly = false): Promise<boolean> {
+    if (typeof code !== 'string' || !secret) return false;
+    const digits = code.replace(/\s/g, '');
+    if (/^\d{6}$/.test(digits)) {
+        const step = await totpStep(secret, digits);
+        if (step === null) return false;
+        const used = await db
+            .prepare('UPDATE users SET totp_last_step = ? WHERE id = ? AND (totp_last_step IS NULL OR totp_last_step < ?)')
+            .bind(step, user.id, step)
+            .run();
+        return !!used.meta?.changes;
+    }
+    if (appOnly || plainCode(code).length !== 8) return false;
+    const used = await db
+        .prepare('UPDATE backup_codes SET used_at = ? WHERE user_id = ? AND code_hash = ? AND used_at IS NULL')
+        .bind(now(), user.id, await codeHash(code))
+        .run();
+    return !!used.meta?.changes;
+}
+
+const CODE_REQUIRED = () => fail('CODE_REQUIRED', 'Enter the code from your authenticator app, or a backup code.', 401);
+const WRONG_CODE = () => fail('WRONG_CODE', 'That code isn’t right, or it’s been used.', 401);
+
 /* ── requests ───────────────────────────────────────────────────────── */
 
 async function body(request: Request): Promise<Record<string, unknown> | null> {
@@ -216,6 +324,12 @@ interface UserRow {
     recovery_hash: string;
     recovery_wrapped_key: string;
     created_at: number;
+    totp_secret: string | null;
+    totp_pending: string | null;
+    totp_pending_at: number | null;
+    totp_last_step: number | null;
+    recovery_ticket: string | null;
+    recovery_ticket_until: number | null;
 }
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -392,17 +506,33 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             const locked = await lockedFor(db, account);
             if (locked) return LOCKED(locked);
             const user = await db.prepare('SELECT * FROM users WHERE username_key = ?').bind(account).first<UserRow>();
+            // The admin's name before its account is made, with the admin's own
+            // password: that sign-in makes it (the browser goes on to sign up),
+            // so there's no separate step to find. Anything else is a wrong try.
+            if (!user && account === adminName(env) && env.ADMIN_KEY_HASH && isKey(b.auth, 32)) {
+                if (same(b64url(await sha256(unb64url(b.auth))), env.ADMIN_KEY_HASH.trim()))
+                    return fail('ADMIN_NOT_MADE', 'The admin’s account isn’t made yet: making it now.', 409);
+            }
             if (!user || !(await matches(user, b.auth))) {
                 if (user) await miss(db, account);
                 return WRONG();
+            }
+            // The password was right; with two-step sign-in on, the code too.
+            if (user.totp_secret) {
+                if (b.code == null || b.code === '') return CODE_REQUIRED();
+                if (!(await secondStep(db, user, b.code))) {
+                    await miss(db, account);
+                    return WRONG_CODE();
+                }
             }
             await clearMisses(db, account);
             const token = await newSession(db, user.id, request);
             return ok({ token, user: publicUser(user, isAdmin(env, user)), key: JSON.parse(user.wrapped_key) });
         }
 
-        // Set a new password with the recovery key: first prove the key and
-        // get the journal key it wraps, then set the password.
+        // Set a new password with the recovery key: first prove the key (and
+        // the second step, when it's on) and get the journal key it wraps and
+        // a ticket, then, with the ticket, set the password.
         if ((path === '/api/recover/start' || path === '/api/recover/finish') && method === 'POST') {
             const b = await body(request);
             if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
@@ -419,8 +549,29 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
                 if (user) await miss(db, account);
                 return badKey();
             }
-            if (path === '/api/recover/start') return ok({ key: JSON.parse(user.recovery_wrapped_key) });
+            if (path === '/api/recover/start') {
+                if (user.totp_secret) {
+                    if (b.code == null || b.code === '') return CODE_REQUIRED();
+                    if (!(await secondStep(db, user, b.code))) {
+                        await miss(db, account);
+                        return WRONG_CODE();
+                    }
+                }
+                const ticket = b64url(random(32));
+                await db
+                    .prepare('UPDATE users SET recovery_ticket = ?, recovery_ticket_until = ? WHERE id = ?')
+                    .bind(b64url(await sha256(utf8(ticket))), now() + 600, user.id)
+                    .run();
+                return ok({ key: JSON.parse(user.recovery_wrapped_key), ticket });
+            }
 
+            // Only with the ticket from the first step, and within ten minutes.
+            const ticketOk =
+                typeof b.ticket === 'string' &&
+                !!user.recovery_ticket &&
+                (user.recovery_ticket_until ?? 0) > now() &&
+                same(b64url(await sha256(utf8(b.ticket))), user.recovery_ticket);
+            if (!ticketOk) return fail('TICKET', 'That took too long. Start again.', 401);
             const recovery = recoveryOf(b);
             if (!isKey(b.auth, 32) || !isWrapped(b.key) || !recovery) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
             const pw = await credentials(b.auth, b.key);
@@ -430,7 +581,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
                     .prepare(
                         `UPDATE users SET auth_salt = ?, auth_hash = ?, wrapped_key = ?,
                                           recovery_salt = ?, recovery_hash = ?, recovery_wrapped_key = ?,
-                                          password_changed_at = ?
+                                          password_changed_at = ?, recovery_ticket = NULL, recovery_ticket_until = NULL
                           WHERE id = ?`,
                     )
                     .bind(pw.salt, pw.hash, pw.wrapped, rc.salt, rc.hash, rc.wrapped, now(), user.id),
@@ -455,12 +606,13 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         }
 
         if (path === '/api/account' && method === 'GET') {
-            const [sessions, vault] = await Promise.all([
+            const [sessions, vault, codes] = await Promise.all([
                 db
                     .prepare('SELECT id, device, created_at, last_used_at FROM sessions WHERE user_id = ? AND expires_at > ? ORDER BY last_used_at DESC')
                     .bind(user.id, now())
                     .all<{ id: string; device: string; created_at: number; last_used_at: number }>(),
                 db.prepare('SELECT version, size, updated_at FROM vaults WHERE user_id = ?').bind(user.id).first<{ version: number; size: number; updated_at: number }>(),
+                db.prepare('SELECT count(*) AS n FROM backup_codes WHERE user_id = ? AND used_at IS NULL').bind(user.id).first<{ n: number }>(),
             ]);
             return ok({
                 user: publicUser(user, isAdmin(env, user)),
@@ -473,7 +625,58 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
                     current: s.id === sid,
                 })),
                 vault: vault ? { version: vault.version, size: vault.size, updated: vault.updated_at * 1000 } : null,
+                twoFactor: { on: !!user.totp_secret, backupCodes: user.totp_secret ? (codes?.n ?? 0) : 0 },
             });
+        }
+
+        // Two-step sign-in. Setting it up: a new secret for the app to scan,
+        // kept aside until a code from it, with the password, turns it on.
+        if (path === '/api/2fa/setup' && method === 'POST') {
+            if (user.totp_secret) return fail('ALREADY_ON', 'Two-step sign-in is already on.', 409);
+            const secret = base32(random(20));
+            await db.prepare('UPDATE users SET totp_pending = ?, totp_pending_at = ? WHERE id = ?').bind(secret, now(), user.id).run();
+            const issuer = 'Oyama Journal';
+            const label = encodeURIComponent(`${issuer}:${user.username}`);
+            return ok({ secret, uri: `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30` });
+        }
+
+        if (path.startsWith('/api/2fa/') && method === 'POST') {
+            if (!(await allowed(env.RL_AUTH, `password:${user.id}`))) return TOO_MANY();
+            const b = await body(request);
+            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            const locked = await lockedFor(db, user.username_key);
+            if (locked) return LOCKED(locked);
+            if (!(await matches(user, b.auth))) {
+                await miss(db, user.username_key);
+                return fail('WRONG_PASSWORD', 'That isn’t the password.', 403);
+            }
+
+            // On: the first code from the app confirms it scanned the secret.
+            if (path === '/api/2fa/enable') {
+                if (user.totp_secret) return fail('ALREADY_ON', 'Two-step sign-in is already on.', 409);
+                if (!user.totp_pending || now() - (user.totp_pending_at ?? 0) > 1800) return fail('NO_SETUP', 'That setup ran out of time. Start again.', 409);
+                if (!(await secondStep(db, user, b.code, user.totp_pending, true)))
+                    return fail('WRONG_CODE', 'That code isn’t right. Check your phone’s clock, and try the next one.', 400);
+                await db.prepare('UPDATE users SET totp_secret = totp_pending, totp_pending = NULL, totp_pending_at = NULL WHERE id = ?').bind(user.id).run();
+                await clearMisses(db, user.username_key);
+                return ok({ backupCodes: await freshBackupCodes(db, user.id) });
+            }
+
+            // Off, or new backup codes: the password and a code.
+            if (path === '/api/2fa/disable' || path === '/api/2fa/backup-codes') {
+                if (!user.totp_secret) return fail('NOT_ON', 'Two-step sign-in isn’t on.', 409);
+                if (!(await secondStep(db, user, b.code))) {
+                    await miss(db, user.username_key);
+                    return WRONG_CODE();
+                }
+                await clearMisses(db, user.username_key);
+                if (path === '/api/2fa/backup-codes') return ok({ backupCodes: await freshBackupCodes(db, user.id) });
+                await db.batch([
+                    db.prepare('UPDATE users SET totp_secret = NULL, totp_pending = NULL, totp_pending_at = NULL, totp_last_step = NULL WHERE id = ?').bind(user.id),
+                    db.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(user.id),
+                ]);
+                return ok({});
+            }
         }
 
         // Sign out one other device, or (with no id) every other one.
@@ -602,6 +805,7 @@ function deleteAccount(db: D1Database, user: UserRow, by: 'self' | 'admin'): D1P
     return [
         db.prepare('DELETE FROM vaults WHERE user_id = ?').bind(user.id),
         db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(user.id),
+        db.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(user.id),
         db.prepare('DELETE FROM users WHERE id = ?').bind(user.id),
         db.prepare('DELETE FROM login_backoff WHERE account = ?').bind(user.username_key),
         db.prepare('INSERT INTO deletion_log (reason, user_created_at) VALUES (?, ?)').bind(by, user.created_at),
@@ -622,6 +826,9 @@ async function adminRoute(
 ): Promise<Response> {
     const t = now();
 
+    // The admin's account opens every other: it needs its second step on.
+    if (!me.totp_secret) return fail('TWO_FACTOR_REQUIRED', 'Turn on two-step sign-in to use the admin page.', 403);
+
     // The numbers: accounts, who's been around this week, devices, the
     // encrypted copies, locks, deletions, and sign-ups a day for 30 days.
     if (path === '/api/admin/stats' && method === 'GET') {
@@ -638,6 +845,7 @@ async function adminRoute(
                         (SELECT count(*) FROM vaults) AS copies,
                         (SELECT COALESCE(SUM(size), 0) FROM vaults) AS bytes,
                         (SELECT count(*) FROM login_backoff WHERE locked_until > ?2) AS locked,
+                        (SELECT count(*) FROM users WHERE totp_secret IS NOT NULL) AS twoFactor,
                         (SELECT count(*) FROM deletion_log WHERE reason = 'self' AND deleted_at > ?3) AS deletedSelf,
                         (SELECT count(*) FROM deletion_log WHERE reason = 'admin' AND deleted_at > ?3) AS deletedAdmin`,
                 )
@@ -657,7 +865,7 @@ async function adminRoute(
         const like = `%${q.replace(/[\\%_]/g, c => `\\${c}`)}%`;
         const rows = await db
             .prepare(
-                `SELECT u.id, u.username, u.username_key, u.created_at, u.last_seen_at,
+                `SELECT u.id, u.username, u.username_key, u.created_at, u.last_seen_at, u.totp_secret IS NOT NULL AS two_factor,
                         (SELECT count(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > ?1) AS devices,
                         v.version, v.size, v.updated_at, b.locked_until, b.failed_attempts
                    FROM users u
@@ -680,6 +888,7 @@ async function adminRoute(
                 updated_at: number | null;
                 locked_until: number | null;
                 failed_attempts: number | null;
+                two_factor: number;
             }>();
         const admin = adminName(env);
         return ok({
@@ -692,12 +901,13 @@ async function adminRoute(
                 copy: r.version ? { version: r.version, size: r.size ?? 0, updated: (r.updated_at ?? 0) * 1000 } : null,
                 locked: Math.max(0, (r.locked_until ?? 0) - t),
                 misses: r.failed_attempts ?? 0,
+                twoFactor: !!r.two_factor,
                 admin: r.username_key === admin,
             })),
         });
     }
 
-    const m = /^\/api\/admin\/users\/([0-9a-f-]{36})(?:\/(sign-out|unlock))?$/.exec(path);
+    const m = /^\/api\/admin\/users\/([0-9a-f-]{36})(?:\/(sign-out|unlock|2fa))?$/.exec(path);
     if (m) {
         const target = await db.prepare('SELECT * FROM users WHERE id = ?').bind(m[1]).first<UserRow>();
         if (!target) return fail('NOT_FOUND', 'There’s no such account.', 404);
@@ -714,10 +924,11 @@ async function adminRoute(
             return ok({});
         }
 
-        // Deletes it, with the admin's password again: a session left open
-        // on some browser shouldn't be enough.
-        if (!m[2] && method === 'DELETE') {
-            if (target.id === me.id) return fail('BAD_REQUEST', 'Delete your own account from your account page.', 400);
+        // Deleting it, or turning its two-step sign-in off for someone who
+        // lost their phone and their backup codes, take the admin's password
+        // again: a session left open on some browser shouldn't be enough.
+        if (method === 'DELETE' && (!m[2] || m[2] === '2fa')) {
+            if (target.id === me.id) return fail('BAD_REQUEST', 'Change your own account from your account page.', 400);
             if (!(await allowed(env.RL_AUTH, `admin:${me.id}`))) return TOO_MANY();
             const b = await body(request);
             if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
@@ -727,8 +938,15 @@ async function adminRoute(
                 await miss(db, me.username_key);
                 return fail('WRONG_PASSWORD', 'That isn’t your password.', 403);
             }
-            await db.batch(deleteAccount(db, target, 'admin'));
             await clearMisses(db, me.username_key);
+            if (m[2] === '2fa') {
+                await db.batch([
+                    db.prepare('UPDATE users SET totp_secret = NULL, totp_pending = NULL, totp_pending_at = NULL, totp_last_step = NULL WHERE id = ?').bind(target.id),
+                    db.prepare('DELETE FROM backup_codes WHERE user_id = ?').bind(target.id),
+                ]);
+                return ok({});
+            }
+            await db.batch(deleteAccount(db, target, 'admin'));
             return ok(null, 204);
         }
     }

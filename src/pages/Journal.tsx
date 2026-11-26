@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { loadCombos, loadDetail, type ComboMatrix, type Detail, type IndexEntry } from '../lib/data';
+import { loadCombos, loadDetail, type ComboMatrix, type Detail, type IndexEntry, convertAmount } from '../lib/data';
 import {
     RATINGS,
     clearPrefill,
@@ -14,15 +14,19 @@ import {
     type Session,
 } from '../lib/journal';
 import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
-import { go } from '../lib/router';
-import { courseOf, formatMinutes } from '../lib/time';
+import { go, useOpenedFromLink } from '../lib/router';
+import { useAccount } from '../lib/account';
+import { isHrt, sparkleFrom, toast } from '../lib/eggs';
+import { courseFor, courseOf, formatMinutes } from '../lib/time';
 import Doodle from '../components/Doodle';
 import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
 import { Link } from '../components/Link';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import Segmented from '../components/Segmented';
+import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { StackedBars, type Bucket } from '../components/StackedBars';
+import { AlcoholLine } from '../components/AlcoholLine';
 import { SessionChart, type ChartDose } from '../components/SessionChart';
 import { SessionMark, starPath } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
@@ -104,7 +108,9 @@ function chartDoses(s: Session, details: Record<string, Detail>, colors: (id: st
         const course = courseOf(d?.durationRows.find(r => r.roa === i.route) ?? (d?.durationRows.length === 1 ? d.durationRows[0] : undefined));
         const row = d?.doseRows.find(r => r.roa === i.route);
         const common = row?.segments?.common;
-        const strength = i.dose != null && common && row && row.unit.replace('µ', 'μ') === i.unit.replace('µ', 'μ') ? i.dose / ((common[0] + common[1]) / 2) : 1;
+        // In the row's own unit: 0.1 mg of LSD is 100 µg against its µg doses.
+        const amount = i.dose != null && row ? convertAmount(i.dose, i.unit, row.unit) : null;
+        const strength = amount != null && common ? amount / ((common[0] + common[1]) / 2) : 1;
         return { id: i.id, time: i.time, color: colors(i.substance), course, strength, label: d?.name ?? i.name };
     });
 }
@@ -114,8 +120,10 @@ function sessionEnd(s: Session, details: Record<string, Detail>) {
     return Math.max(
         ...s.ingestions.map(i => {
             const d = details[i.substance];
-            const c = courseOf(d?.durationRows.find(r => r.roa === i.route) ?? d?.durationRows[0]);
-            return i.time + (c ? c.over : 360) * 60_000;
+            // By its own route, or the longest any route lasts: never another
+            // route's shorter timing.
+            const c = courseFor(d?.durationRows, i.route);
+            return i.time + (c ? c.course.over : 360) * 60_000;
         }),
     );
 }
@@ -141,14 +149,12 @@ const TONE_TEXT: Record<string, string> = {
 
 function DoseRow({
     i,
-    color,
     index,
     byId,
     open,
     onToggle,
 }: {
     i: Ingestion;
-    color: string;
     index: IndexEntry[] | null;
     byId: Map<string, IndexEntry>;
     open: boolean;
@@ -164,7 +170,6 @@ function DoseRow({
                 aria-expanded={open}
                 className={`w-[calc(100%+1rem)] -mx-2 px-2 py-3 flex items-center gap-3 text-start rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)] ${open ? 'bg-[var(--surface-hover)]' : ''}`}
             >
-                <span className="size-2.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
                 <span className="flex-1 min-w-0">
                     <span className="flex items-baseline justify-between gap-3">
                         <span className={`text-sm font-medium ${on} [overflow-wrap:anywhere]`}>{entry?.name ?? i.name}</span>
@@ -178,7 +183,7 @@ function DoseRow({
                 </span>
                 <ChevronDown size={16} className={`chev ${muted} shrink-0 ${open ? 'rotate-180' : ''}`} />
             </button>
-            <div className="disclosure" data-open={open} {...(open ? {} : { inert: '' })}>
+            <div className="disclosure disclosure-bleed" data-open={open} {...(open ? {} : { inert: '' })}>
                 <div className="disclosure-inner">
                     {open && (
                         <div className="pt-3 pb-5">
@@ -311,9 +316,19 @@ export function Journal({
     return <JournalHome index={index} byId={byId} view={view} />;
 }
 
+const JOURNAL_TAB_ORDER = ['log', 'stats', 'weight'] as const;
+const JOURNAL_TABS = [
+    { id: 'log', label: 'Log' },
+    { id: 'stats', label: 'Stats' },
+    { id: 'weight', label: 'Weight' },
+] as const;
+
 function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry>; view?: 'stats' | 'weight' }) {
     const { data, add } = useJournal();
     const now = useNow();
+    // Opened from a substance's Log: the way back to it.
+    const fromLink = useOpenedFromLink();
+    const { account } = useAccount();
     const [prefill] = useState<Prefill | null>(() => peekPrefill());
     useEffect(() => clearPrefill(), []);
     const [adding, setAdding] = useState(!!prefill);
@@ -342,11 +357,14 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     const thisYear = new Date().getFullYear();
 
     const count = sessions.length;
+    const tab = view ?? 'log';
+    const anim = useSwitchAnimation(tab, JOURNAL_TAB_ORDER);
     return (
         <div className="md:pb-32">
             <PageHeader
                 title={'Journal'}
-                subtitle={count ? (count === 1 ? '1 session' : `${count} sessions`) : 'Only on this device'}
+                backTo={fromLink}
+                subtitle={count ? (count === 1 ? '1 session' : `${count} sessions`) : account ? 'Kept in sync with your account' : 'Only on this device'}
                 actions={
                     <>
                         {count > 0 && !view && (
@@ -370,17 +388,30 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                     </>
                 }
             />
-            <div className={`${PAGE_COLUMN} pb-10`}>
-                <div className="disclosure" data-open={adding} {...(adding ? {} : { inert: '' })}>
+            <div className={`${PAGE_COLUMN} mt-3 pb-10`}>
+                {/* Log and Stats are two panels of the page, so they are tabs
+                    like Settings': a strip across the column, straight under
+                    the title, that the form opening below never moves. */}
+                <Tabs
+                    tabs={JOURNAL_TABS}
+                    value={tab}
+                    onChange={v => go(v === 'log' ? { page: 'journal' } : { page: 'journal', view: v }, { replace: true })}
+                    className="mb-6"
+                />
+                <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
                     <div className="disclosure-inner">
                         {adding && (
-                            <div className="pt-2 pb-8">
+                            <div className="pb-8">
                                 <IngestionForm
                                     index={index}
                                     byId={byId}
                                     initial={prefill ?? undefined}
                                     onSave={i => {
                                         add(i);
+                                        if (isHrt(i.substance)) {
+                                            sparkleFrom(document.activeElement);
+                                            toast('Logged. Proud of you.');
+                                        }
                                         setAdding(false);
                                     }}
                                     onCancel={() => setAdding(false)}
@@ -390,78 +421,69 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                     </div>
                 </div>
 
-                <Segmented
-                    className="mb-6"
-                    aria-label={'Show'}
-                    options={[
-                        { id: 'log', label: 'Log' },
-                        { id: 'stats', label: 'Stats' },
-                        { id: 'weight', label: 'Weight' },
-                    ]}
-                    value={view ?? 'log'}
-                    onChange={v => go(v === 'log' ? { page: 'journal' } : { page: 'journal', view: v }, { replace: true })}
-                />
-
-                {view === 'weight' ? (
-                    <WeightLog />
-                ) : view === 'stats' ? (
-                    <Stats byId={byId} now={now} />
-                ) : count === 0 ? (
-                    adding ? null : (
-                        <div className="flex flex-col items-center text-center pt-6 pb-10">
-                            <Doodle name="notebook" size={4.5} />
-                            <p className={`mt-4 text-sm font-medium ${on}`}>{'Nothing logged yet'}</p>
-                            <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                                {'Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix. It stays on this device, unless you make an account to sync it.'}
-                            </p>
-                            <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
-                                {'Log a dose'}
-                            </button>
-                        </div>
-                    )
-                ) : (
-                    <>
-                        {live && (
-                            <section className="mb-9">
-                                <h2 className="group-heading mb-1">{'Current'}</h2>
-                                <div className="settings-section">
-                                    <SessionRow s={live} data={data} byId={byId} />
-                                </div>
-                                <div className="mt-3">
-                                    <SessionChart doses={chartDoses(live, details, color)} now={now} />
-                                </div>
-                                <div className="mt-3">
-                                    <Interactions pairs={pairsOf(live, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution)} />
-                                </div>
-                                {/* Thinking of adding something: check it against what's already in. */}
-                                <Link
-                                    to={{ page: 'mix', ids: substancesOf(live).filter(x => byId.has(x)) }}
-                                    className={`${headerActionAccent} tap-target -ms-2.5 mt-2 no-underline`}
-                                >
-                                    {'Check something else against this'}
-                                    <ChevronRight size={15} />
-                                </Link>
-                            </section>
-                        )}
-
-                        {previous.length > 0 ? (
-                            [...years.entries()].map(([y, list], k) => (
-                                <section key={y} className="mb-8">
-                                    <h2 className="group-heading mb-1">
-                                        {k === 0 && (y === thisYear || years.size === 1) ? (live ? 'Previous' : onlyStarred ? 'Favourites' : 'Sessions') : String(y)}
-                                    </h2>
+                <div key={tab} className={anim}>
+                    {view === 'weight' ? (
+                        <WeightLog />
+                    ) : view === 'stats' ? (
+                        <Stats byId={byId} now={now} />
+                    ) : count === 0 ? (
+                        adding ? null : (
+                            <div className="flex flex-col items-center text-center pt-6 pb-10">
+                                <Doodle name="notebook" size={4.5} />
+                                <p className={`mt-4 text-sm font-medium ${on}`}>{'Nothing logged yet'}</p>
+                                <p className={`mt-1 text-sm ${muted} max-w-xs`}>
+                                    {'Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix. It stays on this device, unless you make an account to sync it.'}
+                                </p>
+                                <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
+                                    {'Log a dose'}
+                                </button>
+                            </div>
+                        )
+                    ) : (
+                        <>
+                            {live && (
+                                <section className="mb-9">
+                                    <h2 className="group-heading mb-1">{'Current'}</h2>
                                     <div className="settings-section">
-                                        {list.map(s => (
-                                            <SessionRow key={s.id} s={s} data={data} byId={byId} />
-                                        ))}
+                                        <SessionRow s={live} data={data} byId={byId} />
                                     </div>
+                                    <div className="mt-3">
+                                        <SessionChart doses={chartDoses(live, details, color)} now={now} />
+                                        <AlcoholLine s={live} now={now} />
+                                    </div>
+                                    <div className="mt-3">
+                                        <Interactions pairs={pairsOf(live, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution)} />
+                                    </div>
+                                    {/* Thinking of adding something: check it against what's already in. */}
+                                    <Link
+                                        to={{ page: 'mix', ids: substancesOf(live).filter(x => byId.has(x)) }}
+                                        className={`${headerActionAccent} tap-target -ms-2.5 mt-2 no-underline`}
+                                    >
+                                        {'Check something else against this'}
+                                        <ChevronRight size={15} />
+                                    </Link>
                                 </section>
-                            ))
-                        ) : onlyStarred ? (
-                            <p className={`text-sm ${muted}`}>{'No favourites yet. Open a session and tap its star.'}</p>
-                        ) : null}
-                    </>
-                )}
+                            )}
+
+                            {previous.length > 0 ? (
+                                [...years.entries()].map(([y, list], k) => (
+                                    <section key={y} className="mb-8">
+                                        <h2 className="group-heading mb-1">
+                                            {k === 0 && (y === thisYear || years.size === 1) ? (live ? 'Previous' : onlyStarred ? 'Favourites' : 'Sessions') : String(y)}
+                                        </h2>
+                                        <div className="settings-section">
+                                            {list.map(s => (
+                                                <SessionRow key={s.id} s={s} data={data} byId={byId} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                ))
+                            ) : onlyStarred ? (
+                                <p className={`text-sm ${muted}`}>{'No favourites yet. Open a session and tap its star.'}</p>
+                            ) : null}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -537,7 +559,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                 }
             />
             <div className={`${PAGE_COLUMN} pb-10`}>
-                <div className="disclosure" data-open={adding} {...(adding ? {} : { inert: '' })}>
+                <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
                     <div className="disclosure-inner">
                         {adding && (
                             <div className="pt-2 pb-8">
@@ -547,6 +569,10 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                                     initial={{ time: live ? Date.now() : s.end + 30 * 60_000 }}
                                     onSave={i => {
                                         add(i);
+                                        if (isHrt(i.substance)) {
+                                            sparkleFrom(document.activeElement);
+                                            toast('Logged. Proud of you.');
+                                        }
                                         setAdding(false);
                                     }}
                                     onCancel={() => setAdding(false)}
@@ -565,6 +591,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                 />
 
                 <SessionChart doses={chartDoses(s, details, color)} now={now} />
+                <AlcoholLine s={s} now={now} />
 
                 <section className="mt-6">
                     <h2 className="group-heading mb-2">{'How it went'}</h2>
@@ -598,7 +625,6 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                     <div className="settings-section">
                         {[...totals.entries()].map(([k, t]) => (
                             <Link key={k} to={{ page: 'journal', substance: k }} className={`w-full min-h-12 flex items-center gap-3 py-2.5 no-underline ${rowBleed}`}>
-                                <span className="size-2.5 rounded-full shrink-0" style={{ background: color(k) }} />
                                 <span className={`flex-1 min-w-0 text-sm ${on}`}>{t.name}</span>
                                 <span className="text-sm tabular-nums text-end">
                                     <span className={on}>{t.sum && !t.mixed ? `${fmtDose(t.sum)} ${t.unit}` : '—'}</span>
@@ -623,7 +649,6 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                         <DoseRow
                             key={i.id}
                             i={i}
-                            color={color(i.substance)}
                             index={index}
                             byId={byId}
                             open={openRow === i.id}
@@ -799,9 +824,7 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                                 key={k}
                                 to={{ page: 'journal', substance: k }}
                                 className={`w-full min-h-14 flex items-center gap-3 py-2.5 no-underline ${rowBleed}`}
-                                style={{ '--divider-inset': '1.75rem' } as CSSProperties}
                             >
-                                <span className="size-2.5 rounded-full shrink-0" style={{ background: color(k) }} />
                                 <span className="flex-1 min-w-0">
                                     <span className={`block text-sm font-medium ${on} truncate`}>{r.name}</span>
                                     <span className={`block text-xs ${muted} mt-0.5`}>
@@ -836,8 +859,20 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
     const color = colorOf(data, id);
     const units = new Set(doses.filter(i => i.dose != null).map(i => i.unit));
     const amounts = doses.filter(i => i.dose != null).map(i => i.dose!);
-    const sameUnit = units.size === 1 ? [...units][0] : null;
+    // Amounts taken different ways aren't added up: a different share of
+    // each gets in. With more than one route, each has its own totals.
+    const routes = [...new Set(doses.map(i => i.route))];
+    const oneRoute = routes.length === 1;
+    const sameUnit = oneRoute && units.size === 1 ? [...units][0] : null;
     const total = amounts.reduce((a, b) => a + b, 0);
+    const byRoute = routes.map(r => {
+        const ds = doses.filter(i => i.route === r);
+        const measured = ds.filter(i => i.dose != null);
+        const u = new Set(measured.map(i => i.unit));
+        const unit = u.size === 1 ? [...u][0] : null;
+        const sum = measured.reduce((a, i) => a + i.dose!, 0);
+        return { route: r, n: ds.length, unit, sum, avg: unit && measured.length ? sum / measured.length : null };
+    });
     const buckets = useMemo(() => bucketsOf(sessions, '365', now, () => color, [id]), [sessions, now, color, id]);
 
     return (
@@ -873,6 +908,29 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
                             ))}
                         </div>
 
+                        {!oneRoute && (
+                            <section className="mb-9">
+                                <h2 className="group-heading mb-1">{'By route'}</h2>
+                                <div className="settings-section">
+                                    {byRoute.map(r => (
+                                        <div key={r.route} className="flex min-h-12 items-center justify-between gap-3 py-2.5 text-sm">
+                                            <span className={on}>{r.route}</span>
+                                            <span className={`text-xs tabular-nums ${muted}`}>
+                                                {[
+                                                    r.n === 1 ? '1 dose' : `${r.n} doses`,
+                                                    r.unit ? `${fmtDose(r.sum)} ${r.unit} in all` : null,
+                                                    r.avg != null && r.n > 1 ? `${fmtDose(r.avg)} ${r.unit} on average` : null,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className={`mt-2 text-xs ${muted}`}>{'Kept apart, as a different share of a dose gets in each way.'}</p>
+                            </section>
+                        )}
+
                         <section className="mb-9">
                             <h2 className="group-heading mb-3">{'Sessions in the last 12 months'}</h2>
                             <StackedBars buckets={buckets} names={() => name} idle={'A bar a month. Tap one to read it.'} />
@@ -886,9 +944,7 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
                                         key={i.id}
                                         to={{ page: 'journal', session: i.id }}
                                         className={`w-full min-h-14 flex items-center gap-3 py-2.5 no-underline ${rowBleed}`}
-                                        style={{ '--divider-inset': '1.75rem' } as CSSProperties}
                                     >
-                                        <span className="size-2.5 rounded-full shrink-0" style={{ background: color }} />
                                         <span className="flex-1 min-w-0">
                                             <span className={`block text-sm ${on}`}>{`${dayLabel(i.time)}, ${clock(i.time)}`}</span>
                                             <span className={`block text-xs ${muted} mt-0.5`}>{i.route}</span>

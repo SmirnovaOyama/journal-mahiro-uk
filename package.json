@@ -11,9 +11,10 @@
     "og": "node scripts/og/render.mjs",
     "deploy": "npm run og && npm run sitemap && tsc -b && vite build && wrangler deploy",
     "sitemap": "node scripts/sitemap.mjs",
-    "data": "node scripts/sync-substances.mjs && node scripts/sync-wikidata.mjs && node scripts/fetch-structures.mjs"
+    "data": "node scripts/sync-substances.mjs && node scripts/sync-wikidata.mjs && node scripts/fetch-structures.mjs && node scripts/absorption.mjs && node scripts/check-doses.mjs"
   },
   "dependencies": {
+    "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

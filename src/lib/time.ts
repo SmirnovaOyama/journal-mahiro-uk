@@ -114,3 +114,15 @@ export function nowRounded(): number {
   const d = new Date();
   return Math.round((d.getHours() * 60 + d.getMinutes()) / 15) * 15;
 }
+
+/** How long a dose taken by `route` lasts. By its own route when that's
+ *  documented (`exact`). When it isn't, the longest any route lasts: a
+ *  warning built on it errs on the side of "still working", never the
+ *  other way, and says it isn't this route's own. */
+export function courseFor(rows: DurationRow[] | undefined, route: string): { course: Course; exact: boolean } | null {
+  const own = courseOf(rows?.find(r => r.roa === route));
+  if (own) return { course: own, exact: true };
+  const all = (rows ?? []).map(r => courseOf(r)).filter((c): c is Course => !!c);
+  if (!all.length) return null;
+  return { course: all.reduce((a, b) => (b.over > a.over ? b : a)), exact: false };
+}

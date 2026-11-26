@@ -1,10 +1,22 @@
 import { useSyncExternalStore } from 'react';
 import { applyMerged, cleanJournal, emptyJournal, getJournal, onLocalChange, syncMerge, type JournalData } from './journal';
-import { applySavedLog, getSavedLog, mergeSaved, onSavedChange, type SavedLog } from './store';
+import {
+    applySavedLog,
+    applyWeight,
+    getSavedLog,
+    getWeight,
+    mergeSaved,
+    mergeWeight,
+    onSavedChange,
+    onWeightChange,
+    type BodyWeight,
+    type SavedLog,
+} from './store';
 import {
     forgetKeys,
     keepKey,
     keptKey,
+    nameKey,
     newJournalKey,
     newRecoveryCode,
     passwordKeys,
@@ -13,6 +25,7 @@ import {
     unseal,
     unwrap,
     wrap,
+    type Keys,
     type Wrapped,
 } from './keys';
 
@@ -204,6 +217,19 @@ const wrongPassword = (current = false) => new ApiError('WRONG_PASSWORD', curren
 
 /* ── signing up, in and out ─────────────────────────────────────────── */
 
+/* The keys a password makes take a second to make. Signing in with two-step
+   sign-in asks twice (the password, then the code), so the last ones made
+   are kept for the second ask, in memory only, and dropped once signed in. */
+let made: { who: string; keys: Keys } | null = null;
+
+async function keysFor(username: string, password: string): Promise<Keys> {
+    const who = `${nameKey(username)}\n${password}`;
+    if (made?.who === who) return made.keys;
+    const keys = await passwordKeys(username, password);
+    made = { who, keys };
+    return keys;
+}
+
 async function begin(token: string, user: User, key: CryptoKey) {
     await forgetKeys();
     await keepKey(user.id, key);
@@ -231,13 +257,16 @@ export async function signUp(username: string, password: string): Promise<string
     return code;
 }
 
-export async function signIn(username: string, password: string): Promise<void> {
-    const pk = await passwordKeys(username, password);
+/** Signs in. With two-step sign-in on, the first try (no code) is turned
+ *  away with CODE_REQUIRED, and the form asks for the code. */
+export async function signIn(username: string, password: string, code?: string): Promise<void> {
+    const pk = await keysFor(username, password);
     const res = await api<{ token: string; user: User; key: Wrapped }>('/api/login', {
         method: 'POST',
         signedIn: false,
-        body: { username: username.trim(), auth: pk.auth },
+        body: { username: username.trim(), auth: pk.auth, ...(code ? { code: code.trim() } : {}) },
     });
+    made = null;
     let key: CryptoKey;
     try {
         key = await unwrap(res.key, pk.kek);
@@ -271,11 +300,13 @@ export async function signOut(keepHere: boolean): Promise<void> {
         /* signed out here whatever the server says */
     }
     await forgetKeys();
+    made = null;
     writeStored(null);
     set({ account: null, status: 'off', error: null });
     if (!keepHere) {
         applyMerged(emptyJournal());
         applySavedLog({});
+        applyWeight(null);
     }
 }
 
@@ -308,13 +339,13 @@ export async function newRecoveryKey(password: string): Promise<string> {
 
 /** A forgotten password: the recovery key sets a new one and signs in.
  *  Returns a new recovery key; the one used stops working. */
-export async function recover(username: string, code: string, password: string): Promise<string> {
+export async function recover(username: string, code: string, password: string, otp?: string): Promise<string> {
     const rk = await recoveryKeys(code);
     if (!rk) throw new ApiError('BAD_CODE', 'A recovery key is 32 letters and digits.');
-    const start = await api<{ key: Wrapped }>('/api/recover/start', {
+    const start = await api<{ key: Wrapped; ticket: string }>('/api/recover/start', {
         method: 'POST',
         signedIn: false,
-        body: { username: username.trim(), recoveryAuth: rk.auth },
+        body: { username: username.trim(), recoveryAuth: rk.auth, ...(otp ? { code: otp.trim() } : {}) },
     });
     let journalKey: CryptoKey;
     try {
@@ -329,7 +360,7 @@ export async function recover(username: string, code: string, password: string):
     const res = await api<{ token: string; user: User }>('/api/recover/finish', {
         method: 'POST',
         signedIn: false,
-        body: { username: username.trim(), recoveryAuth: rk.auth, auth: pk.auth, key, recovery: { auth: nk.auth, key: recoveryKey } },
+        body: { username: username.trim(), recoveryAuth: rk.auth, ticket: start.ticket, auth: pk.auth, key, recovery: { auth: nk.auth, key: recoveryKey } },
     });
     await begin(res.token, res.user, await unwrap(key, pk.kek));
     return next;
@@ -357,11 +388,32 @@ export interface AccountInfo {
     user: User;
     sessions: DeviceSession[];
     vault: { version: number; size: number; updated: number } | null;
+    twoFactor: { on: boolean; backupCodes: number };
 }
 
 export const fetchAccount = () => api<AccountInfo>('/api/account');
 export const signOutDevice = (id: string) => api<void>(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
 export const signOutOtherDevices = () => api<void>('/api/sessions', { method: 'DELETE' });
+
+/* ── two-step sign-in ───────────────────────────────────────────────── */
+
+/** A new secret for an authenticator app, as text and as an otpauth:// link
+ *  (what the QR code holds). Nothing changes until it's turned on. */
+export const setupTwoFactor = () => api<{ secret: string; uri: string }>('/api/2fa/setup', { method: 'POST', body: {} });
+
+async function withPassword<T>(path: string, password: string, code: string): Promise<T> {
+    const a = need();
+    const pk = await passwordKeys(a.user.username, password);
+    return api<T>(path, { method: 'POST', body: { auth: pk.auth, code: code.trim() } });
+}
+
+/** Turns it on with the first code from the app; returns ten backup codes. */
+export const enableTwoFactor = (password: string, code: string) =>
+    withPassword<{ backupCodes: string[] }>('/api/2fa/enable', password, code).then(r => r.backupCodes);
+export const disableTwoFactor = (password: string, code: string) => withPassword<void>('/api/2fa/disable', password, code);
+/** Ten new backup codes; the old ones stop working. */
+export const renewBackupCodes = (password: string, code: string) =>
+    withPassword<{ backupCodes: string[] }>('/api/2fa/backup-codes', password, code).then(r => r.backupCodes);
 
 /** The account as the server has it now (an admin's flag, say), kept. */
 export function refreshUser(user: User) {
@@ -380,6 +432,7 @@ export interface AdminStats {
     copies: number;
     bytes: number;
     locked: number;
+    twoFactor: number;
     deletedSelf: number;
     deletedAdmin: number;
     /** Sign-ups a day ("2026-11-25", UTC), for the last 30 days. */
@@ -397,6 +450,7 @@ export interface AdminUser {
     /** Seconds left on a lock from wrong passwords. */
     locked: number;
     misses: number;
+    twoFactor: boolean;
     admin: boolean;
 }
 
@@ -404,6 +458,13 @@ export const adminStats = () => api<AdminStats>('/api/admin/stats');
 export const adminUsers = (q = '') => api<{ users: AdminUser[] }>(`/api/admin/users${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''}`).then(r => r.users);
 export const adminSignOut = (id: string) => api<void>(`/api/admin/users/${id}/sign-out`, { method: 'POST' });
 export const adminUnlock = (id: string) => api<void>(`/api/admin/users/${id}/unlock`, { method: 'POST' });
+
+/** Turns another account's two-step sign-in off, with the admin's password again. */
+export async function adminTwoFactorOff(id: string, password: string): Promise<void> {
+    const a = need();
+    const pk = await passwordKeys(a.user.username, password);
+    await api<void>(`/api/admin/users/${id}/2fa`, { method: 'DELETE', body: { auth: pk.auth } });
+}
 
 /** Deletes another account, with the admin's own password again. */
 export async function adminDelete(id: string, password: string): Promise<void> {
@@ -424,13 +485,21 @@ interface Vault {
     v: 1;
     journal: JournalData;
     saved: SavedLog;
+    /** Settings that go with the person: the body weight. */
+    prefs?: { weight?: BodyWeight };
 }
 
 function readVault(text: string): Vault {
     const raw = JSON.parse(text) as Partial<Vault>;
     const saved = raw.saved && typeof raw.saved === 'object' && !Array.isArray(raw.saved) ? raw.saved : {};
-    return { v: 1, journal: cleanJournal(raw.journal), saved };
+    const w = raw.prefs?.weight;
+    const weight = w && typeof w === 'object' && typeof w.at === 'number' ? w : undefined;
+    return { v: 1, journal: cleanJournal(raw.journal), saved, ...(weight ? { prefs: { weight } } : {}) };
 }
+
+/** A vault's prefs with the weight in, or none at all, so a copy without a
+ *  weight stays exactly as it was. */
+const prefsWith = (weight: BodyWeight | null) => (weight ? { prefs: { weight } } : {});
 
 /** JSON with every object's keys in order, to tell whether two copies are alike. */
 function canonical(v: unknown): string {
@@ -496,6 +565,9 @@ function apply(m: Vault, j0: JournalData, s0: SavedLog) {
     const saved = s === s0 ? m.saved : mergeSaved(s, m.saved);
     if (canonical(journal) !== canonical(j)) applyMerged(journal);
     if (canonical(saved) !== canonical(s)) applySavedLog(saved);
+    const w = getWeight();
+    const weight = mergeWeight(w, m.prefs?.weight);
+    if (canonical(weight) !== canonical(w)) applyWeight(weight);
 }
 
 async function syncOnce() {
@@ -536,13 +608,18 @@ async function syncOnce() {
                 } catch {
                     throw new ApiError('UNREADABLE', 'The copy in your account couldn’t be opened on this device.');
                 }
-                merged = { v: 1, journal: syncMerge(j0, remote.journal), saved: mergeSaved(s0, remote.saved) };
+                merged = {
+                    v: 1,
+                    journal: syncMerge(j0, remote.journal),
+                    saved: mergeSaved(s0, remote.saved),
+                    ...prefsWith(mergeWeight(getWeight(), remote.prefs?.weight)),
+                };
                 theirs = canonical(remote);
             } else {
                 // Nothing there yet, or nothing new since this device last
                 // merged it: this device's copy is the whole of it.
                 if (got.same && !cur.dirty && changes === gen) return finish(got.version);
-                merged = { v: 1, journal: syncMerge(j0, emptyJournal()), saved: s0 };
+                merged = { v: 1, journal: syncMerge(j0, emptyJournal()), saved: s0, ...prefsWith(getWeight()) };
             }
             apply(merged, j0, s0);
             if (theirs !== null && canonical(merged) === theirs) return finish(got.version);
@@ -583,6 +660,7 @@ export function startSync() {
     };
     onLocalChange(changed);
     onSavedChange(changed);
+    onWeightChange(changed);
     const wake = () => {
         if (document.visibilityState !== 'visible' || !state.account || Date.now() - lastWake < 10_000) return;
         lastWake = Date.now();

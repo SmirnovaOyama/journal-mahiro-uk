@@ -175,27 +175,79 @@ export function useTheme() {
   return { theme, choice, setChoice };
 }
 
-/* The unit weights are shown and typed in. They're always kept in kg. */
-export type WeightUnit = 'kg' | 'lb';
-const WEIGHT_UNIT = 'journal.weight.unit.v1';
-export const LB_PER_KG = 2.20462262;
-const unitSubs = new Set<() => void>();
-let weightUnit: WeightUnit = read<WeightUnit>(WEIGHT_UNIT, 'kg') === 'lb' ? 'lb' : 'kg';
+/* Body weight, for reading a dose per kilogram (or a per-kilogram dose as an
+   amount) and for estimating blood alcohol. As hrt.mahiro.uk keeps it: one
+   number, in kg, 20 to 400, with the unit it's shown in. `kg: null` is a
+   weight taken away, kept with when, so it's taken away on every device. */
 
-export function useWeightUnit() {
-    const unit = useSyncExternalStore(
-        (f: () => void) => {
-            unitSubs.add(f);
-            return () => {
-                unitSubs.delete(f);
-            };
-        },
-        () => weightUnit,
-    );
-    const setUnit = useCallback((u: WeightUnit) => {
-        weightUnit = u;
-        write(WEIGHT_UNIT, u);
-        unitSubs.forEach((f) => f());
-    }, []);
-    return { unit, setUnit };
+const WEIGHT = 'journal.weight.v1';
+export const WEIGHT_KG_MIN = 20;
+export const WEIGHT_KG_MAX = 400;
+export const KG_PER_LB = 0.45359237;
+
+export interface BodyWeight {
+  kg: number | null;
+  unit: 'kg' | 'lb';
+  at: number;
+}
+
+function readWeight(): BodyWeight | null {
+  const w = read<BodyWeight | null>(WEIGHT, null);
+  if (!w || typeof w !== 'object' || typeof w.at !== 'number') return null;
+  const kg = typeof w.kg === 'number' && w.kg >= WEIGHT_KG_MIN && w.kg <= WEIGHT_KG_MAX ? w.kg : null;
+  return { kg, unit: w.unit === 'lb' ? 'lb' : 'kg', at: w.at };
+}
+
+let weight = readWeight();
+const weightSubs = new Set<() => void>();
+const weightLocalSubs = new Set<() => void>();
+
+function setWeightValue(next: BodyWeight | null, merged = false) {
+  weight = next;
+  write(WEIGHT, next);
+  weightSubs.forEach((f) => f());
+  if (!merged) weightLocalSubs.forEach((f) => f());
+}
+
+export const getWeight = () => weight;
+export const applyWeight = (next: BodyWeight | null) => setWeightValue(next, true);
+export function onWeightChange(f: () => void): () => void {
+  weightLocalSubs.add(f);
+  return () => {
+    weightLocalSubs.delete(f);
+  };
+}
+
+/** Two devices' weights: the one set last. */
+export function mergeWeight(local: BodyWeight | null | undefined, remote: BodyWeight | null | undefined): BodyWeight | null {
+  if (!local) return remote ?? null;
+  if (!remote) return local;
+  return local.at > remote.at ? local : remote;
+}
+
+/** The weight in kg, or null when it isn't set. */
+export function useWeight() {
+  const w = useSyncExternalStore(
+    (f) => {
+      weightSubs.add(f);
+      return () => {
+        weightSubs.delete(f);
+      };
+    },
+    () => weight,
+  );
+  const save = useCallback((kg: number, unit: 'kg' | 'lb') => setWeightValue({ kg, unit, at: Date.now() }), []);
+  const clear = useCallback(() => setWeightValue({ kg: null, unit: weight?.unit ?? 'kg', at: Date.now() }), []);
+  return { kg: w?.kg ?? null, unit: w?.unit ?? 'kg', save, clear };
+}
+
+/** "62 kg", "137 lb". */
+export function formatWeight(kg: number, unit: 'kg' | 'lb'): string {
+  return unit === 'lb' ? `${Math.round(kg / KG_PER_LB)} lb` : `${Number(kg.toFixed(1))} kg`;
+}
+
+/** Changes only the unit weights are shown in, keeping the weight. */
+export function setWeightUnit(unit: 'kg' | 'lb') {
+  if ((weight?.unit ?? 'kg') === unit) return;
+  setWeightValue({ kg: weight?.kg ?? null, unit, at: Date.now() });
 }

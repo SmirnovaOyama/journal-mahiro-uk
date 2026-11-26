@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type IndexEntry } from '../lib/data';
 import { RANK, VERDICT, checkPair, worst, type PairResult } from '../lib/mix';
-import { go } from '../lib/router';
+import { go, useOpenedFromLink } from '../lib/router';
 import { Link } from '../components/Link';
 import { Molecule } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
@@ -21,6 +21,8 @@ const EXAMPLES: [string, string][] = [
 /** The mix checker: put substances on the table, read one answer. */
 export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] | null; byId: Map<string, IndexEntry> }) {
     const chosen = useMemo(() => ids.map(id => byId.get(id)).filter((e): e is IndexEntry => !!e), [ids, byId]);
+    // Opened from a substance's warnings or a session: the way back to it.
+    const fromLink = useOpenedFromLink();
     const [q, setQ] = useState('');
     const [active, setActive] = useState(0);
     const input = useRef<HTMLInputElement>(null);
@@ -79,7 +81,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
 
     return (
         <>
-            <PageHeader title={'Mix'} subtitle={'Is it safe to take these together?'} />
+            <PageHeader title={'Mix'} subtitle={'Is it safe to take these together?'} backTo={fromLink} />
             <div className={`${PAGE_COLUMN} pb-8`}>
                 <p className="text-sm text-[var(--text-muted)] mb-4">
                     {'Add everything you plan to take, including alcohol and any medication.'}

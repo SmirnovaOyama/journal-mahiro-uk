@@ -311,7 +311,8 @@ h1.font-sans {
 }
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
 textarea:focus-visible,
-select:focus-visible {
+select:focus-visible,
+.choice-trigger:not(.choice-trigger-row):focus-visible {
     outline: none;
 }
 
