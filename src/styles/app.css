@@ -684,153 +684,6 @@ input[type='search']::-webkit-search-cancel-button {
   line-height: 1.5;
 }
 
-/* The account's card (components/MemberCard.tsx): it leans toward the
-   pointer (--rx, --ry, set as it moves), the light follows it (--mx, --my),
-   and it turns over. Both faces share one grid cell, so the card is as tall
-   as the taller of them. */
-.member-card {
-  perspective: 1400px;
-}
-.member-tilt {
-  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  transform-style: preserve-3d;
-}
-.member-flip {
-  position: relative;
-  display: grid;
-  transform-style: preserve-3d;
-  transition: transform 720ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.member-card[data-flipped='true'] .member-flip {
-  transform: rotateY(180deg);
-}
-.member-face {
-  grid-area: 1 / 1;
-  position: relative;
-  overflow: hidden;
-  padding: 1.25rem 1.25rem 1rem;
-  border-radius: 1.25rem;
-  background: linear-gradient(150deg, var(--surface-muted), color-mix(in oklab, var(--accent) 13%, var(--surface-muted)));
-  box-shadow:
-    inset 0 0 0 var(--hairline) var(--border),
-    0 12px 32px -20px color-mix(in oklab, var(--text) 45%, transparent);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.member-back {
-  transform: rotateY(180deg);
-}
-.member-light {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-/* What's logged most, drawn faintly across the card. */
-.member-mark {
-  position: absolute;
-  right: -6%;
-  top: -4%;
-  width: 58%;
-  height: 112%;
-  color: var(--accent-ink);
-  opacity: 0.12;
-  pointer-events: none;
-  transform: rotate(-9deg);
-}
-.member-mark svg {
-  width: 100%;
-  height: 100%;
-}
-.member-mark :is(line, path, polygon, circle) {
-  stroke: currentColor !important;
-}
-.member-mark text {
-  fill: currentColor !important;
-}
-.member-pulse {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--accent-ink);
-}
-.member-pulse.is-on {
-  animation: member-pulse 1.2s ease-in-out infinite;
-}
-.member-pulse.is-bad {
-  background: var(--warning);
-}
-@keyframes member-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.35;
-    transform: scale(0.7);
-  }
-}
-.member-node {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: inset 0 0 0 var(--hairline) var(--border);
-}
-/* The journal on its way: locked before it leaves, still locked when it lands. */
-.member-wire {
-  position: relative;
-  flex: 1;
-  height: 2px;
-  margin: 0 4px 22px;
-  background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 10px);
-}
-.member-packet {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  margin-top: -11px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--bg);
-  animation: member-packet 2.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-@keyframes member-packet {
-  0% {
-    left: 0%;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    left: calc(100% - 22px);
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .member-tilt,
-  .member-flip {
-    transition: none;
-  }
-  .member-packet,
-  .member-pulse.is-on {
-    animation: none;
-  }
-}
-
 /* Estradiol, the good stuff (lib/eggs.ts, components/HrtEgg.tsx). */
 .trans-card {
   position: relative;
@@ -840,12 +693,11 @@ input[type='search']::-webkit-search-cancel-button {
   padding: 0.875rem 1rem 0.875rem 1.25rem;
   overflow: hidden;
   border-radius: var(--radius-md);
-  background: linear-gradient(110deg, color-mix(in oklab, #5bcefa 12%, var(--bg)), color-mix(in oklab, #f5a9b8 14%, var(--bg)));
-  box-shadow: inset 0 0 0 var(--hairline) color-mix(in oklab, #f5a9b8 45%, var(--border));
-  transition: transform 220ms var(--ease-standard);
+  background: var(--surface-muted);
+  transition: background-color var(--duration-base) var(--ease-standard);
 }
 :where(:root:not([data-input='touch'])) .trans-card:hover {
-  transform: translateY(-1px);
+  background: var(--surface-hover);
 }
 /* The flag down its left edge, in its five stripes. */
 .trans-stripes {
@@ -875,10 +727,7 @@ input[type='search']::-webkit-search-cancel-button {
   }
 }
 .trans-text {
-  background: linear-gradient(90deg, #3fb6e8, #e88aa0);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #d16d8a;
 }
 .sparkle-host {
   position: fixed;
