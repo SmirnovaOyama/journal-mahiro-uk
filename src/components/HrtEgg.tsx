@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { hrtLine, sparkleFrom } from '../lib/eggs';
 import PixelCat from './PixelCat';
 import { External } from './icons';
+import { tr } from '../lib/i18n';
 
 /* What a search for estradiol finds besides the catalogue. Not a card: a
    level curve, the thing the HRT Tracker draws, five doses long with one
@@ -31,7 +32,7 @@ const DOSES = FLAG.map((_, d) => {
 
 export function HrtEgg({ q }: { q: string }) {
     const egg = useRef<HTMLAnchorElement>(null);
-    const line = hrtLine(q) ?? 'Estradiol: the main estrogen.';
+    const line = hrtLine(q) ?? tr('Estradiol: the main estrogen.');
     useEffect(() => {
         if (burst) return;
         burst = true;
@@ -55,10 +56,10 @@ export function HrtEgg({ q }: { q: string }) {
             </span>
             <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <span className="text-xs leading-relaxed text-[var(--text-muted)]">
-                    {'Hormones have an app of their own: Oyama’s HRT Tracker draws your levels by route and ester, from your own doses.'}
+                    {tr('Hormones have an app of their own: Oyama’s HRT Tracker draws your levels by route and ester, from your own doses.')}
                 </span>
                 <span className="trans-egg-link">
-                    {'Open HRT Tracker'}
+                    {tr('Open HRT Tracker')}
                     <External size={13} />
                 </span>
             </span>

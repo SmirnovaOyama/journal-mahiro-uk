@@ -14,6 +14,7 @@ import { ClockDial } from './ClockDial';
 import { headerAction, headerActionAccent } from './PageHeader';
 import { ChevronDown, Clock } from './icons';
 import { useScrub, yOnPieces, type Piece } from './scrub';
+import { tr } from '../lib/i18n';
 
 /* How long, drawn as hrt.mahiro.uk draws its hormone level timeline
    (components/ResultChart.tsx there): a small title with its control on the
@@ -38,7 +39,7 @@ function at(start: number, add: number) {
     const c = clockAt(start, add);
     const d = dayWord(c.dayOffset);
     if (!d) return c.time;
-    return `${c.time} ${d}`;
+    return tr('{time} {day}', { time: c.time, day: d });
 }
 
 function nowMinutes() {
@@ -49,12 +50,12 @@ function nowMinutes() {
 /** Where it is, so many minutes after taking it. */
 function phaseOf(course: Course, m: number): string {
     const { firstEffects: a, peakStart: b, peakEnd: c, over: d, afterEnd } = course;
-    if (m < a) return 'Before it starts';
-    if (m < b) return 'Coming up';
-    if (m < c) return 'Peak';
-    if (m < d) return 'Wearing off';
-    if (afterEnd != null && m < afterEnd) return 'After-effects';
-    return 'Over';
+    if (m < a) return tr('Before it starts');
+    if (m < b) return tr('Coming up');
+    if (m < c) return tr('Peak');
+    if (m < d) return tr('Wearing off');
+    if (afterEnd != null && m < afterEnd) return tr('After-effects');
+    return tr('Over');
 }
 
 function Curve({
@@ -114,8 +115,8 @@ function Curve({
     const label = (t: number) =>
         relative
             ? t < 1
-                ? `${Math.round(t * 60)} s`
-                : `${t} min`
+                ? tr('{0} s', { 0: Math.round(t * 60) })
+                : tr('{0} min', { 0: t })
             : toClock((((start + t) % 1440) + 1440) % 1440);
 
     // Where "now" falls, if the night drawn includes it.
@@ -134,8 +135,8 @@ function Curve({
             ? ''
             : relative
               ? m < 1
-                  ? `${Math.round(m * 60)} s in`
-                  : `${Math.round(m)} min in`
+                  ? tr('{0} s in', { 0: Math.round(m * 60) })
+                  : tr('{0} min in', { 0: Math.round(m) })
               : at(start, m);
 
     const grid = [0, 0.5, 1].map(l => y(l));
@@ -147,7 +148,7 @@ function Curve({
                 height={H}
                 className="block tabular-nums select-none"
                 role="img"
-                aria-label={'How strong it feels over time; press and slide along it to read any moment'}
+                aria-label={tr('How strong it feels over time; press and slide along it to read any moment')}
             >
                 {grid.map((gy, i) => (
                     <line key={i} x1={LEFT} x2={LEFT + plotW} y1={gy} y2={gy} className="tl-grid" />
@@ -158,7 +159,7 @@ function Curve({
                     <line x1={x(b)} x2={x(b)} y1={TOP} y2={BASE} className="tl-peak-edge" />
                     <line x1={x(c)} x2={x(c)} y1={TOP} y2={BASE} className="tl-peak-edge" />
                     <text x={x(b) + 6} y={TOP + 14} className="tl-peak-label">
-                        {'Peak'}
+                        {tr('Peak')}
                     </text>
                 </g>
                 {ticks
@@ -192,7 +193,7 @@ function Curve({
                 >
                     <p className="font-medium text-[var(--text)]">{phaseOf(course, m)}</p>
                     <p className="tabular-nums text-[var(--text-muted)] whitespace-nowrap">
-                        {relative ? when : `${when}, ${formatMinutes(Math.max(1, m))} after`}
+                        {relative ? when : tr('{0}, {1} after', { 0: when, 1: formatMinutes(Math.max(1, m)) })}
                     </p>
                 </div>
             )}
@@ -217,17 +218,17 @@ export function Timeline({ row }: { row: DurationRow }) {
     }, [course]);
     const total = parseSpan(row.total);
     const span = (x: NonNullable<ReturnType<typeof parseSpan>>) => formatSpan(x);
-    const title = <h2 className="text-sm font-medium text-[var(--text)] truncate">{'How long'}</h2>;
+    const title = <h2 className="text-sm font-medium text-[var(--text)] truncate">{tr('How long')}</h2>;
 
     if (!course) {
         const rows = (
             [
-                ['First effects after', row.onset],
-                ['Coming up for', row.comeup],
-                ['Peak lasts', row.peak],
-                ['Wears off over', row.offset],
-                ['After-effects', row.afterEffects],
-                ['In total', row.total],
+                [tr('First effects after'), row.onset],
+                [tr('Coming up for'), row.comeup],
+                [tr('Peak lasts'), row.peak],
+                [tr('Wears off over'), row.offset],
+                [tr('After-effects'), row.afterEffects],
+                [tr('In total'), row.total],
             ] as const
         ).filter(([, v]) => parseSpan(v));
         return (
@@ -244,7 +245,7 @@ export function Timeline({ row }: { row: DurationRow }) {
                     </div>
                 ) : (
                     <p className="text-sm text-[var(--text-muted)]">
-                        {'No reliable timing is documented.'}
+                        {tr('No reliable timing is documented.')}
                     </p>
                 )}
             </div>
@@ -267,7 +268,7 @@ export function Timeline({ row }: { row: DurationRow }) {
                         onClick={() => setDialOpen(o => !o)}
                     >
                         <Clock size={16} />
-                        {`Taken at ${toClock(start)}`}
+                        {tr('Taken at {0}', { 0: toClock(start) })}
                         <ChevronDown size={15} className={`chev ${dialOpen ? 'rotate-180' : ''}`} />
                     </button>
                 )}
@@ -296,26 +297,26 @@ export function Timeline({ row }: { row: DurationRow }) {
             {relative ? (
                 <div className="settings-section mt-2">
                     <div className="fact-row">
-                        <span>{'You’ll start to feel it'}</span>
+                        <span>{tr('You’ll start to feel it')}</span>
                         <span className="tabular">
-                            {s.onset ? `after ${span(s.onset)}` : 'at once'}
+                            {s.onset ? tr('after {0}', { 0: span(s.onset) }) : tr('at once')}
                         </span>
                     </div>
                     {s.peak && (
                         <div className="fact-row">
-                            <span>{'Strongest for'}</span>
+                            <span>{tr('Strongest for')}</span>
                             <span className="tabular">{span(s.peak)}</span>
                         </div>
                     )}
                     <div className="fact-row">
-                        <span>{'Over after'}</span>
+                        <span>{tr('Over after')}</span>
                         <span className="tabular">{total ? span(total) : formatMinutes(course.over)}</span>
                     </div>
                     {s.afterEffects && (
                         <div className="fact-row">
-                            <span>{'After-effects'}</span>
+                            <span>{tr('After-effects')}</span>
                             <span className="tabular">
-                                {`${span(s.afterEffects)} more`}
+                                {tr('{0} more', { 0: span(s.afterEffects) })}
                             </span>
                         </div>
                     )}
@@ -323,35 +324,35 @@ export function Timeline({ row }: { row: DurationRow }) {
             ) : (
                 <div className="settings-section mt-2">
                     <div className="fact-row">
-                        <span>{'You’ll start to feel it'}</span>
+                        <span>{tr('You’ll start to feel it')}</span>
                         <span className="tabular">
-                            {`around ${at(start, course.firstEffects)}`}
+                            {tr('around {0}', { 0: at(start, course.firstEffects) })}
                             {s.onset && (
-                                <span className="fact-sub">{`after ${span(s.onset)}`}</span>
+                                <span className="fact-sub">{tr('after {0}', { 0: span(s.onset) })}</span>
                             )}
                         </span>
                     </div>
                     <div className="fact-row">
-                        <span>{'Strongest'}</span>
+                        <span>{tr('Strongest')}</span>
                         <span className="tabular">
-                            {`${at(start, course.peakStart)} to ${at(start, course.peakEnd)}`}
-                            {s.peak && <span className="fact-sub">{`for ${span(s.peak)}`}</span>}
+                            {tr('{0} to {1}', { 0: at(start, course.peakStart), 1: at(start, course.peakEnd) })}
+                            {s.peak && <span className="fact-sub">{tr('for {0}', { 0: span(s.peak) })}</span>}
                         </span>
                     </div>
                     <div className="fact-row">
-                        <span>{'Mostly over by'}</span>
+                        <span>{tr('Mostly over by')}</span>
                         <span className="tabular">
                             {at(start, course.over)}
-                            {total && <span className="fact-sub">{`${span(total)} in all`}</span>}
+                            {total && <span className="fact-sub">{tr('{0} in all', { 0: span(total) })}</span>}
                         </span>
                     </div>
                     {course.afterEnd != null && s.afterEffects && (
                         <div className="fact-row">
-                            <span>{'After-effects can last until'}</span>
+                            <span>{tr('After-effects can last until')}</span>
                             <span className="tabular">
                                 {at(start, course.afterEnd)}
                                 <span className="fact-sub">
-                                    {`${span(s.afterEffects)} more`}
+                                    {tr('{0} more', { 0: span(s.afterEffects) })}
                                 </span>
                             </span>
                         </div>
@@ -360,8 +361,8 @@ export function Timeline({ row }: { row: DurationRow }) {
             )}
             <p className="footnote">
                 {relative
-                    ? 'It’s over in minutes, which makes it easy to take again and again. Repeated doses add up even when each one wears off.'
-                    : `Times use the middle of each range, ${formatMinutes(course.over)} from start to finish. Yours can run faster or slower, and redosing before the peak is a common way to take too much.`}
+                    ? tr('It’s over in minutes, which makes it easy to take again and again. Repeated doses add up even when each one wears off.')
+                    : tr('Times use the middle of each range, {0} from start to finish. Yours can run faster or slower, and redosing before the peak is a common way to take too much.', { 0: formatMinutes(course.over) })}
             </p>
         </div>
     );

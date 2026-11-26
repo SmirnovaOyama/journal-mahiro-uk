@@ -1,4 +1,5 @@
 import type { DurationRow } from './data';
+import { tr } from './i18n';
 
 /** A span from the data, in minutes: "15–30 min", "3–5 h", "4–24+ h". */
 export interface Span {
@@ -70,28 +71,28 @@ export function courseOf(row: DurationRow | undefined): Course | null {
 export function formatMinutes(m: number): string {
   if (m < 1) {
     const sec = Math.max(5, Math.round((m * 60) / 5) * 5);
-    return `${sec} seconds`;
+    return tr('{0} seconds', { 0: sec });
   }
-  if (m < 60) return `${Math.round(m)} min`;
-  if (m >= 2880) return `${Math.round(m / 1440)} days`;
+  if (m < 60) return tr('{0} min', { 0: Math.round(m) });
+  if (m >= 2880) return tr('{0} days', { 0: Math.round(m / 1440) });
   const h = Math.floor(m / 60);
   const r = Math.round((m - h * 60) / 5) * 5;
   if (r === 0 || r === 60) {
     const hh = r === 60 ? h + 1 : h;
-    return `${hh} h`;
+    return tr('{0} h', { 0: hh });
   }
-  return `${h} h ${r} min`;
+  return tr('{0} h {1} min', { 0: h, 1: r });
 }
 
 export function formatSpan(s: Span): string {
-  if (s.max < 1) return `${Math.round(s.min * 60)}–${Math.round(s.max * 60)} seconds`;
-  if (s.min < 1) return `${Math.round(s.min * 60)} seconds to ${formatMinutes(s.max)}`;
+  if (s.max < 1) return tr('{0}–{1} seconds', { 0: Math.round(s.min * 60), 1: Math.round(s.max * 60) });
+  if (s.min < 1) return tr('{0} seconds to {1}', { 0: Math.round(s.min * 60), 1: formatMinutes(s.max) });
   if (Math.abs(s.max - s.min) < 0.5) return formatMinutes(s.min);
   // Keep one unit across the range when both ends share it.
-  if (s.max < 60) return `${Math.round(s.min)}–${Math.round(s.max)} min`;
+  if (s.max < 60) return tr('{0}–{1} min', { 0: Math.round(s.min), 1: Math.round(s.max) });
   if (s.min >= 60 && s.max < 2880 && s.min % 60 === 0 && s.max % 60 === 0)
-    return `${s.min / 60}–${s.max / 60} h`;
-  return `${formatMinutes(s.min)} to ${formatMinutes(s.max)}`;
+    return tr('{0}–{1} h', { 0: s.min / 60, 1: s.max / 60 });
+  return tr('{0} to {1}', { 0: formatMinutes(s.min), 1: formatMinutes(s.max) });
 }
 
 /** Minutes since midnight plus an offset, as a clock time with the day it lands on. */
@@ -106,8 +107,8 @@ export function clockAt(startMinutes: number, add: number): { time: string; dayO
 
 export function dayWord(offset: number): string {
   if (offset <= 0) return '';
-  if (offset === 1) return 'tomorrow';
-  return `in ${offset} days`;
+  if (offset === 1) return tr('tomorrow');
+  return tr('in {0} days', { 0: offset });
 }
 
 export function nowRounded(): number {

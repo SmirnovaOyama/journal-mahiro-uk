@@ -1,4 +1,5 @@
 import type { DoseRow } from '../lib/data';
+import { roaName, tr } from '../lib/i18n';
 
 /* How much of a dose gets into the blood, by route: why the same amount
    isn't the same dose another way (oral estradiol, a few percent; a depot
@@ -10,8 +11,8 @@ const fmt = (n: number) => (n % 1 ? n.toFixed(1) : String(n));
 
 /** "about 76%", "43–80%", "up to 17%". */
 export function absorbedText(a: NonNullable<DoseRow['absorbed']>): string {
-    if (a.min === 0) return `up to ${fmt(a.max)}%`;
-    if (a.min === a.max) return `about ${fmt(a.min)}%`;
+    if (a.min === 0) return tr('up to {0}%', { 0: fmt(a.max) });
+    if (a.min === a.max) return tr('about {0}%', { 0: fmt(a.min) });
     return `${fmt(a.min)}–${fmt(a.max)}%`;
 }
 
@@ -27,22 +28,22 @@ export function Absorption({ rows, roa, onPick }: { rows: DoseRow[]; roa: string
     return (
         <section className="mt-7" aria-labelledby="absorption-title">
             <h3 id="absorption-title" className="group-heading mb-2">
-                {'How much gets in'}
+                {tr('How much gets in')}
             </h3>
             <p className="text-sm leading-relaxed">
                 {cur?.absorbed ? (
                     <>
                         <span className="font-medium">{absorbedText(cur.absorbed).replace(/^./, c => c.toUpperCase())}</span>
-                        {` of a dose taken this way reaches the blood${cur.absorbed.note ? ` (${cur.absorbed.note})` : ''}.`}
+                        {tr(' of a dose taken this way reaches the blood{0}.', { 0: cur.absorbed.note ? ` (${cur.absorbed.note})` : '' })}
                     </>
                 ) : (
-                    'Not known for this route.'
+                    tr('Not known for this route.')
                 )}
                 {cur?.note && <span className={muted}>{` ${cur.note.replace(/^./, c => c.toUpperCase()).replace(/\.?$/, '.')}`}</span>}
             </p>
 
             {known.length > 1 && (
-                <div className="mt-4 space-y-2.5" role="radiogroup" aria-label={'Routes, by how much gets in'}>
+                <div className="mt-4 space-y-2.5" role="radiogroup" aria-label={tr('Routes, by how much gets in')}>
                     {known.map(r => {
                         const a = r.absorbed!;
                         const chosen = r.roa === roa;
@@ -55,7 +56,7 @@ export function Absorption({ rows, roa, onPick }: { rows: DoseRow[]; roa: string
                                 onClick={() => onPick(r.roa)}
                                 className="group grid w-full grid-cols-[6rem_1fr_auto] items-center gap-3 text-start"
                             >
-                                <span className={`truncate text-xs ${chosen ? 'font-semibold text-[var(--text)]' : muted}`}>{r.roa}</span>
+                                <span className={`truncate text-xs ${chosen ? 'font-semibold text-[var(--text)]' : muted}`}>{roaName(r.roa)}</span>
                                 <span className="relative h-2 rounded-full bg-[var(--surface-muted)]">
                                     <span
                                         className={`absolute inset-y-0 rounded-full transition-[background-color,opacity] duration-200 ${
@@ -74,9 +75,9 @@ export function Absorption({ rows, roa, onPick }: { rows: DoseRow[]; roa: string
 
             <p className={`mt-3 text-xs leading-relaxed ${muted}`}>
                 {known.length > 1 || rows.length > 1
-                    ? 'So the same amount isn’t the same dose by another route: go by each route’s own doses. '
+                    ? tr('So the same amount isn’t the same dose by another route: go by each route’s own doses. ')
                     : ''}
-                {`From ${sources.join('; ')}.`}
+                {tr('From {0}.', { 0: sources.join('; ') })}
             </p>
         </section>
     );

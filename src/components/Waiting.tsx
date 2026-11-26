@@ -1,5 +1,6 @@
 import React from 'react';
 import { useElementSize } from '../hooks/useElementSize';
+import { tr } from '../lib/i18n';
 
 /* Waiting, drawn the way this app draws everything else it measures: as ticks
    on a rail (LevelRail). The ticks write out the curve every substance here
@@ -89,7 +90,7 @@ const TICK_PITCH = 7;
  * column and sets the words under it, for a page that hasn't arrived.
  */
 export const Waiting: React.FC<{ children?: React.ReactNode; wide?: boolean; className?: string }> = ({
-    children = 'Loading…',
+    children = tr('Loading…'),
     wide,
     className = '',
 }) => {

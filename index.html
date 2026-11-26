@@ -45,6 +45,18 @@
         if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches))
           document.documentElement.classList.add('dark');
       } catch (e) {}
+      // And the page's language, so Chinese is set in its own typeface from the start.
+      try {
+        var l = JSON.parse(localStorage.getItem('journal.lang.v1'));
+        if (!l) {
+          var p = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+          for (var i = 0; i < p.length; i++) {
+            if (/^zh\b/i.test(p[i])) { l = 'zh-Hant'; break; }
+            if (/^en\b/i.test(p[i])) break;
+          }
+        }
+        if (l === 'zh-Hant') document.documentElement.lang = 'zh-Hant';
+      } catch (e) {}
     </script>
   </head>
   <body>

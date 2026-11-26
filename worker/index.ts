@@ -99,7 +99,7 @@ async function pageFor(env: Env, url: URL): Promise<Page> {
             return { ...pagePreview(route.page, index.length || undefined), path: `/${route.page}`, found: true };
         case 'settings': {
             // An account's own pages, and the admin's: nothing for a search engine.
-            const own = !!route.sub && !['general', 'data', 'about', 'appearance', 'disclaimer'].includes(route.sub);
+            const own = !!route.sub && !['general', 'data', 'about', 'appearance', 'language', 'disclaimer'].includes(route.sub);
             return { ...pagePreview('settings', index.length || undefined), path: '/settings', found: true, privatePage: own };
         }
         case 'journal':

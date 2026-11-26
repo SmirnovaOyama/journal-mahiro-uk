@@ -2,6 +2,7 @@ import type { Session } from '../lib/journal';
 import { alcoholGrams, bloodAlcohol, bloodAlcoholAt, formatBac } from '../lib/alcohol';
 import { formatWeight, useWeight } from '../lib/store';
 import { Link } from './Link';
+import { tr } from '../lib/i18n';
 
 /* Under a session with alcohol in it: how high blood alcohol went, roughly,
    from the body weight in Settings; where it is now while the session is
@@ -23,9 +24,9 @@ export function AlcoholLine({ s, now }: { s: Session; now: number }) {
         return (
             <p className={`mt-3 text-xs ${muted}`}>
                 <Link to={{ page: 'settings', sub: 'weight' }} className="text-[var(--accent-ink)] no-underline">
-                    {'Set your body weight'}
+                    {tr('Set your body weight')}
                 </Link>
-                {' to see roughly how high blood alcohol went.'}
+                {tr(' to see roughly how high blood alcohol went.')}
             </p>
         );
 
@@ -37,12 +38,12 @@ export function AlcoholLine({ s, now }: { s: Session; now: number }) {
     return (
         <div className="callout mt-3 space-y-1">
             <p className="text-[var(--text)]">
-                {`Blood alcohol, roughly: at most ${formatBac(est.peak)}, around ${clock(est.peakAt)}`}
-                {nowRange ? `, and ${formatBac(nowRange)} now. ` : '. '}
-                {est.clearAt > t ? `Back to none by about ${clock(est.clearAt)}.` : ''}
+                {tr('Blood alcohol, roughly: at most {0}, around {1}', { 0: formatBac(est.peak), 1: clock(est.peakAt) })}
+                {nowRange ? tr(', and {0} now. ', { 0: formatBac(nowRange) }) : tr('. ')}
+                {est.clearAt > t ? tr('Back to none by about {0}.', { 0: clock(est.clearAt) }) : ''}
             </p>
             <p className="text-xs">
-                {`By Widmark’s formula, from ${formatWeight(weight.kg, weight.unit)}. Food, sex and how fast you drink all change it, and it’s no guide to whether you can drive.`}
+                {tr('By Widmark’s formula, from {0}. Food, sex and how fast you drink all change it, and it’s no guide to whether you can drive.', { 0: formatWeight(weight.kg, weight.unit) })}
             </p>
         </div>
     );

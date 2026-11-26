@@ -3,6 +3,7 @@ import { categoryInfo, type IndexEntry } from '../lib/data';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Segmented from '../components/Segmented';
 import { SubstanceRow } from '../components/SubstanceRow';
+import { tr } from '../lib/i18n';
 
 /** Every substance of one kind, A to Z under letter headings, with a row of
  *  letters that sticks under the header to jump through a long list. The
@@ -10,7 +11,7 @@ import { SubstanceRow } from '../components/SubstanceRow';
  *  and what they are, no doses) join them on asking. */
 export function Kind({ category, index }: { category: string; index: IndexEntry[] | null }) {
     const info = categoryInfo(category);
-    const title = info.plural;
+    const title = tr(info.plural);
     useEffect(() => {
         document.title = title;
     }, [title]);
@@ -39,24 +40,24 @@ export function Kind({ category, index }: { category: string; index: IndexEntry[
         <>
             <PageHeader
                 title={title}
-                subtitle={`${info.blurb}. ${total} in all.`}
+                subtitle={tr('{0}. {1} in all.', { 0: tr(info.blurb), 1: total })}
                 backTo
             />
             <div className={`${PAGE_COLUMN} pb-8`}>
                 {documented > 0 && documented < total && (
                     <Segmented
                         className="mb-2"
-                        aria-label={'Show'}
+                        aria-label={tr('Show')}
                         options={[
-                            { id: 'dosed', label: `With doses (${documented})` },
-                            { id: 'all', label: `All (${total})` },
+                            { id: 'dosed', label: tr('With doses ({0})', { 0: documented }) },
+                            { id: 'all', label: tr('All ({0})', { 0: total }) },
                         ]}
                         value={all ? 'all' : 'dosed'}
                         onChange={v => setAll(v === 'all')}
                     />
                 )}
                 {groups.length > 4 && (
-                    <nav className="letters" aria-label={'Jump to letter'}>
+                    <nav className="letters" aria-label={tr('Jump to letter')}>
                         {groups.map(g => (
                             <a
                                 key={g.letter}

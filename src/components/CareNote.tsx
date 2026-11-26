@@ -1,6 +1,7 @@
 import { saysChinese } from '../lib/care';
 import PixelCat from './PixelCat';
 import { External, Phone } from './icons';
+import { isZh } from '../lib/i18n';
 
 /* What a search for a poison finds: not a warning, a check-in. No box and
    no alarm colours, a cat by it, a few soft sentences with a kaomoji or two, and people to
@@ -53,11 +54,24 @@ const COPY = {
         urgent: '如果已经吃下了什么，请马上拨打 120。没有人会怪你，越早处理越有机会好起来',
         heading: '随时都有人愿意听你说',
     },
+    // The same words for a reader of the site in 正體中文, with Taiwan's and Hong Kong's numbers.
+    zhHant: {
+        title: '你還好嗎 (っ´ω`c)',
+        body: [
+            '想先跟你打個招呼。如果你是因為心裡很沉、很累才來到這裡，真的很高興你還在，也很心疼你這麼難受 (´；ω；`)',
+            '找人說說話不需要想好怎麼說，也不需要「難受到一定程度」才可以。下面這些人都很溫柔，會認真聽你說，整晚都在',
+            '不管發生了什麼，你都很重要，你值得比現在好受一些',
+        ],
+        urgent: '如果已經吃下了什麼，請馬上叫救護車：台灣 119、香港與澳門 999、中國大陸 120。沒有人會怪你，越早處理越有機會好起來',
+        heading: '隨時都有人願意聽你說',
+    },
 };
 
 export function CareNote({ q }: { q: string }) {
-    const zh = saysChinese(q);
-    const t = zh ? COPY.zh : COPY.en;
+    // In Chinese when the search is, or the site is: the site's own script
+    // for its reader, and the search's own for someone who only typed in it.
+    const zh = saysChinese(q) || isZh();
+    const t = isZh() ? COPY.zhHant : zh ? COPY.zh : COPY.en;
     return (
         <section className="care-note m-appear mt-6" aria-label={t.title}>
             <div className="flex items-start gap-3">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from './icons';
 import { back } from '../lib/router';
+import { tr } from '../lib/i18n';
 
 /**
  * The reading column every page sits in: one width, one side padding, centred
@@ -76,7 +77,7 @@ const PageHeader: React.FC<{
                                 >
                                     {title}
                                 </span>
-                                <span className="sr-only">, Back</span>
+                                <span className="sr-only">{tr(', Back')}</span>
                             </button>
                         ) : (
                             <h1 className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>

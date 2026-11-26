@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { PixelCatProvider } from './contexts/PixelCatContext';
 import { go, useRoute, type Route } from './lib/router';
 import { useIndex } from './lib/useIndex';
+import { useLang } from './lib/lang';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import Doodle, { NAV_DOODLES } from './components/Doodle';
@@ -15,6 +16,7 @@ import { Onboarding, useOnboarding } from './pages/Onboarding';
 import { Settings } from './pages/Settings';
 import { Substance } from './pages/Substance';
 import { Report } from './pages/Report';
+import { tr } from './lib/i18n';
 
 /* Oyama's app shell, as hrt.mahiro.uk has it: the sidebar on a wide window,
    the page area that scrolls on its own (and is what moves between pages),
@@ -95,11 +97,11 @@ function AppContent() {
     // Each tab is one of the hand-drawn doodles, the same the sidebar shows.
     const navItems = (
         [
-            ['search', 'Search'],
-            ['journal', 'Journal'],
-            ['mix', 'Mix'],
-            ['saved', 'Saved'],
-            ['settings', 'Settings'],
+            ['search', tr('Search')],
+            ['journal', tr('Journal')],
+            ['mix', tr('Mix')],
+            ['saved', tr('Saved')],
+            ['settings', tr('Settings')],
         ] as const
     ).map(([id, label]) => ({ id, label, icon: TAB_DOODLES[id] }));
     const select = (id: string) => go(TAB_ROUTE[id as Tab], { move: 'none', via: 'tab' });
@@ -123,10 +125,10 @@ function AppContent() {
                         {failed ? (
                             <div className="mx-auto w-full max-w-2xl px-6 md:px-8 py-16">
                                 <p className="text-sm font-semibold">
-                                    {'Couldn’t load the substance list'}
+                                    {tr('Couldn’t load the substance list')}
                                 </p>
                                 <p className="text-sm text-[var(--text-muted)]">
-                                    {'Check your connection and reload the page.'}
+                                    {tr('Check your connection and reload the page.')}
                                 </p>
                             </div>
                         ) : route.page === 'substance' ? (
@@ -159,9 +161,11 @@ function AppContent() {
 }
 
 export default function App() {
+    // Keyed by the language: changing it draws every page again, in its words.
+    const { lang } = useLang();
     return (
         <PixelCatProvider>
-            <AppContent />
+            <AppContent key={lang} />
         </PixelCatProvider>
     );
 }

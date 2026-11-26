@@ -9,6 +9,7 @@ import { Check, ChevronLeft, Clover } from '../components/icons';
 import { PALETTE } from '../lib/journal';
 import { VERDICT, type Verdict } from '../lib/mix';
 import type { Course } from '../lib/time';
+import { tr } from '../lib/i18n';
 
 /* The intro: a short story told with the app itself. Each screen is a
    stage (a live piece of the site: the dose rail rolling through its bands,
@@ -148,7 +149,7 @@ function DoseStage({ active }: { active: boolean }) {
                 <Molecule id="lsd" form="blotter" size="sm" />
                 <div>
                     <p className="text-sm font-medium text-[var(--text)]">{'LSD'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{'Sublingual, in µg'}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{tr('Sublingual, in µg')}</p>
                 </div>
             </div>
             <div className="mt-4 flex items-baseline gap-2 font-display font-light leading-none tracking-[-0.035em] text-[3.25rem] text-[var(--text)]">
@@ -156,7 +157,7 @@ function DoseStage({ active }: { active: boolean }) {
                 <span className="text-sm font-normal tracking-normal text-[var(--text-muted)]">{'µg'}</span>
             </div>
             <div className="mt-1">
-                <LevelRail value={v} band={{ low: 75, high: 150 }} domain={[12, 405]} label={b.name} tone={b.tone} />
+                <LevelRail value={v} band={{ low: 75, high: 150 }} domain={[12, 405]} label={tr(b.name)} tone={b.tone} />
             </div>
         </div>
     );
@@ -228,13 +229,13 @@ function MixStage({ active }: { active: boolean }) {
             <div className="flex items-center justify-center gap-2">
                 {v.tone === 'positive' && <Clover size={34} />}
                 <span className="font-display font-light text-[2.75rem] leading-none tracking-[-0.03em]" style={{ color: TONE[v.tone] }}>
-                    {v.label}
+                    {tr(v.label)}
                 </span>
             </div>
         );
     };
     const meaning = (i: number) => (
-        <p className="mx-auto max-w-[18rem] text-xs leading-relaxed text-[var(--text-muted)]">{VERDICT[PAIRS[i][4]].meaning}</p>
+        <p className="mx-auto max-w-[18rem] text-xs leading-relaxed text-[var(--text-muted)]">{tr(VERDICT[PAIRS[i][4]].meaning)}</p>
     );
     return (
         <div className="w-full max-w-[22rem] text-center">
@@ -268,8 +269,8 @@ function JournalStage({ active }: { active: boolean }) {
             <div className="px-4">{active && <SessionChart doses={doses} now={now} />}</div>
             <div className="mt-1 flex flex-col gap-2.5">
                 {[
-                    [[PALETTE[0], PALETTE[1]], 'Saturday night', 'MDMA and Cannabis', true],
-                    [[PALETTE[2]], 'Monday', 'Caffeine', false],
+                    [[PALETTE[0], PALETTE[1]], tr('Saturday night'), tr('MDMA and Cannabis'), true],
+                    [[PALETTE[2]], tr('Monday'), 'Caffeine', false],
                 ].map(([colors, title, what, star]) => (
                     <div key={title as string} className="flex items-center gap-3">
                         <SessionMark colors={colors as string[]} size={24} star={star as boolean} />
@@ -292,7 +293,7 @@ function PrivateStage() {
                 <Doodle name="lock" size={5.5} />
             </span>
             <ul className="mt-5 flex w-full flex-col gap-2.5">
-                {['No account needed', 'Kept on this device', 'Encrypted sync, if you want it'].map(t => (
+                {[tr('No account needed'), tr('Kept on this device'), tr('Encrypted sync, if you want it')].map(t => (
                     <li key={t} className="flex items-center gap-2.5 text-sm text-[var(--text)]">
                         <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-ink)]">
                             <Check size={13} strokeWidth={2.4} />
@@ -312,6 +313,16 @@ interface Screen {
     title: string;
     body: ReactNode;
     stage: (active: boolean) => ReactNode;
+}
+
+/** The last screen's line, with its warning in red. */
+function LastWords() {
+    return (
+        <>
+            {tr('Information, not advice: start low, test what you have, don’t use alone. ')}
+            <span className="text-[var(--danger)]">{tr('If someone is unresponsive or breathing slowly, call emergency services.')}</span>
+        </>
+    );
 }
 
 const SCREENS: Screen[] = [
@@ -342,12 +353,7 @@ const SCREENS: Screen[] = [
     {
         kicker: 'Yours',
         title: 'Private by default.',
-        body: (
-            <>
-                {'Information, not advice: start low, test what you have, don’t use alone. '}
-                <span className="text-[var(--danger)]">{'If someone is unresponsive or breathing slowly, call emergency services.'}</span>
-            </>
-        ),
+        body: <LastWords />,
         stage: () => <PrivateStage />,
     },
 ];
@@ -407,7 +413,7 @@ export function Onboarding() {
         <div
             role="dialog"
             aria-modal="true"
-            aria-label={'Introduction'}
+            aria-label={tr('Introduction')}
             className="fixed inset-0 z-50 flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
         >
             <div className="mx-auto flex w-full max-w-lg shrink-0 items-center gap-2.5 px-6 pt-[calc(0.875rem+env(safe-area-inset-top,0px))]">
@@ -422,7 +428,7 @@ export function Onboarding() {
                     className={`ms-auto rounded-full px-3 py-1.5 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] ${step === last ? 'invisible' : ''}`}
                     tabIndex={step === last ? -1 : 0}
                 >
-                    {'Skip'}
+                    {tr('Skip')}
                 </button>
             </div>
 
@@ -455,13 +461,13 @@ export function Onboarding() {
                             </div>
                             <div className="pt-7 pb-4">
                                 <p className="ob-rise text-sm font-semibold text-[var(--accent-ink)]" style={{ '--i': 0 } as CSSProperties}>
-                                    {s.kicker}
+                                    {tr(s.kicker)}
                                 </p>
                                 <h1 className="ob-rise mt-2 font-display text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em]" style={{ '--i': 1 } as CSSProperties}>
-                                    {s.title}
+                                    {tr(s.title)}
                                 </h1>
                                 <p className="ob-rise mt-3 text-[0.9375rem] leading-relaxed text-[var(--text-muted)]" style={{ '--i': 2 } as CSSProperties}>
-                                    {s.body}
+                                    {typeof s.body === 'string' ? tr(s.body) : s.body}
                                 </p>
                             </div>
                         </section>
@@ -486,15 +492,15 @@ export function Onboarding() {
                         </button>
                     ))}
                 </div>
-                <p className="sr-only" aria-live="polite">{`Step ${step + 1} of ${SCREENS.length}`}</p>
+                <p className="sr-only" aria-live="polite">{tr('Step {0} of {1}', { 0: step + 1, 1: SCREENS.length })}</p>
                 <div className="flex items-center gap-3">
                     {step > 0 && (
-                        <button type="button" onClick={() => go(step - 1)} className="btn-secondary !px-3" aria-label={'Back'}>
+                        <button type="button" onClick={() => go(step - 1)} className="btn-secondary !px-3" aria-label={tr('Back')}>
                             <ChevronLeft size={18} />
                         </button>
                     )}
                     <button type="button" onClick={next} className="btn-primary flex-1">
-                        {step === last ? 'Get started' : 'Next'}
+                        {step === last ? tr('Get started') : tr('Next')}
                     </button>
                 </div>
             </div>

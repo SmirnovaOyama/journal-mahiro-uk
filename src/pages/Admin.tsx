@@ -21,6 +21,7 @@ import { rowBleed, settingsSection } from '../components/SettingsListItem';
 import { ChevronDown, Gauge, Lock, Retry, Search, Users } from '../components/icons';
 import { WaitMark, Waiting } from '../components/Waiting';
 import { ago } from './Account';
+import { dateLocale, tr } from '../lib/i18n';
 
 /* The admin's page, after hrt.mahiro.uk's (pages/Admin.tsx there), for the
    one account named as the admin's (worker/api.ts). It shows what the
@@ -32,7 +33,7 @@ const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 
-const message = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong. Try again.');
+const message = (e: unknown) => (e instanceof Error ? e.message : tr('Something went wrong. Try again.'));
 
 export function formatBytes(n: number): string {
     if (n < 1024) return `${n} B`;
@@ -40,10 +41,11 @@ export function formatBytes(n: number): string {
     return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`;
+// "3 devices"; each phrase has its own line in the other language ("{0} devices").
+const plural = (n: number, one: string, many = `${one}s`) => tr(`{0} ${n === 1 ? one : many}`, { 0: n.toLocaleString(dateLocale()) });
 
 const shortDate = (t: number) =>
-    new Date(t).toLocaleDateString('en-GB', {
+    new Date(t).toLocaleDateString(dateLocale(), {
         day: 'numeric',
         month: 'short',
         ...(new Date(t).getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }),
@@ -59,7 +61,7 @@ function signupBuckets(st: AdminStats): Bucket[] {
         const n = byDay.get(d.toISOString().slice(0, 10)) ?? 0;
         out.push({
             label: String(d.getUTCDate()),
-            span: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }),
+            span: d.toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }),
             parts: n ? [{ key: 'signups', value: n, color: 'var(--accent)' }] : [],
             total: n,
             counts: [],
@@ -112,8 +114,8 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
     };
 
     const line = u.locked
-        ? `Locked for ${Math.ceil(u.locked / 60)} min after wrong passwords`
-        : `Joined ${shortDate(u.created)}, ${u.seen ? `seen ${ago(u.seen)}` : 'not seen since'}`;
+        ? tr('Locked for {0} min after wrong passwords', { 0: Math.ceil(u.locked / 60) })
+        : tr('Joined {0}, {1}', { 0: shortDate(u.created), 1: u.seen ? tr('seen {0}', { 0: ago(u.seen) }) : tr('not seen since') });
 
     return (
         <div>
@@ -130,14 +132,14 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
                         <span className={`flex items-center gap-1.5 text-sm font-medium ${on}`}>
                             <span className="truncate">{u.username}</span>
                             {u.admin && (
-                                <span className="shrink-0 rounded-full bg-[var(--accent-subtle)] px-1.5 py-px text-[10px] font-semibold text-[var(--accent-ink)]">{'Admin'}</span>
+                                <span className="shrink-0 rounded-full bg-[var(--accent-subtle)] px-1.5 py-px text-[10px] font-semibold text-[var(--accent-ink)]">{tr('Admin')}</span>
                             )}
                         </span>
                         <span className={`mt-0.5 block truncate text-xs ${u.locked ? 'text-[var(--warning)]' : muted}`}>{line}</span>
                     </span>
                 </span>
                 <span className={`flex shrink-0 items-center gap-1 text-xs tabular-nums ${muted}`}>
-                    {u.copy ? formatBytes(u.copy.size) : 'No copy'}
+                    {u.copy ? formatBytes(u.copy.size) : tr('No copy')}
                     <ChevronDown size={16} className={`opacity-70 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
                 </span>
             </button>
@@ -145,18 +147,18 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
             {open && (
                 <div className="m-appear space-y-4 ps-12 pb-5">
                     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
-                        <dt className={muted}>{'Devices'}</dt>
-                        <dd className={`${on} tabular-nums`}>{u.devices ? plural(u.devices, 'device') + ' signed in' : 'Signed in nowhere'}</dd>
-                        <dt className={muted}>{'Journal'}</dt>
+                        <dt className={muted}>{tr('Devices')}</dt>
+                        <dd className={`${on} tabular-nums`}>{u.devices ? plural(u.devices, 'device') + tr(' signed in') : tr('Signed in nowhere')}</dd>
+                        <dt className={muted}>{tr('Journal')}</dt>
                         <dd className={`${on} tabular-nums`}>
-                            {u.copy ? `${formatBytes(u.copy.size)} encrypted, written ${plural(u.copy.version, 'time')}, last ${ago(u.copy.updated)}` : 'Nothing kept yet'}
+                            {u.copy ? tr('{0} encrypted, written {1}, last {2}', { 0: formatBytes(u.copy.size), 1: plural(u.copy.version, 'time'), 2: ago(u.copy.updated) }) : tr('Nothing kept yet')}
                         </dd>
-                        <dt className={muted}>{'Two-step'}</dt>
-                        <dd className={on}>{u.twoFactor ? 'On' : 'Off'}</dd>
+                        <dt className={muted}>{tr('Two-step')}</dt>
+                        <dd className={on}>{u.twoFactor ? tr('On') : tr('Off')}</dd>
                         {u.misses > 0 && (
                             <>
-                                <dt className={muted}>{'Wrong passwords'}</dt>
-                                <dd className={`${on} tabular-nums`}>{`${u.misses} in a row`}</dd>
+                                <dt className={muted}>{tr('Wrong passwords')}</dt>
+                                <dd className={`${on} tabular-nums`}>{tr('{0} in a row', { 0: u.misses })}</dd>
                             </>
                         )}
                     </dl>
@@ -174,25 +176,25 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
                             disabled={!!busy || !u.devices || (self && u.devices <= 1)}
                             onClick={() => void run('out', () => adminSignOut(u.id))}
                         >
-                            {busy === 'out' ? 'Signing out…' : self ? 'Sign out my other devices' : 'Sign out everywhere'}
+                            {busy === 'out' ? tr('Signing out…') : self ? tr('Sign out my other devices') : tr('Sign out everywhere')}
                         </button>
                         {(u.locked > 0 || u.misses > 0) && (
                             <button type="button" className="btn-secondary btn-sm" disabled={!!busy} onClick={() => void run('unlock', () => adminUnlock(u.id))}>
-                                {busy === 'unlock' ? 'Lifting it…' : u.locked ? 'Lift the lock' : 'Forget the wrong passwords'}
+                                {busy === 'unlock' ? tr('Lifting it…') : u.locked ? tr('Lift the lock') : tr('Forget the wrong passwords')}
                             </button>
                         )}
                         {!self && u.twoFactor && (
                             <button type="button" className="btn-secondary btn-sm" disabled={!!busy} onClick={() => setConfirming(c => (c === '2fa' ? null : '2fa'))} aria-expanded={confirming === '2fa'}>
-                                {'Turn two-step off'}
+                                {tr('Turn two-step off')}
                             </button>
                         )}
                         {!self && (
                             <button type="button" className="btn-danger btn-sm" disabled={!!busy} onClick={() => setConfirming(c => (c === 'delete' ? null : 'delete'))} aria-expanded={confirming === 'delete'}>
-                                {'Delete account'}
+                                {tr('Delete account')}
                             </button>
                         )}
                     </div>
-                    {self && <p className={`text-xs ${muted}`}>{'Your own account is changed from your account page.'}</p>}
+                    {self && <p className={`text-xs ${muted}`}>{tr('Your own account is changed from your account page.')}</p>}
 
                     {confirming && !self && (
                         <form
@@ -210,12 +212,12 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
                         >
                             <p className="text-sm leading-relaxed">
                                 {confirming === 'delete'
-                                    ? `Deletes ${u.username} and the encrypted copy it keeps, for good. Their devices keep their own journals and stop syncing.`
-                                    : `For someone who lost their phone and their backup codes: ${u.username} signs in with their password alone until they turn it on again. Only do this once you know it’s them.`}
+                                    ? tr('Deletes {0} and the encrypted copy it keeps, for good. Their devices keep their own journals and stop syncing.', { 0: u.username })
+                                    : tr('For someone who lost their phone and their backup codes: {0} signs in with their password alone until they turn it on again. Only do this once you know it’s them.', { 0: u.username })}
                             </p>
                             <div className="space-y-1.5">
                                 <label htmlFor={pwId} className="block text-xs font-semibold text-[var(--text-muted)]">
-                                    {'Your password, to be sure it’s you'}
+                                    {tr('Your password, to be sure it’s you')}
                                 </label>
                                 <input
                                     id={pwId}
@@ -234,16 +236,16 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
                                     {busy ? (
                                         <span className="inline-flex items-center gap-1.5">
                                             <WaitMark size={14} />
-                                            {confirming === 'delete' ? 'Deleting…' : 'Turning it off…'}
+                                            {confirming === 'delete' ? tr('Deleting…') : tr('Turning it off…')}
                                         </span>
                                     ) : confirming === 'delete' ? (
-                                        `Delete ${u.username}`
+                                        tr('Delete {0}', { 0: u.username })
                                     ) : (
-                                        'Turn two-step sign-in off'
+                                        tr('Turn two-step sign-in off')
                                     )}
                                 </button>
                                 <button type="button" className="link-button btn-sm text-sm" onClick={() => setConfirming(null)}>
-                                    {'Cancel'}
+                                    {tr('Cancel')}
                                 </button>
                             </div>
                         </form>
@@ -266,14 +268,14 @@ function AdminHeader({ stats }: { stats: AdminStats | null }) {
     return (
         <div>
             <div className="grid grid-cols-3 gap-3">
-                <Figure value={stats ? stats.accounts.toLocaleString('en-GB') : '–'} label={'accounts'} />
-                <Figure value={stats ? stats.activeWeek.toLocaleString('en-GB') : '–'} label={'seen this week'} />
-                <Figure value={stats ? formatBytes(stats.bytes) : '–'} label={'stored, encrypted'} />
+                <Figure value={stats ? stats.accounts.toLocaleString(dateLocale()) : '–'} label={tr('accounts')} />
+                <Figure value={stats ? stats.activeWeek.toLocaleString(dateLocale()) : '–'} label={tr('seen this week')} />
+                <Figure value={stats ? formatBytes(stats.bytes) : '–'} label={tr('stored, encrypted')} />
             </div>
             <p className={`mt-5 flex items-start gap-2 text-xs leading-relaxed ${muted}`}>
                 <Lock size={13} className="mt-0.5 shrink-0" />
                 <span>
-                    {'Every journal is encrypted on its owner’s devices, with a key that never reaches the server. This page sees accounts, devices and sizes; nobody here can read what’s in a journal, the admin included, or reset a password.'}
+                    {tr('Every journal is encrypted on its owner’s devices, with a key that never reaches the server. This page sees accounts, devices and sizes; nobody here can read what’s in a journal, the admin included, or reset a password.')}
                 </span>
             </p>
         </div>
@@ -284,29 +286,29 @@ function Overview({ stats, buckets }: { stats: AdminStats; buckets: Bucket[] }) 
     return (
         <div className="space-y-9">
             <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
-                <Figure value={stats.accounts.toLocaleString('en-GB')} label={'accounts'} note={`${stats.newWeek} new this week`} />
-                <Figure value={stats.activeWeek.toLocaleString('en-GB')} label={'seen this week'} />
-                <Figure value={stats.devices.toLocaleString('en-GB')} label={'devices signed in'} />
-                <Figure value={stats.twoFactor.toLocaleString('en-GB')} label={'with two-step sign-in'} />
+                <Figure value={stats.accounts.toLocaleString(dateLocale())} label={tr('accounts')} note={tr('{0} new this week', { 0: stats.newWeek })} />
+                <Figure value={stats.activeWeek.toLocaleString(dateLocale())} label={tr('seen this week')} />
+                <Figure value={stats.devices.toLocaleString(dateLocale())} label={tr('devices signed in')} />
+                <Figure value={stats.twoFactor.toLocaleString(dateLocale())} label={tr('with two-step sign-in')} />
             </div>
             <section>
-                <h2 className="group-heading mb-3">{'Sign-ups in the last 30 days'}</h2>
+                <h2 className="group-heading mb-3">{tr('Sign-ups in the last 30 days')}</h2>
                 <StackedBars
                     buckets={buckets}
-                    names={() => 'Sign-ups'}
-                    idle={'A bar a day. Tap one to read it.'}
-                    count={n => (n === 1 ? '1 sign-up' : `${n} sign-ups`)}
-                    what={'Sign-ups a day'}
+                    names={() => tr('Sign-ups')}
+                    idle={tr('A bar a day. Tap one to read it.')}
+                    count={n => (n === 1 ? tr('1 sign-up') : tr('{0} sign-ups', { 0: n }))}
+                    what={tr('Sign-ups a day')}
                     empty={''}
                 />
             </section>
             <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-                <dt className={muted}>{'Stored'}</dt>
-                <dd className={`${on} tabular-nums`}>{`${formatBytes(stats.bytes)} in ${plural(stats.copies, 'journal')}, all encrypted`}</dd>
-                <dt className={muted}>{'Deleted, 30 days'}</dt>
-                <dd className={`${on} tabular-nums`}>{`${stats.deletedSelf} by their owners, ${stats.deletedAdmin} here`}</dd>
-                <dt className={muted}>{'Locked now'}</dt>
-                <dd className={`${on} tabular-nums`}>{stats.locked ? `${plural(stats.locked, 'account')}, by wrong passwords` : 'None'}</dd>
+                <dt className={muted}>{tr('Stored')}</dt>
+                <dd className={`${on} tabular-nums`}>{tr('{0} in {1}, all encrypted', { 0: formatBytes(stats.bytes), 1: plural(stats.copies, 'journal') })}</dd>
+                <dt className={muted}>{tr('Deleted, 30 days')}</dt>
+                <dd className={`${on} tabular-nums`}>{tr('{0} by their owners, {1} here', { 0: stats.deletedSelf, 1: stats.deletedAdmin })}</dd>
+                <dt className={muted}>{tr('Locked now')}</dt>
+                <dd className={`${on} tabular-nums`}>{stats.locked ? tr('{0}, by wrong passwords', { 0: plural(stats.locked, 'account') }) : tr('None')}</dd>
             </dl>
         </div>
     );
@@ -333,7 +335,7 @@ function Accounts({
     return (
         <div>
             <label htmlFor={searchId} className="sr-only">
-                {'Find an account'}
+                {tr('Find an account')}
             </label>
             <div className="relative mb-2">
                 <Search size={16} className={`pointer-events-none absolute start-0 top-1/2 -translate-y-1/2 ${muted}`} />
@@ -342,7 +344,7 @@ function Accounts({
                     type="search"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
-                    placeholder={'Find by username'}
+                    placeholder={tr('Find by username')}
                     className="input-base w-full ps-6 text-sm"
                     style={{ fontSize: '16px' }}
                     autoComplete="off"
@@ -353,7 +355,7 @@ function Accounts({
             {!users && (
                 <Waiting className="py-4" />
             )}
-            {users && users.length === 0 && <p className={`py-4 text-sm ${muted}`}>{query ? `No username has “${query}” in it.` : 'No accounts yet.'}</p>}
+            {users && users.length === 0 && <p className={`py-4 text-sm ${muted}`}>{query ? tr('No username has “{0}” in it.', { 0: query }) : tr('No accounts yet.')}</p>}
             {users && users.length > 0 && (
                 <div className={settingsSection}>
                     {users.map(u => (
@@ -371,7 +373,7 @@ function Accounts({
                     ))}
                 </div>
             )}
-            {users && users.length === 200 && <p className={`mt-3 text-xs ${muted}`}>{'The newest 200. Search to find others.'}</p>}
+            {users && users.length === 200 && <p className={`mt-3 text-xs ${muted}`}>{tr('The newest 200. Search to find others.')}</p>}
         </div>
     );
 }
@@ -424,18 +426,18 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
     if (me?.admin && needsSecondStep)
         return (
             <div className="relative md:pb-32">
-                <PageHeader backTo title={'Admin'} />
+                <PageHeader backTo title={tr('Admin')} />
                 <div className={`${PAGE_COLUMN} mt-6 [&>*]:mx-auto [&>*]:max-w-sm`}>
                     <div className="m-appear flex flex-col items-center space-y-4 text-center">
                         <span className="grid size-12 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-ink)]">
                             <Lock size={22} />
                         </span>
-                        <p className={`text-base font-semibold ${on}`}>{'Two-step sign-in first'}</p>
+                        <p className={`text-base font-semibold ${on}`}>{tr('Two-step sign-in first')}</p>
                         <p className={`text-sm leading-relaxed ${muted}`}>
-                            {'The admin’s account can sign out, unlock and delete every other one, so the admin page opens only once it asks for a code from your phone as well as your password.'}
+                            {tr('The admin’s account can sign out, unlock and delete every other one, so the admin page opens only once it asks for a code from your phone as well as your password.')}
                         </p>
                         <button type="button" className="btn-primary w-full" onClick={() => go({ page: 'settings', sub: 'two-factor' })}>
-                            {'Set up two-step sign-in'}
+                            {tr('Set up two-step sign-in')}
                         </button>
                     </div>
                 </div>
@@ -445,9 +447,9 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
     if (!me?.admin || forbidden)
         return (
             <div className="relative md:pb-32">
-                <PageHeader backTo title={'Admin'} />
+                <PageHeader backTo title={tr('Admin')} />
                 <div className={`${PAGE_COLUMN} mt-3`}>
-                    <p className="text-sm">{'This page is for the site’s admin.'}</p>
+                    <p className="text-sm">{tr('This page is for the site’s admin.')}</p>
                 </div>
             </div>
         );
@@ -455,7 +457,7 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
     const refresh = (
         <button type="button" className={`${headerAction} tap-target`} onClick={() => void load(query)} disabled={loading}>
             <Retry size={16} className={loading ? 'animate-spin' : ''} />
-            <span className="max-sm:hidden">{'Refresh'}</span>
+            <span className="max-sm:hidden">{tr('Refresh')}</span>
         </button>
     );
     const content = (p: Part) =>
@@ -478,7 +480,7 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
     if (!wide && part)
         return (
             <div className="relative md:pb-32">
-                <PageHeader backTo title={PART_LABEL[part]} actions={refresh} />
+                <PageHeader backTo title={tr(PART_LABEL[part])} actions={refresh} />
                 <div className={`${PAGE_COLUMN} mt-3 space-y-4 pb-10`}>
                     {errorLine}
                     {content(part)}
@@ -487,21 +489,21 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
         );
 
     const hints: Record<Part, string> = {
-        overview: stats ? `${plural(stats.accounts, 'account')}, ${stats.newWeek} new this week` : 'Numbers and sign-ups',
-        accounts: 'Find an account, sign it out, lift a lock',
+        overview: stats ? tr('{0}, {1} new this week', { 0: plural(stats.accounts, 'account'), 1: stats.newWeek }) : tr('Numbers and sign-ups'),
+        accounts: tr('Find an account, sign it out, lift a lock'),
     };
     const icons: Record<Part, React.ElementType> = { overview: Gauge, accounts: Users };
 
     return (
         <div className="relative md:pb-32">
-            <PageHeader backTo title={'Admin'} actions={refresh} />
+            <PageHeader backTo title={tr('Admin')} actions={refresh} />
             <div className={`${PAGE_COLUMN} mt-3 space-y-8 pb-10`}>
                 <AdminHeader stats={stats} />
                 {errorLine}
                 {wide ? (
                     <div>
                         <Tabs
-                            tabs={PARTS.map(id => ({ id, label: PART_LABEL[id] }))}
+                            tabs={PARTS.map(id => ({ id, label: tr(PART_LABEL[id]) }))}
                             value={part ?? 'overview'}
                             onChange={p => go({ page: 'settings', sub: p === 'overview' ? 'admin-overview' : 'admin-accounts' }, { replace: true })}
                             className="mb-5"
@@ -516,7 +518,7 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
                             <SettingsTile
                                 key={id}
                                 Icon={icons[id]}
-                                label={PART_LABEL[id]}
+                                label={tr(PART_LABEL[id])}
                                 hint={hints[id]}
                                 onClick={() => go({ page: 'settings', sub: id === 'overview' ? 'admin-overview' : 'admin-accounts' })}
                             />

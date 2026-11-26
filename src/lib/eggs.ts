@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 /* Estradiol, the good stuff: a few small things for whoever looks it up here.
    This site comes from the same hands as Oyama's HRT Tracker (hrt.mahiro.uk),
    and the hormones in the catalogue are a nod to it. Nothing here is advice,
@@ -37,7 +38,7 @@ const LINES: [RegExp, string][] = [
 /** The line for a search, or a substance's id. */
 export function hrtLine(text: string): string | null {
     const t = text.replace(/-/g, ' ');
-    for (const [re, line] of LINES) if (re.test(t)) return line;
+    for (const [re, line] of LINES) if (re.test(t)) return tr(line);
     return null;
 }
 
