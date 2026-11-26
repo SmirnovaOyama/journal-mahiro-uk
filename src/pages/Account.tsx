@@ -529,6 +529,16 @@ function SignedOut({
                 // The password was right: now the second step.
                 setNeedCode(true);
                 setCode('');
+            } else if (err instanceof ApiError && err.code === 'ADMIN_NOT_MADE') {
+                // The admin's first sign-in makes the admin's account: its
+                // recovery key, then two-step sign-in.
+                onMaking(true);
+                try {
+                    onMade({ code: await signUp(name, password), username: name });
+                    dismissNote();
+                } catch (e) {
+                    setError(message(e));
+                }
             } else setError(message(err));
         } finally {
             setBusy(false);

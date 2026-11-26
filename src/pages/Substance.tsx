@@ -338,7 +338,6 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             to={{ page: 'journal', session: last.id }}
                             className={`mt-4 flex items-start gap-2 text-sm leading-relaxed no-underline ${stillOn ? 'text-[var(--warning)]' : muted}`}
                         >
-                            <span className="mt-[7px] size-2 shrink-0 rounded-full" style={{ background: journal.data.colors[detail.id] }} />
                             <span>
                                 {stillOn
                                     ? lastC!.exact

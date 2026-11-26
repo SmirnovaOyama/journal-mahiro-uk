@@ -52,8 +52,10 @@ export function StackedBars({
                             {b.counts.length
                                 ? b.counts.map(c => (
                                       <span key={c.key} className="inline-flex items-center gap-1.5">
-                                          <span className="size-2 rounded-full" style={{ background: c.color }} />
-                                          {`${names(c.key)} ${c.n}`}
+                                          <span className="font-medium" style={{ color: c.color }}>
+                                              {names(c.key)}
+                                          </span>
+                                          {c.n}
                                       </span>
                                   ))
                                 : empty}

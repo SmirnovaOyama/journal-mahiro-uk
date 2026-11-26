@@ -147,14 +147,12 @@ const TONE_TEXT: Record<string, string> = {
 
 function DoseRow({
     i,
-    color,
     index,
     byId,
     open,
     onToggle,
 }: {
     i: Ingestion;
-    color: string;
     index: IndexEntry[] | null;
     byId: Map<string, IndexEntry>;
     open: boolean;
@@ -170,7 +168,6 @@ function DoseRow({
                 aria-expanded={open}
                 className={`w-[calc(100%+1rem)] -mx-2 px-2 py-3 flex items-center gap-3 text-start rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)] ${open ? 'bg-[var(--surface-hover)]' : ''}`}
             >
-                <span className="size-2.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
                 <span className="flex-1 min-w-0">
                     <span className="flex items-baseline justify-between gap-3">
                         <span className={`text-sm font-medium ${on} [overflow-wrap:anywhere]`}>{entry?.name ?? i.name}</span>
@@ -613,7 +610,6 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                     <div className="settings-section">
                         {[...totals.entries()].map(([k, t]) => (
                             <Link key={k} to={{ page: 'journal', substance: k }} className={`w-full min-h-12 flex items-center gap-3 py-2.5 no-underline ${rowBleed}`}>
-                                <span className="size-2.5 rounded-full shrink-0" style={{ background: color(k) }} />
                                 <span className={`flex-1 min-w-0 text-sm ${on}`}>{t.name}</span>
                                 <span className="text-sm tabular-nums text-end">
                                     <span className={on}>{t.sum && !t.mixed ? `${fmtDose(t.sum)} ${t.unit}` : '—'}</span>
@@ -638,7 +634,6 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                         <DoseRow
                             key={i.id}
                             i={i}
-                            color={color(i.substance)}
                             index={index}
                             byId={byId}
                             open={openRow === i.id}
@@ -814,9 +809,7 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                                 key={k}
                                 to={{ page: 'journal', substance: k }}
                                 className={`w-full min-h-14 flex items-center gap-3 py-2.5 no-underline ${rowBleed}`}
-                                style={{ '--divider-inset': '1.75rem' } as CSSProperties}
                             >
-                                <span className="size-2.5 rounded-full shrink-0" style={{ background: color(k) }} />
                                 <span className="flex-1 min-w-0">
                                     <span className={`block text-sm font-medium ${on} truncate`}>{r.name}</span>
                                     <span className={`block text-xs ${muted} mt-0.5`}>
@@ -936,9 +929,7 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
                                         key={i.id}
                                         to={{ page: 'journal', session: i.id }}
                                         className={`w-full min-h-14 flex items-center gap-3 py-2.5 no-underline ${rowBleed}`}
-                                        style={{ '--divider-inset': '1.75rem' } as CSSProperties}
                                     >
-                                        <span className="size-2.5 rounded-full shrink-0" style={{ background: color }} />
                                         <span className="flex-1 min-w-0">
                                             <span className={`block text-sm ${on}`}>{`${dayLabel(i.time)}, ${clock(i.time)}`}</span>
                                             <span className={`block text-xs ${muted} mt-0.5`}>{i.route}</span>

@@ -506,6 +506,13 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             const locked = await lockedFor(db, account);
             if (locked) return LOCKED(locked);
             const user = await db.prepare('SELECT * FROM users WHERE username_key = ?').bind(account).first<UserRow>();
+            // The admin's name before its account is made, with the admin's own
+            // password: that sign-in makes it (the browser goes on to sign up),
+            // so there's no separate step to find. Anything else is a wrong try.
+            if (!user && account === adminName(env) && env.ADMIN_KEY_HASH && isKey(b.auth, 32)) {
+                if (same(b64url(await sha256(unb64url(b.auth))), env.ADMIN_KEY_HASH.trim()))
+                    return fail('ADMIN_NOT_MADE', 'The admin’s account isn’t made yet: making it now.', 409);
+            }
             if (!user || !(await matches(user, b.auth))) {
                 if (user) await miss(db, account);
                 return WRONG();

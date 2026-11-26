@@ -556,12 +556,6 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 /* A band's colour, as a dot at the head of its row. */
-.band-dot {
-  width: 10px;
-  height: 10px;
-  flex: none;
-  border-radius: 50%;
-}
 
 /* ── the intro (pages/Onboarding.tsx) ─────────────────────────────────── */
 

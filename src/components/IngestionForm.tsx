@@ -276,7 +276,6 @@ export function IngestionForm({
                                             setUnit('');
                                         }}
                                     >
-                                        <span className="size-2 rounded-full me-1.5" style={{ background: data.colors[l.substance] }} />
                                         {l.name}
                                     </button>
                                 ))}

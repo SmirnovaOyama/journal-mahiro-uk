@@ -180,8 +180,12 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                     <p className="font-medium tabular-nums text-[var(--text)]">{clock(T)}</p>
                     {reading.map(r => (
                         <p key={r.d.id} className="flex items-center gap-1.5 whitespace-nowrap text-[var(--text-muted)]">
-                            <span className="size-2 shrink-0 rounded-full" style={{ background: r.d.color }} />
-                            {r.d.label && <span className="text-[var(--text)]">{r.d.label}</span>}
+                            {/* The name in its curve's colour: which line is which, without a dot. */}
+                            {r.d.label && (
+                                <span className="font-medium" style={{ color: r.d.color }}>
+                                    {r.d.label}
+                                </span>
+                            )}
                             {r.phase}
                         </p>
                     ))}
