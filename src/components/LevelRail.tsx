@@ -11,6 +11,9 @@ interface LevelRailProps {
     label?: string;
     /** Text colour class for the current tick and its label, from currentStatus. */
     tone?: string;
+    /** What to write under the band's two ends, when not the band's own values
+     *  (the intro draws each substance's scale on one shared rail). */
+    marks?: [React.ReactNode, React.ReactNode];
 }
 
 // Roughly one tick per this many pixels, so the scale keeps the same grain on
@@ -34,7 +37,7 @@ const WAVE_MS = 7;
 // every time the Overview is come back to.
 let entrancePlayed = false;
 
-const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone = '' }) => {
+const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone = '', marks }) => {
     const [still] = React.useState(() => entrancePlayed);
     React.useEffect(() => {
         entrancePlayed = true;
@@ -108,12 +111,12 @@ const LevelRail: React.FC<LevelRailProps> = ({ value, band, domain, label, tone 
 
             {(
                 [
-                    [bandL, band.low],
-                    [bandR, band.high],
+                    [bandL, marks ? marks[0] : band.low],
+                    [bandR, marks ? marks[1] : band.high],
                 ] as const
-            ).map(([i, v]) => (
+            ).map(([i, v], n) => (
                 <span
-                    key={v}
+                    key={n}
                     className="rail-label absolute bottom-0 -translate-x-1/2 text-xs font-medium leading-none tabular-nums text-[var(--text-muted)]"
                     style={{ left: x(i), animationDelay: `${i * WAVE_MS + 120}ms` }}
                 >

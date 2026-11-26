@@ -605,7 +605,6 @@ const zh: Record<string, string> = {
     'Mixing advice from TripSit and PsychonautWiki. Information, not medical advice. If someone is unresponsive or breathing slowly, call emergency services.': '混用建議來自 TripSit 與 PsychonautWiki。僅供參考，不是醫療建議。如果有人沒有反應或呼吸緩慢，請撥打急救電話。',
 
     // pages/Onboarding.tsx
-    'Sublingual, in µg': '舌下，單位 µg',
     'Saturday night': '週六晚上',
     'MDMA and Cannabis': 'MDMA 與 Cannabis',
     'Monday': '週一',
