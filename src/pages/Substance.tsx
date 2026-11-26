@@ -293,7 +293,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     taps.current += 1;
                                     if (taps.current % 5 === 0) {
                                         sparkleFrom(inkRef.current);
-                                        toast('You’re doing amazing, sweetie.');
+                                        toast('You found it.');
                                     }
                                 }}
                             >
