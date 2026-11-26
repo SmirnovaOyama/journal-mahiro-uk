@@ -131,8 +131,11 @@ for (const [verdict, v] of Object.entries(lib.VERDICT)) {
 
 // One card per report that closes on a wish: its picture and the wish. The
 // picture is the report's own line drawing, or its closing picture if it has
-// no drawing. A drawing goes in as a data URL: the card draws it as a mask,
-// and Chromium won't use a file from disk as one.
+// no drawing. The card cuts a drawing square about its middle; where that
+// would slice through something (RP-74's blossom branches), a square cut by
+// hand sits in scripts/og/report/<id>.png and is used instead. A drawing goes
+// in as a data URL: the card draws it as a mask, and Chromium won't use a file
+// from disk as one.
 // The wish's first line is the one it was written in, a clause to a line;
 // the lines after it are its English.
 await fs.mkdir(path.join(OUT, 'report'), { recursive: true });
@@ -143,7 +146,9 @@ for (const f of await fs.readdir(path.join(ROOT, 'public/data/reports'))) {
     const wish = r.closing?.[0];
     const picture = r.picture ?? r.closingPicture;
     if (!wish?.length || !picture) continue;
-    const file = path.join(ROOT, 'public', picture.src);
+    const cut = path.join(ROOT, 'scripts/og/report', `${r.id}.png`);
+    const hasCut = !!r.picture && (await fs.access(cut).then(() => true, () => false));
+    const file = hasCut ? cut : path.join(ROOT, 'public', picture.src);
     await shoot(
         'report',
         {
