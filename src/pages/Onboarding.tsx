@@ -93,7 +93,7 @@ function WelcomeStage() {
                     alt=""
                     width={124}
                     height={124}
-                    className="ob-pop size-[124px] shadow-[0_18px_40px_-12px_rgba(0,0,0,0.35)]"
+                    className="ob-pop size-[124px] rounded-[28px] shadow-[0_18px_40px_-12px_rgba(0,0,0,0.35)]"
                 />
             </div>
         </div>
@@ -411,7 +411,7 @@ export function Onboarding() {
             className="fixed inset-0 z-50 flex h-[100dvh] w-full select-none flex-col bg-[var(--bg)] font-sans text-[var(--text)]"
         >
             <div className="mx-auto flex w-full max-w-lg shrink-0 items-center gap-2.5 px-6 pt-[calc(0.875rem+env(safe-area-inset-top,0px))]">
-                <img src="/logo.png" alt="" width={30} height={30} className="size-[30px]" />
+                <img src="/logo.png" alt="" width={30} height={30} className="size-[30px] rounded-[8px]" />
                 <span className="font-display text-[1.25rem] leading-none tracking-[-0.015em]">
                     <span className="font-normal text-[var(--text)]">{'Oyama'}</span>{' '}
                     <span className="font-light text-[var(--text-muted)]">{'Journal'}</span>
@@ -450,7 +450,7 @@ export function Onboarding() {
                             aria-hidden={k !== step}
                             {...(k === step ? {} : { inert: '' })}
                         >
-                            <div className="ob-stage relative grid min-h-[15rem] flex-1 max-h-[24rem] place-items-center overflow-hidden bg-[var(--surface-muted)] px-6 py-6">
+                            <div className="ob-stage relative grid min-h-[15rem] flex-1 max-h-[24rem] place-items-center overflow-hidden rounded-[1.75rem] bg-[var(--surface-muted)] px-6 py-6">
                                 {s.stage(k === step)}
                             </div>
                             <div className="pt-7 pb-4">

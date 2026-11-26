@@ -39,9 +39,8 @@
     --text-sm: 0.9375rem;
     --text-sm--line-height: 1.375rem;
 
-    /* Shape: cards, panels and highlights are square, so they take none of
-       this. Controls are round: the text box 12px, the bottom menu 24px (its
-       tabs 16px, so a focus ring nests in it), pills and circles full. */
+    /* Shape scale: controls 12px, floating panels 16px, the nav island 24px,
+       anything pill-like full. */
     --radius-xs: 6px;
     --radius-sm: 10px;
     --radius-md: 12px;
@@ -568,6 +567,7 @@ select:focus-visible,
         line-height: 1.125rem;
         color: var(--text-muted);
         background-color: var(--surface-muted);
+        border-radius: var(--radius-md);
     }
 }
 
@@ -663,6 +663,7 @@ select:focus-visible,
         line-height: 1.375rem;
         text-align: start;
         color: var(--text);
+        border-radius: var(--radius-md);
     }
     :where(:root:not([data-input="touch"])) .choice-option:hover {
         background-color: var(--surface-hover);

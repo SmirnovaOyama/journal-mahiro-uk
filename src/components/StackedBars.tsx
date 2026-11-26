@@ -73,7 +73,7 @@ export function StackedBars({
                 aria-valuemax={buckets.length - 1}
                 aria-valuenow={sel ?? undefined}
                 aria-valuetext={b ? `${b.span}, ${count(b.total)}` : undefined}
-                className="flex items-end gap-[3px] h-28 cursor-pointer outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-ink)]"
+                className="flex items-end gap-[3px] h-28 cursor-pointer rounded-[4px] outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-ink)]"
                 style={{ touchAction: 'pan-y' }}
                 onPointerDown={e => {
                     pressing.current = true;
@@ -101,7 +101,7 @@ export function StackedBars({
                 {buckets.map((bk, k) => (
                     <div
                         key={k}
-                        className="flex-1 min-w-0 flex flex-col-reverse gap-px overflow-hidden transition-[opacity,transform] duration-300 ease-out"
+                        className="flex-1 min-w-0 flex flex-col-reverse gap-px overflow-hidden rounded-[3px] transition-[opacity,transform] duration-300 ease-out"
                         style={{
                             height: bk.total ? `${Math.max(4, (bk.total / max) * 100)}%` : '2px',
                             background: bk.total ? undefined : 'var(--chart-grid)',
