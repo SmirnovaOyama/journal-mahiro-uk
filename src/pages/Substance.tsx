@@ -19,6 +19,7 @@ import { useDetail } from '../lib/useIndex';
 import { DoseRuler } from '../components/DoseRuler';
 import { Absorption } from '../components/Absorption';
 import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
+import Doodle from '../components/Doodle';
 import { Fold } from '../components/Fold';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
@@ -349,7 +350,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         </Link>
                     )}
 
-                    {(limited || detail.advisory) && (
+                    {(limited || detail.advisory || detail.warnings?.length) && (
                         <div className="mt-4 space-y-2">
                             {limited && (
                                 <Advisory>
@@ -357,6 +358,21 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 </Advisory>
                             )}
                             {detail.advisory && <Advisory>{detail.advisory}</Advisory>}
+                            {detail.warnings?.map(w => (
+                                <div key={w.url + w.text.slice(0, 24)}>
+                                    <Advisory>{w.text} {w.source}</Advisory>
+                                    {w.report && (
+                                        <Link
+                                            to={{ page: 'report', id: w.report }}
+                                            className={`mt-1 ml-5 inline-flex items-center gap-1.5 text-sm no-underline text-[var(--text)] hover:underline`}
+                                        >
+                                            <Doodle name="report" size={1.75} />
+                                            {'Read the full report'}
+                                            <ChevronRight size={16} />
+                                        </Link>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
 
