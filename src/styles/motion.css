@@ -581,10 +581,10 @@ path.ink-draw {
 }
 .rail-label {
     animation: fade-in 320ms var(--ease-standard) both;
-    transition:
-        left var(--duration-base) var(--ease-standard),
-        transform var(--duration-base) var(--ease-standard),
-        color var(--duration-base) var(--ease-standard);
+    /* No transition on left or transform: the label follows the reading tick,
+       which is placed fresh each frame when the value glides. Easing it here
+       made it trail behind the tick it names. */
+    transition: color var(--duration-base) var(--ease-standard);
 }
 /* The status flown from the reading's tick goes where the tick goes, in the
    same frame: the reading moves with its value (a drag, a typed amount, or
