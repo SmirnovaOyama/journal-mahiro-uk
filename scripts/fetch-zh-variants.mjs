@@ -30,6 +30,33 @@ for (const it of Object.values(items)) {
 const all = [...names].filter(n => /[㐀-鿿]/.test(n) && !/[\n<>[\]{}|]/.test(n));
 console.log(`${all.length} names to convert`);
 
+/** One conversion request, waiting out a rate limit (429) or a server
+ *  error the way fetch-zh.mjs does rather than giving up on the first one. */
+async function post(body, tries = 6) {
+    for (let k = 0; k < tries; k++) {
+        let res;
+        try {
+            res = await fetch(API, {
+                method: 'POST',
+                headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body,
+            });
+        } catch (e) {
+            if (k === tries - 1) throw e;
+            await sleep(5000 * (k + 1));
+            continue;
+        }
+        if (res.status === 429 || res.status >= 500) {
+            await sleep(Number(res.headers.get('retry-after')) * 1000 || 5000 * (k + 1));
+            continue;
+        }
+        // Anything else is our own mistake, not a passing one: say so now.
+        if (!res.ok) throw new Error(`parse ${res.status}: ${(await res.text()).slice(0, 200)}`);
+        return res;
+    }
+    throw new Error('parse: gave up after being rate-limited');
+}
+
 /** Wikipedia's own conversion of each line into one variant, in order. */
 async function convert(lines, variant) {
     const body = new URLSearchParams({
@@ -44,13 +71,7 @@ async function convert(lines, variant) {
         // One line each, so the answer's paragraphs line up with the input.
         text: lines.join('\n\n'),
     });
-    const res = await fetch(API, {
-        method: 'POST',
-        headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-    });
-    if (!res.ok) throw new Error(`parse ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    const html = (await res.json()).parse?.text ?? '';
+    const html = (await (await post(body)).json()).parse?.text ?? '';
     const out = [...html.matchAll(/<p>([\s\S]*?)<\/p>/g)].map(m =>
         m[1]
             .replace(/<[^>]*>/g, '')
@@ -69,7 +90,10 @@ const tw = {};
 const cn = {};
 const parts = chunks(all, 100);
 for (const [i, part] of parts.entries()) {
-    const [t, c] = await Promise.all([convert(part, 'zh-tw'), convert(part, 'zh-cn')]);
+    // One at a time: two at once is enough for zh.wikipedia to rate-limit us.
+    const t = await convert(part, 'zh-tw');
+    await sleep(800);
+    const c = await convert(part, 'zh-cn');
     part.forEach((n, k) => {
         if (t[k] && t[k] !== n) tw[n] = t[k];
         if (c[k] && c[k] !== n) cn[n] = c[k];
