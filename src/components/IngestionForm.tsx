@@ -7,6 +7,7 @@ import { useDetail } from '../lib/useIndex';
 import LevelRail from './LevelRail';
 import { formatWeight, useWeight } from '../lib/store';
 import { absorbedText } from './Absorption';
+import Choice from './Choice';
 import { Molecule } from './Molecule';
 import { SearchField } from './SearchField';
 import Switch from './Switch';
@@ -337,10 +338,11 @@ export function IngestionForm({
                         <label className={label} htmlFor="dose-amount">
                             {'Amount'}
                         </label>
-                        <div className="flex items-end gap-3">
+                        {/* The unit's options unfold under the whole line, not under its own 6rem. */}
+                        <div className="flex flex-wrap items-end gap-x-3">
                             <input
                                 id="dose-amount"
-                                className={`input-base flex-1 text-lg tabular-nums ${doseText ? 'is-inked' : ''}`}
+                                className={`input-base min-w-0 flex-1 text-lg tabular-nums ${doseText ? 'is-inked' : ''}`}
                                 inputMode="decimal"
                                 autoComplete="off"
                                 placeholder={'Leave empty if unknown'}
@@ -348,18 +350,13 @@ export function IngestionForm({
                                 onChange={e => setDoseText(e.target.value)}
                                 aria-invalid={!doseOk}
                             />
-                            <select
-                                className="input-base w-24 shrink-0"
+                            <Choice
+                                className="w-24 shrink-0"
+                                options={[...new Set([row?.unit, unit, ...UNITS].filter(Boolean) as string[])].map(u => ({ id: u, label: u }))}
                                 value={unit}
-                                onChange={e => setUnit(e.target.value)}
-                                aria-label={'Unit'}
-                            >
-                                {[...new Set([row?.unit, ...UNITS].filter(Boolean) as string[])].map(u => (
-                                    <option key={u} value={u}>
-                                        {u}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={setUnit}
+                                label={'Unit'}
+                            />
                         </div>
                         {row?.segments && inRowUnit != null && (
                             <div className="mt-2">
