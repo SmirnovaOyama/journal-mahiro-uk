@@ -13,6 +13,8 @@ export type CaseReport = {
     epigraph?: string;
     /** Last words, set after the sections: each a few lines kept together. */
     closing?: string[][];
+    /** A picture set above the last words. */
+    closingPicture?: { src: string; alt: string; width: number; height: number };
     source: string;
     url: string;
     picture?: { src: string; alt: string; credit?: string };
@@ -85,6 +87,18 @@ export function Report({ id }: { id: string }) {
                                 {s.paragraphs.map((p, i) => <p key={i} className="text-[var(--text)]"><Linked text={p} /></p>)}
                             </section>
                         ))}
+                        {report.closingPicture && (
+                            // Drawn on white: in the light theme the white melts into the page,
+                            // in the dark one the picture stays a round-cornered card.
+                            <img
+                                src={report.closingPicture.src}
+                                alt={report.closingPicture.alt}
+                                width={report.closingPicture.width}
+                                height={report.closingPicture.height}
+                                loading="lazy"
+                                className="mx-auto h-auto w-full max-w-sm rounded-2xl mix-blend-multiply dark:mix-blend-normal"
+                            />
+                        )}
                         {report.closing && (
                             <div className="space-y-4 text-base text-[var(--text)]">
                                 {report.closing.map((lines, i) => (

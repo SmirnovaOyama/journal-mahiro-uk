@@ -60,10 +60,19 @@
    ]
   }
  ],
+ "closingPicture": {
+  "src": "/report-rp-74-doves.jpg",
+  "alt": "Two girls letting white doves go: one with long blue hair and a whale’s tail, in a maid’s dress, holding a dove in her hands; one with orange hair and cat ears, reaching up after a dove already in the air",
+  "width": 886,
+  "height": 886
+ },
  "closing": [
   [
    "愿吾辈皆如星辰，于参宿四之畔熠熠生辉，纵隔浩瀚星河，亦能遥遥相望，长夜不孤",
-   "May we all shine as stars beside Betelgeuse; though the boundless heavens lie betwixt us, may we ever behold one another, and never walk alone through the long night"
+   "May we, like stars, by Betelgeuse burn bright,",
+   "Though heaven's boundless river keep us far,",
+   "Still gaze across the dark from star to star,",
+   "And none be lonely through the long, long night"
   ],
   [
    "常在春风中，活在药效里",
