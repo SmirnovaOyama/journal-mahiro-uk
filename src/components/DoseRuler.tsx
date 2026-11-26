@@ -5,6 +5,7 @@ import LevelRail from './LevelRail';
 import { Odometer } from './Odometer';
 import Tick from './Tick';
 import { fmt } from './SubstanceRow';
+import { tr } from '../lib/i18n';
 
 type Band = 'below' | 'light' | 'common' | 'strong' | 'heavy';
 
@@ -71,7 +72,7 @@ export function DoseRuler({
   /** What closes the block, as "Medication plan >" closes hrt's. */
   footer?: React.ReactNode;
 }) {
-  const name = (b: Band) => (BANDS[b].label);
+  const name = (b: Band) => tr(BANDS[b].label);
 
   const model = useMemo(() => {
     const seg = row.segments ?? {};
@@ -209,13 +210,13 @@ export function DoseRuler({
           max={1000}
           step={1}
           value={Math.round(at(value) * 1000)}
-          aria-label={`Amount in ${row.unit}`}
+          aria-label={tr('Amount in {0}', { 0: row.unit })}
           aria-valuetext={`${fmt(value)} ${row.unit}, ${name(band)}`}
           onChange={(e) => setValue(valueAt(parseFloat(e.target.value) / 1000))}
         />
       </div>
 
-      <p className={`mt-3 text-sm ${muted}`}>{BANDS[band].says}</p>
+      <p className={`mt-3 text-sm ${muted}`}>{tr(BANDS[band].says)}</p>
 
       <div className="mt-2">
         {ORDER.map((b) => {
@@ -245,7 +246,7 @@ export function DoseRuler({
         })}
         {row.threshold && (
           <p className={`py-1.5 text-xs ${muted}`}>
-            {`Threshold ${row.threshold}: below it most people feel little.`}
+            {tr('Threshold {0}: below it most people feel little.', { 0: row.threshold })}
           </p>
         )}
         {footer && <div className="pt-1.5">{footer}</div>}

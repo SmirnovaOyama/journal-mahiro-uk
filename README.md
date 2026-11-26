@@ -3,7 +3,8 @@
 A harm-reduction reference and dose journal for psychoactive substances, at
 [journal.mahiro.uk](https://journal.mahiro.uk). It is built on the shell and
 design system of [Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)
-(hrt.mahiro.uk), in English. No account needed: what you do on it stays on
+(hrt.mahiro.uk), in English and 正體中文 (the catalogue itself is in
+English). No account needed: what you do on it stays on
 your device. An account is optional, and keeps your journal the same on every
 device you sign in on, encrypted on each before it's sent.
 

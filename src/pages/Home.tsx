@@ -13,6 +13,7 @@ import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader'
 import { SearchField, listKeys } from '../components/SearchField';
 import { SubstanceRow } from '../components/SubstanceRow';
 import { KindList } from './Browse';
+import { tr } from '../lib/i18n';
 
 const QUICK = ['alcohol', 'cannabis', 'mdma', 'lsd', 'ketamine', 'cocaine', 'caffeine', 'mushrooms'];
 
@@ -59,9 +60,9 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
     return (
         <>
             <PageHeader
-                title={'Search'}
+                title={tr('Search')}
                 backTo={fromLink}
-                subtitle={index ? `${index.length} substances` : undefined}
+                subtitle={index ? tr('{0} substances', { 0: index.length }) : undefined}
                 actions={
                     // The cats sit by the page's title, as they sit by the reading on hrt's Overview.
                     <span className="flex items-end gap-1 pe-2" aria-hidden="true">
@@ -75,8 +76,8 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     ref={input}
                     value={q}
                     onChange={setQ}
-                    label={'Search substances'}
-                    placeholder={'Name, street name or family'}
+                    label={tr('Search substances')}
+                    placeholder={tr('Name, street name or family')}
                     listId="home-results"
                     activeId={hits[active] ? `hit-${hits[active].entry.id}` : undefined}
                     onKeyDown={e => listKeys(e, Math.min(hits.length, limit), active, setActive, pick)}
@@ -90,18 +91,18 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                             // After the check-in, "nothing called that" would only be cold.
                             !care && !n55 && <div className="py-8">
                                 <p className="text-sm font-semibold">
-                                    {`Nothing called “${q.trim()}”`}
+                                    {tr('Nothing called “{0}”', { 0: q.trim() })}
                                 </p>
                                 <p className="text-sm text-[var(--text-muted)] mt-1">
-                                    {'Try another spelling, a street name, or the family it belongs to, like “tryptamine”.'}
+                                    {tr('Try another spelling, a street name, or the family it belongs to, like “tryptamine”.')}
                                 </p>
                             </div>
                         ) : (
                             <>
                                 <h2 className="group-heading mb-1">
                                     {hits.length >= 200
-                                        ? '200+ matches'
-                                        : hits.length === 1 ? 'One match' : `${hits.length} matches`}
+                                        ? tr('200+ matches')
+                                        : hits.length === 1 ? tr('One match') : tr('{0} matches', { 0: hits.length })}
                                 </h2>
                                 <div className="settings-section" id="home-results" role="listbox">
                                     {hits.slice(0, limit).map((h, i) => (
@@ -109,7 +110,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                                             key={h.entry.id}
                                             id={`hit-${h.entry.id}`}
                                             entry={h.entry}
-                                            sub={h.via ? `Also called ${h.via}` : undefined}
+                                            sub={h.via ? tr('Also called {0}', { 0: h.via }) : undefined}
                                             active={i === active}
                                         />
                                     ))}
@@ -120,7 +121,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                                         className="btn-secondary mt-4"
                                         onClick={() => setLimit(l => l + 40)}
                                     >
-                                        {'Show more'}
+                                        {tr('Show more')}
                                     </button>
                                 )}
                             </>
@@ -131,9 +132,9 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                         {recentList.length > 0 ? (
                             <section className="mt-8">
                                 <div className="flex items-center justify-between mb-1">
-                                    <h2 className="group-heading">{'Looked at lately'}</h2>
+                                    <h2 className="group-heading">{tr('Looked at lately')}</h2>
                                     <button type="button" className={`${headerAction} -me-2.5 text-[var(--text-muted)]`} onClick={recent.clear}>
-                                        {'Clear'}
+                                        {tr('Clear')}
                                     </button>
                                 </div>
                                 <div className="settings-section">
@@ -144,7 +145,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                             </section>
                         ) : (
                             <section className="mt-8">
-                                <h2 className="group-heading mb-3">{'Often looked up'}</h2>
+                                <h2 className="group-heading mb-3">{tr('Often looked up')}</h2>
                                 <div className="flex flex-wrap gap-2">
                                     {quick.map(e => (
                                         <Link key={e.id} to={{ page: 'substance', id: e.id }} className="btn-secondary btn-sm no-underline">
@@ -156,7 +157,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                         )}
                         {/* Browsing by kind, under the search it narrows. */}
                         <section className="mt-10">
-                            <h2 className="group-heading mb-1">{'By kind'}</h2>
+                            <h2 className="group-heading mb-1">{tr('By kind')}</h2>
                             <KindList index={index} />
                         </section>
                     </>

@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { tr } from '../lib/i18n';
 
 /* The journal's column chart, also the admin page's: one column a day,
    month or year, read by pointing or by touch. */
@@ -22,9 +23,9 @@ export function StackedBars({
     buckets,
     names,
     idle,
-    count = n => (n === 1 ? '1 session' : `${n} sessions`),
-    what = 'Sessions over time',
-    empty = 'Nothing logged',
+    count = n => (n === 1 ? tr('1 session') : tr('{0} sessions', { 0: n })),
+    what = tr('Sessions over time'),
+    empty = tr('Nothing logged'),
 }: {
     buckets: Bucket[];
     names: (key: string) => string;
@@ -62,7 +63,7 @@ export function StackedBars({
                         </p>
                     </>
                 ) : (
-                    <p className="text-[var(--text-muted)]">{idle ?? 'Tap a bar to read it.'}</p>
+                    <p className="text-[var(--text-muted)]">{idle ?? tr('Tap a bar to read it.')}</p>
                 )}
             </div>
             <div

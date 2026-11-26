@@ -1,4 +1,5 @@
 import type { DosageForm } from '../components/doodles';
+import { dateLocale, isZh, tr } from './i18n';
 
 /* What public/data holds: written by scripts/sync-substances.mjs from
    PsychonautWiki and TripSit, then by scripts/sync-wikidata.mjs, which adds
@@ -251,9 +252,10 @@ export function describe(e: Pick<IndexEntry, 'category' | 'chemicalClass'>): str
   // An acronym keeps its capitals: "the SSRI family", not "the ssri family".
   const familyText = /^[A-Z]{3,}s?$/.test(fam) ? fam.replace(/s$/, '') : family;
   const word = e.category.toLowerCase();
-  const kind = e.category === 'Other' ? 'A substance' : `${/^[aeiou]/.test(word) ? 'An' : 'A'} ${word}`;
-  if (!family) return `${kind}.`;
-  return `${kind} in the ${familyText} family.`;
+  // Chinese has no article and names the kind as the lists do.
+  const kind = e.category === 'Other' ? tr('A substance') : isZh() ? tr(e.category) : `${/^[aeiou]/.test(word) ? 'An' : 'A'} ${word}`;
+  if (!family) return tr('{kind}.', { kind });
+  return tr('{kind} in the {family} family.', { kind, family: familyText });
 }
 
 /** Units of mass, in micrograms. */
@@ -287,7 +289,7 @@ export function convertAmount(value: number, from: string, to: string, kg?: numb
 
 /** "1.6", "0.42", "1,050": an amount as it reads best. */
 export function fmtAmount(v: number): string {
-  if (v >= 100) return Math.round(v).toLocaleString('en-GB');
+  if (v >= 100) return Math.round(v).toLocaleString(dateLocale());
   if (v >= 10) return String(Math.round(v * 10) / 10);
   if (v >= 1) return String(Math.round(v * 100) / 100);
   return String(Number(v.toPrecision(2)));

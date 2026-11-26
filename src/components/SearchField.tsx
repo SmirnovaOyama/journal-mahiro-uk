@@ -1,5 +1,6 @@
 import { forwardRef, type KeyboardEvent } from 'react';
 import { Close, Search } from './icons';
+import { tr } from '../lib/i18n';
 
 interface Props {
     value: string;
@@ -52,7 +53,7 @@ export const SearchField = forwardRef<HTMLInputElement, Props>(function SearchFi
                 <button
                     type="button"
                     className="btn-ghost absolute end-0 -me-2 !size-8 !p-0"
-                    aria-label={'Clear'}
+                    aria-label={tr('Clear')}
                     onClick={() => {
                         onChange('');
                         (ref as React.RefObject<HTMLInputElement>)?.current?.focus();

@@ -30,6 +30,13 @@ import { Timeline } from '../components/Timeline';
 import { Alert, Bookmark, ChevronRight, Clover, External, Info, Plus } from '../components/icons';
 import { Waiting } from '../components/Waiting';
 import { Linked } from '../components/Linked';
+import { dateLocale, roaName, spanText, tr } from '../lib/i18n';
+
+/** A link's line. The sync writes a handful of these, in English. */
+const linkSays = (d: string) => {
+    const m = d.match(/^Structured data on (.+)$/);
+    return m ? tr('Structured data on {0}', { 0: m[1] }) : tr(d);
+};
 
 const MIX_GROUPS: {
     title: string;tone: string;
@@ -158,17 +165,17 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
             if (!weight.kg)
                 return (
                     <Link to={{ page: 'settings', sub: 'weight' }} className="text-[var(--accent-ink)] no-underline">
-                        {'Set your body weight to see this as an amount'}
+                        {tr('Set your body weight to see this as an amount')}
                     </Link>
                 );
-            return `≈ ${fmtAmount(v * weight.kg)} ${mass} at ${formatWeight(weight.kg, weight.unit)}`;
+            return tr('≈ {0} {1} at {2}', { 0: fmtAmount(v * weight.kg), 1: mass, 2: formatWeight(weight.kg, weight.unit) });
         }
         if (!weight.kg) return null;
-        return `${fmtAmount(v / weight.kg)} ${unit}/kg at ${formatWeight(weight.kg, weight.unit)}`;
+        return tr('{0} {1}/kg at {2}', { 0: fmtAmount(v / weight.kg), 1: unit, 2: formatWeight(weight.kg, weight.unit) });
     };
     const taps = useRef(0);
     const roa = route && routes.includes(route) ? route : routes[0];
-    const roaName = (r: string) => (r);
+
 
     const combos = useMemo(() => (detail ? dedupe(detail.combinations) : []), [detail]);
 
@@ -184,13 +191,13 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     if (failed || !detail)
         return (
             <>
-                <PageHeader title={'Not found'} backTo />
+                <PageHeader title={tr('Not found')} backTo />
                 <div className={`${PAGE_COLUMN} py-8`}>
-                    <p className="text-sm font-semibold">{`We don’t have “${id}”`}</p>
+                    <p className="text-sm font-semibold">{tr('We don’t have “{0}”', { 0: id })}</p>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
-                        {'It may be spelled differently here. '}
+                        {tr('It may be spelled differently here. ')}
                         <Link to={{ page: 'home' }} move="none">
-                            {'Search for it'}
+                            {tr('Search for it')}
                         </Link>
                     </p>
                 </div>
@@ -210,10 +217,10 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     );
 
     const safety = [
-        detail.toxicity?.length && ['Toxicity', cap(detail.toxicity.join('. '))],
-        detail.addictionPotential && ['Addiction', cap(detail.addictionPotential)],
-        detail.halfLife && ['Half-life', detail.halfLife],
-        detail.marquis && ['Marquis reagent', detail.marquis],
+        detail.toxicity?.length && [tr('Toxicity'), cap(detail.toxicity.join('. '))],
+        detail.addictionPotential && [tr('Addiction'), cap(detail.addictionPotential)],
+        detail.halfLife && [tr('Half-life'), spanText(detail.halfLife)],
+        detail.marquis && [tr('Marquis reagent'), detail.marquis],
     ].filter(Boolean) as [string, string][];
 
     const routePicker =
@@ -222,7 +229,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                 options={routes.map(r => ({ id: r, label: roaName(r) }))}
                 value={roa}
                 onChange={setRoute}
-                aria-label={'How it’s taken'}
+                aria-label={tr('How it’s taken')}
             />
         ) : null;
 
@@ -237,13 +244,13 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     const lastCourse = lastC?.course ?? null;
     const sinceLast = last ? Math.max(1, Math.round((Date.now() - last.time) / 60000)) : 0;
     const stillOn = !!(last && lastCourse && sinceLast < lastCourse.over && last.time <= Date.now());
-    const lastAmount = last ? (last.dose != null ? `${last.estimate ? '~' : ''}${last.dose} ${last.unit}` : 'an unknown amount') : '';
+    const lastAmount = last ? (last.dose != null ? `${last.estimate ? '~' : ''}${last.dose} ${last.unit}` : tr('an unknown amount')) : '';
     // Tolerance from that dose: when it should be gone, if that's still ahead.
     const resetMs = resetAfter(detail.tolerance?.reset);
     const baseline = last && resetMs ? last.time + resetMs : null;
     const baselineText =
         baseline && baseline > Date.now() && !stillOn
-            ? ` Tolerance should be back to normal around ${new Date(baseline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}.`
+            ? tr(' Tolerance should be back to normal around {0}.', { 0: new Date(baseline).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) })
             : '';
 
     return (
@@ -268,17 +275,17 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             }}
                         >
                             <Plus size={16} />
-                            {'Log'}
+                            {tr('Log')}
                         </button>
                         <button
                             type="button"
                             className={`${isSaved ? headerActionAccent : headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
                             aria-pressed={isSaved}
-                            aria-label={isSaved ? 'Saved' : 'Save'}
+                            aria-label={isSaved ? tr('Saved', undefined, 'bookmark') : tr('Save', undefined, 'bookmark')}
                             onClick={() => saved.toggle(detail.id)}
                         >
                             <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
-                            <span className="max-sm:hidden">{isSaved ? 'Saved' : 'Save'}</span>
+                            <span className="max-sm:hidden">{isSaved ? tr('Saved', undefined, 'bookmark') : tr('Save', undefined, 'bookmark')}</span>
                         </button>
                     </>
                 }
@@ -298,7 +305,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     taps.current += 1;
                                     if (taps.current % 5 === 0) {
                                         sparkleFrom(inkRef.current);
-                                        toast('You found it.');
+                                        toast(tr('You found it.'));
                                     }
                                 }}
                             >
@@ -312,18 +319,18 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             {hrt && hrtLine(detail.id) && <p className="trans-text mt-1 text-xs font-semibold">{hrtLine(detail.id)}</p>}
                             {aliases.length > 0 && (
                                 <p className={`text-xs ${muted} mt-1`}>
-                                    {'Also called '}
+                                    {tr('Also called ')}
                                     {aliases.slice(0, 6).join(', ')}
                                 </p>
                             )}
                             {structure && (
                                 <p className={`text-xs ${muted} mt-1`}>
                                     {structure.role === 'active'
-                                        ? `Drawn: its main active compound, ${structure.name}. `
+                                        ? tr('Drawn: its main active compound, {0}. ', { 0: structure.name })
                                         : structure.role === 'core'
-                                          ? `Drawn: the family's parent structure, ${structure.name}. `
+                                          ? tr('Drawn: the family\'s parent structure, {0}. ', { 0: structure.name })
                                           : structure.role === 'example'
-                                            ? `Drawn: the family's best-known member, ${structure.name}. `
+                                            ? tr('Drawn: the family\'s best-known member, {0}. ', { 0: structure.name })
                                             : ''}
                                     <a
                                         href={`https://pubchem.ncbi.nlm.nih.gov/compound/${structure.cid}`}
@@ -331,7 +338,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         rel="noreferrer"
                                         className="text-[var(--text-muted)]"
                                     >
-                                        {'Structure from PubChem'}
+                                        {tr('Structure from PubChem')}
                                     </a>
                                 </p>
                             )}
@@ -346,9 +353,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <span>
                                 {stillOn
                                     ? lastC!.exact
-                                        ? `Still working: you logged ${lastAmount} ${formatMinutes(sinceLast)} ago, and it lasts about ${formatMinutes(lastCourse!.over)}.`
-                                        : `May still be working: you logged ${lastAmount} ${formatMinutes(sinceLast)} ago. Its timing taken that way isn’t documented; other ways, up to ${formatMinutes(lastCourse!.over)}.`
-                                    : `You last logged ${lastAmount} ${sinceLast < 2880 ? `${formatMinutes(sinceLast)} ago` : `on ${new Date(last.time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}.`}
+                                        ? tr('Still working: you logged {0} {1} ago, and it lasts about {2}.', { 0: lastAmount, 1: formatMinutes(sinceLast), 2: formatMinutes(lastCourse!.over) })
+                                        : tr('May still be working: you logged {0} {1} ago. Its timing taken that way isn’t documented; other ways, up to {2}.', { 0: lastAmount, 1: formatMinutes(sinceLast), 2: formatMinutes(lastCourse!.over) })
+                                    : tr('You last logged {0} {1}.', { 0: lastAmount, 1: sinceLast < 2880 ? tr('{0} ago', { 0: formatMinutes(sinceLast) }) : tr('on {0}', { 0: new Date(last.time).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) }) })}
                                 {baselineText}
                             </span>
                         </Link>
@@ -358,7 +365,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         <div className="mt-4 space-y-2">
                             {limited && (
                                 <Advisory>
-                                    {'Little is known about this one. Treat any dose as stronger than you expect.'}
+                                    {tr('Little is known about this one. Treat any dose as stronger than you expect.')}
                                 </Advisory>
                             )}
                             {detail.advisory && <Advisory><Linked text={detail.advisory} /></Advisory>}
@@ -371,7 +378,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                             className={`mt-1 ml-5 inline-flex items-center gap-1.5 text-sm no-underline text-[var(--text)] hover:underline`}
                                         >
                                             <Doodle name="report" size={1.75} />
-                                            {'Read the full report'}
+                                            {tr('Read the full report')}
                                             <ChevronRight size={16} />
                                         </Link>
                                     )}
@@ -382,7 +389,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
                     {reference && (
                         <p className={`mt-5 text-sm leading-relaxed ${muted} max-w-prose`}>
-                            {'A reference entry: what it is, its names and what it’s known to interact with, from Wikidata and Wikipedia. No doses are given for it here; for a prescribed medicine, follow the prescription.'}
+                            {tr('A reference entry: what it is, its names and what it’s known to interact with, from Wikidata and Wikipedia. No doses are given for it here; for a prescribed medicine, follow the prescription.')}
                         </p>
                     )}
 
@@ -398,7 +405,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             aria-controls="dose-explainer"
                             className={`tap-target group inline-flex min-w-0 items-center gap-1.5 text-left text-sm ${infoOpen ? 'text-[var(--text)]' : muted} hover:text-[var(--text)]`}
                         >
-                            <span className="truncate">{'How much'}</span>
+                            <span className="truncate">{tr('How much')}</span>
                             <Info size={13} className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
                         </button>
                         {routePicker}
@@ -417,10 +424,10 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     </p>
                                 )}
                                 <p>
-                                    {'Weigh with a milligram scale; eyeballing powder is how people get hurt. Start at the light end, and with any new batch.'}
+                                    {tr('Weigh with a milligram scale; eyeballing powder is how people get hurt. Start at the light end, and with any new batch.')}
                                 </p>
                                 <p className="text-xs">
-                                    {'Doses from '}
+                                    {tr('Doses from ')}
                                     {dose?.source ?? 'PsychonautWiki'}
                                 </p>
                             </div>
@@ -433,20 +440,20 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             row={dose}
                             onPick={setPicked}
                             aside={v => weightAside(dose.unit, v)}
-                            label={roa ? `${roaName(roa)}, in ${dose.unit}` : dose.unit}
+                            label={roa ? tr('{0}, in {1}', { 0: roaName(roa), 1: dose.unit }) : dose.unit}
                             footer={
                                 <Link
                                     to={{ page: 'mix', ids: [detail.id] }}
                                     className={`${headerActionAccent} tap-target -ml-2.5 no-underline`}
                                 >
-                                    {'Check what it mixes with'}
+                                    {tr('Check what it mixes with')}
                                     <ChevronRight size={15} />
                                 </Link>
                             }
                         />
                     ) : (
                         <p className={`text-sm ${muted}`}>
-                            {'No dosage is documented for this route.'}
+                            {tr('No dosage is documented for this route.')}
                         </p>
                     )}
                     <Absorption rows={detail.doseRows} roa={roa} onPick={setRoute} />
@@ -460,18 +467,18 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                     <Timeline key={`${detail.id}-${roa}`} row={time} />
                 ) : (
                     <div>
-                        <SectionTitle title={'How long'} />
+                        <SectionTitle title={tr('How long')} />
                         <p className={`text-sm ${muted}`}>
-                            {'No timing is documented for this route.'}
+                            {tr('No timing is documented for this route.')}
                         </p>
                     </div>
                 )}
 
                 <section>
-                    <SectionTitle title={'Mixing'} />
+                    <SectionTitle title={tr('Mixing')} />
                     {combos.length === 0 ? (
                         <p className={`text-sm ${muted}`}>
-                            {'No combinations are documented. That doesn’t mean any are safe.'}
+                            {tr('No combinations are documented. That doesn’t mean any are safe.')}
                         </p>
                     ) : (
                         <div className="grid gap-5 mt-3">
@@ -482,9 +489,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     <div key={g.title}>
                                         <h3 className={`flex items-center gap-1.5 text-xs font-semibold tone-${g.tone}`}>
                                             {g.tone === 'positive' && <Clover size={18} />}
-                                            {g.title}
+                                            {tr(g.title)}
                                         </h3>
-                                        <p className={`text-xs ${muted}`}>{g.says}</p>
+                                        <p className={`text-xs ${muted}`}>{tr(g.says)}</p>
                                         <ul className="flex flex-wrap gap-2 mt-2">
                                             {items.map(c => {
                                                 const other = index ? resolveName(index, c.substance) : undefined;
@@ -515,11 +522,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                 </section>
 
                 <section>
-                    <SectionTitle title={`More about ${detail.name}`} />
+                    <SectionTitle title={tr('More about {0}', { 0: detail.name })} />
                     <div className="settings-section">
                         {(detail.summary) && (
                             <Fold
-                                title={'What it is'}
+                                title={tr('What it is')}
                                 hint={(() => {
                                     const text = detail.summary;
                                     const first = firstSentence(text);
@@ -528,12 +535,12 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             >
                                 <p className="text-sm max-w-prose"><Linked text={detail.summary} /></p>
                                 {(
-                                    detail.summarySources && <p className="footnote">{`From ${detail.summarySources}.`}</p>
+                                    detail.summarySources && <p className="footnote">{tr('From {0}.', { 0: detail.summarySources })}</p>
                                 )}
                             </Fold>
                         )}
                         {safety.length > 0 && (
-                            <Fold title={'Safety'} hint={safety.map(([k]) => k).join(', ')}>
+                            <Fold title={tr('Safety')} hint={safety.map(([k]) => k).join(tr(', '))}>
                                 <dl>
                                     {safety.map(([k, v]) => (
                                         <div className="fact-row" key={k}>
@@ -545,14 +552,14 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             </Fold>
                         )}
                         {detail.availability && detail.availability.length > 0 && (
-                            <Fold title={'Where it’s sold'} hint={detail.availability.map(a => a.where).join(', ')}>
+                            <Fold title={tr('Where it’s sold')} hint={detail.availability.map(a => a.where).join(tr(', '))}>
                                 <div className="grid gap-5">
                                     {detail.availability.map(a => (
                                         <div key={a.where}>
                                             <h3 className="text-sm font-medium">{a.where}</h3>
                                             <p className="text-sm max-w-prose mt-1"><Linked text={a.rule} /></p>
                                             <p className="footnote !mt-1">
-                                                {'From '}
+                                                {tr('From ')}
                                                 <a href={a.url} target="_blank" rel="noreferrer" className="underline underline-offset-[3px]">
                                                     {a.source}
                                                 </a>
@@ -564,29 +571,29 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         )}
                         {detail.tolerance && (detail.tolerance.buildUp || detail.tolerance.reset) && (
                             <Fold
-                                title={'Tolerance'}
+                                title={tr('Tolerance')}
                                 hint={
                                     detail.tolerance.reset
-                                        ? `Back to normal after about ${detail.tolerance.reset}`
+                                        ? tr('Back to normal after about {0}', { 0: spanText(detail.tolerance.reset) })
                                         : undefined
                                 }
                             >
                                 <dl>
                                     {detail.tolerance.buildUp && (
                                         <div className="fact-row">
-                                            <dt>{'Builds up'}</dt>
+                                            <dt>{tr('Builds up')}</dt>
                                             <dd>{cap(detail.tolerance.buildUp)}</dd>
                                         </div>
                                     )}
                                     {detail.tolerance.reset && (
                                         <div className="fact-row">
-                                            <dt>{'Back to normal'}</dt>
-                                            <dd>{`After about ${detail.tolerance.reset}`}</dd>
+                                            <dt>{tr('Back to normal')}</dt>
+                                            <dd>{tr('After about {0}', { 0: spanText(detail.tolerance.reset) })}</dd>
                                         </div>
                                     )}
                                     {detail.tolerance.crossTolerances?.map(c => (
                                         <div className="fact-row" key={c.group}>
-                                            <dt>{'Also lowers the effect of'}</dt>
+                                            <dt>{tr('Also lowers the effect of')}</dt>
                                             <dd>{c.items.join(', ')}</dd>
                                         </div>
                                     ))}
@@ -595,8 +602,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         )}
                         {detail.subjectiveEffects.length > 0 && (
                             <Fold
-                                title={'Effects people report'}
-                                hint={`${detail.subjectiveEffects.length} documented effects`}
+                                title={tr('Effects people report')}
+                                hint={tr('{0} documented effects', { 0: detail.subjectiveEffects.length })}
                             >
                                 <ul className="effect-list">
                                     {detail.subjectiveEffects.map(e => (
@@ -614,7 +621,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             </Fold>
                         )}
                         {(detail.helpfulLinks.length > 0 || detail.citations.length > 0) && (
-                            <Fold title={'Sources and further reading'}>
+                            <Fold title={tr('Sources and further reading')}>
                                 {detail.helpfulLinks.length > 0 && (
                                     <div className="settings-section">
                                         {detail.helpfulLinks.map(l => (
@@ -627,7 +634,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                             >
                                                 <span className="flex-1 min-w-0">
                                                     <span className="block text-sm font-medium">{l.title}</span>
-                                                    <span className={`block text-xs ${muted} mt-0.5`}>{l.description}</span>
+                                                    <span className={`block text-xs ${muted} mt-0.5`}>{linkSays(l.description)}</span>
                                                 </span>
                                                 <External size={18} className={muted} />
                                             </a>
@@ -636,7 +643,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 )}
                                 {detail.citations.length > 0 && (
                                     <>
-                                        <h3 className="group-heading mt-5 mb-2">{'Research'}</h3>
+                                        <h3 className="group-heading mt-5 mb-2">{tr('Research')}</h3>
                                         <ol className="cites">
                                             {detail.citations.map((c, k) => (
                                                 <li key={`${k}-${c.title}`}>

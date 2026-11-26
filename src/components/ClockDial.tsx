@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { Course } from '../lib/time';
+import { tr } from '../lib/i18n';
 
 /* A 24-hour dial to say when you'd take it. Midnight at the top, noon at the
    bottom, the night half of the track a shade darker. Drag the knob round
@@ -38,11 +39,11 @@ function clock(m: number) {
 
 function partOfDay(m: number) {
   const h = wrap(m) / 60;
-  if (h < 5) return 'in the night';
-  if (h < 12) return 'in the morning';
-  if (h < 17) return 'in the afternoon';
-  if (h < 21) return 'in the evening';
-  return 'at night';
+  if (h < 5) return tr('in the night');
+  if (h < 12) return tr('in the morning');
+  if (h < 17) return tr('in the afternoon');
+  if (h < 21) return tr('in the evening');
+  return tr('at night');
 }
 
 export function ClockDial({
@@ -140,7 +141,7 @@ export function ClockDial({
           className="dial-knob"
           role="slider"
           tabIndex={0}
-          aria-label={'Time you take it'}
+          aria-label={tr('Time you take it')}
           aria-valuemin={0}
           aria-valuemax={DAY - 5}
           aria-valuenow={start}
@@ -154,13 +155,13 @@ export function ClockDial({
       </svg>
 
       <div className="dial-centre">
-        <span className="dial-label">{'Taken at'}</span>
+        <span className="dial-label">{tr('Taken at')}</span>
         <span className="dial-time tabular">{clock(start)}</span>
         {isNow ? (
-          <span className="dial-label">{'now'}</span>
+          <span className="dial-label">{tr('now')}</span>
         ) : (
           <button type="button" className="btn-ghost btn-xs dial-now" onClick={onNow}>
-            {`${partOfDay(start)}, back to now`}
+            {tr('{0}, back to now', { 0: partOfDay(start) })}
           </button>
         )}
       </div>

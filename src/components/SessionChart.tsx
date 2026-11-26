@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Course } from '../lib/time';
 import { useScrub, yOnPieces, type Piece } from './scrub';
+import { tr } from '../lib/i18n';
 
 /* A session on one clock: each dose's curve from the time it was taken, in
    its substance's colour, drawn as the substance page draws one (Timeline):
@@ -37,15 +38,15 @@ function clock(t: number) {
 
 /** Where a dose is at time T. */
 function phaseAt(d: ChartDose, T: number): string {
-    if (T < d.time) return 'not taken yet';
-    if (!d.course) return `taken at ${clock(d.time)}`;
+    if (T < d.time) return tr('not taken yet');
+    if (!d.course) return tr('taken at {0}', { 0: clock(d.time) });
     const m = (T - d.time) / MIN;
     const { firstEffects: a, peakStart: b, peakEnd: e, over: f } = d.course;
-    if (m < a) return 'starting';
-    if (m < b) return 'coming up';
-    if (m < e) return 'at its peak';
-    if (m < f) return 'wearing off';
-    return 'over';
+    if (m < a) return tr('starting');
+    if (m < b) return tr('coming up');
+    if (m < e) return tr('at its peak');
+    if (m < f) return tr('wearing off');
+    return tr('over');
 }
 
 export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }) {
@@ -129,7 +130,7 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                 height={H}
                 className="block tabular-nums select-none"
                 role="img"
-                aria-label={'The session over time; press and slide along it to read any moment'}
+                aria-label={tr('The session over time; press and slide along it to read any moment')}
             >
                 {[0, 0.5, 1].map(l => (
                     <line key={l} x1={LEFT} x2={LEFT + plotW} y1={y(l)} y2={y(l)} className="tl-grid" />
@@ -158,7 +159,7 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                     <g className="chart-appear">
                         <line x1={x(now)} x2={x(now)} y1={TOP} y2={BASE} className="tl-now" />
                         <text x={x(now)} y={TOP - 2} textAnchor={x(now) > LEFT + plotW - 30 ? 'end' : 'middle'} className="tl-axis">
-                            {'now'}
+                            {tr('now')}
                         </text>
                     </g>
                 )}

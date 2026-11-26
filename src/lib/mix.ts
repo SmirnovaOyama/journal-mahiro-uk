@@ -1,4 +1,5 @@
 import { squash, type ComboMatrix, type ComboStatus, type Detail, type IndexEntry } from './data';
+import { tr } from './i18n';
 
 /* Whether two substances are safe together. The answer comes from, in turn:
    each substance's own list of combinations (PsychonautWiki and TripSit, as
@@ -136,7 +137,7 @@ function guess(a: IndexEntry, b: IndexEntry): PairResult | null {
       b,
       verdict: 'Dangerous',
       source: 'Guess',
-      note: 'Both slow your breathing. Together they can stop it, and this is how most overdoses happen.',
+      note: tr('Both slow your breathing. Together they can stop it, and this is how most overdoses happen.'),
     };
   if (has('Dissociative') && (has('Depressant') || has('Opioid')))
     return {
@@ -144,7 +145,7 @@ function guess(a: IndexEntry, b: IndexEntry): PairResult | null {
       b,
       verdict: 'Dangerous',
       source: 'Guess',
-      note: 'Risk of passing out and vomiting while unable to protect your airway.',
+      note: tr('Risk of passing out and vomiting while unable to protect your airway.'),
     };
   if (both(['Stimulant', 'Empathogen']))
     return {
@@ -152,7 +153,7 @@ function guess(a: IndexEntry, b: IndexEntry): PairResult | null {
       b,
       verdict: 'Caution',
       source: 'Guess',
-      note: 'Both push heart rate, blood pressure and body temperature up.',
+      note: tr('Both push heart rate, blood pressure and body temperature up.'),
     };
   return null;
 }

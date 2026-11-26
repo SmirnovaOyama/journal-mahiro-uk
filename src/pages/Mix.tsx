@@ -12,6 +12,7 @@ import { rowBleed } from '../components/SettingsListItem';
 import { SubstanceRow } from '../components/SubstanceRow';
 import { ChevronRight, Clover, Close } from '../components/icons';
 import { Linked } from '../components/Linked';
+import { tr } from '../lib/i18n';
 
 const EXAMPLES: [string, string][] = [
     ['alcohol', 'ketamine'],
@@ -33,7 +34,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
     const [matrix, setMatrix] = useState<ComboMatrix>();
 
     useEffect(() => {
-        document.title = 'Mix';
+        document.title = tr('Mix');
     }, []);
     useEffect(() => {
         loadCombos()
@@ -75,23 +76,23 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
 
     const sourceWords = (s?: string) =>
         s === 'PsychonautWiki'
-            ? 'Documented by PsychonautWiki'
+            ? tr('Documented by PsychonautWiki')
             : s === 'TripSit'
-              ? 'Documented by TripSit'
+              ? tr('Documented by TripSit')
               : s === 'Guess'
-                ? 'Not documented for this exact pair. A cautious guess from what kind of drug each one is'
-                : 'No source covers this pair';
+                ? tr('Not documented for this exact pair. A cautious guess from what kind of drug each one is')
+                : tr('No source covers this pair');
 
     return (
         <>
-            <PageHeader title={'Mix'} subtitle={'Is it safe to take these together?'} backTo={fromLink} />
+            <PageHeader title={tr('Mix')} subtitle={tr('Is it safe to take these together?')} backTo={fromLink} />
             <div className={`${PAGE_COLUMN} pb-8`}>
                 <p className="text-sm text-[var(--text-muted)] mb-4">
-                    {'Add everything you plan to take, including alcohol and any medication.'}
+                    {tr('Add everything you plan to take, including alcohol and any medication.')}
                 </p>
 
                 {chosen.length > 0 && (
-                    <ul className="flex flex-wrap gap-2 mb-4" aria-label={'On the table'}>
+                    <ul className="flex flex-wrap gap-2 mb-4" aria-label={tr('On the table')}>
                         {chosen.map(e => (
                             <li
                                 key={e.id}
@@ -107,7 +108,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                 <button
                                     type="button"
                                     className="btn-ghost !size-8 !p-0"
-                                    aria-label={`Take ${e.name} off`}
+                                    aria-label={tr('Take {0} off', { 0: e.name })}
                                     onClick={() => remove(e.id)}
                                 >
                                     <Close size={18} />
@@ -121,8 +122,8 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                     ref={input}
                     value={q}
                     onChange={setQ}
-                    label={'Add a substance'}
-                    placeholder={chosen.length ? 'Add another' : 'Add the first substance'}
+                    label={tr('Add a substance')}
+                    placeholder={chosen.length ? tr('Add another') : tr('Add the first substance')}
                     listId="mix-results"
                     activeId={hits[active] ? `mix-${hits[active].entry.id}` : undefined}
                     onKeyDown={e => listKeys(e, hits.length, active, setActive, n => hits[n] && add(hits[n].entry))}
@@ -137,14 +138,14 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                     key={h.entry.id}
                                     id={`mix-${h.entry.id}`}
                                     entry={h.entry}
-                                    sub={h.via ? `Also called ${h.via}` : undefined}
+                                    sub={h.via ? tr('Also called {0}', { 0: h.via }) : undefined}
                                     active={i === active}
                                     onPick={add}
                                 />
                             ))
                         ) : (
                             <p className="text-sm text-[var(--text-muted)] py-3">
-                                {`Nothing called “${q.trim()}”.`}
+                                {tr('Nothing called “{0}”.', { 0: q.trim() })}
                             </p>
                         )}
                     </div>
@@ -152,7 +153,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
 
                 {chosen.length === 0 && (
                     <section className="mt-8">
-                        <h2 className="group-heading mb-1">{'Or try one of these'}</h2>
+                        <h2 className="group-heading mb-1">{tr('Or try one of these')}</h2>
                         <div className="settings-section">
                             {EXAMPLES.filter(([a, b]) => byId.has(a) && byId.has(b)).map(([a, b]) => (
                                 <Link
@@ -162,7 +163,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                     className={`w-full min-h-12 flex items-center gap-3 py-3 text-sm text-[var(--text)] no-underline ${rowBleed}`}
                                 >
                                     <span className="flex-1">
-                                        {byId.get(a)!.name} {'and'} {byId.get(b)!.name}
+                                        {byId.get(a)!.name} {tr('and')} {byId.get(b)!.name}
                                     </span>
                                     <ChevronRight size={18} className="text-[var(--text-muted)] opacity-70" />
                                 </Link>
@@ -173,20 +174,20 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
 
                 {chosen.length === 1 && (
                     <p className="text-sm text-[var(--text-muted)] mt-5">
-                        {'Add one more to see how they mix.'}
+                        {tr('Add one more to see how they mix.')}
                     </p>
                 )}
 
                 {chosen.length >= 2 && !ready && (
-                    <p className="text-sm text-[var(--text-muted)] mt-8">{'Checking…'}</p>
+                    <p className="text-sm text-[var(--text-muted)] mt-8">{tr('Checking…')}</p>
                 )}
 
                 {chosen.length >= 2 && ready && top && (
                     <section className="verdict m-appear" aria-live="polite">
                         <p className="group-heading">
                             {pairs.length === 1
-                                ? 'Together'
-                                : `The most serious of ${pairs.length} pairs`}
+                                ? tr('Together')
+                                : tr('The most serious of {0} pairs', { 0: pairs.length })}
                         </p>
                         {VERDICT[top.verdict].tone === 'positive' && (
                             <Clover
@@ -197,10 +198,10 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                             />
                         )}
                         <p className={`verdict-word tone-${VERDICT[top.verdict].tone}`}>
-                            {VERDICT[top.verdict].label}
+                            {tr(VERDICT[top.verdict].label)}
                         </p>
                         <p className="verdict-says">
-                            {VERDICT[top.verdict].meaning}
+                            {tr(VERDICT[top.verdict].meaning)}
                         </p>
 
                         <div className="settings-section mt-7">
@@ -211,18 +212,18 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                     <div className="py-3.5" key={p.a.id + p.b.id}>
                                         <div className="flex items-baseline justify-between gap-3">
                                             <span className="text-sm font-medium">
-                                                {p.a.name} {'with'} {p.b.name}
+                                                {p.a.name} {tr('with')} {p.b.name}
                                             </span>
                                             <span
                                                 className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold tone-${v.tone}`}
                                             >
                                                 {v.tone === 'positive' && <Clover size={18} />}
-                                                {v.label}
+                                                {tr(v.label)}
                                             </span>
                                         </div>
                                         {note && <p className="text-sm mt-1"><Linked text={note} /></p>}
                                         {pairs.length > 1 && !note && (
-                                            <p className="text-sm mt-1">{v.meaning}</p>
+                                            <p className="text-sm mt-1">{tr(v.meaning)}</p>
                                         )}
                                         <p className="text-xs text-[var(--text-muted)] mt-1">{sourceWords(p.source)}</p>
                                     </div>
@@ -231,7 +232,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                         </div>
 
                         <p className="footnote">
-                            {'Mixing advice from TripSit and PsychonautWiki. Information, not medical advice. If someone is unresponsive or breathing slowly, call emergency services.'}
+                            {tr('Mixing advice from TripSit and PsychonautWiki. Information, not medical advice. If someone is unresponsive or breathing slowly, call emergency services.')}
                         </p>
                     </section>
                 )}

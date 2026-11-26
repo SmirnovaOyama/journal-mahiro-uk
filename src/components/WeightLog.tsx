@@ -5,6 +5,7 @@ import Doodle from './Doodle';
 import Segmented from './Segmented';
 import { useScrub } from './scrub';
 import { ChevronDown, Close, Plus } from './icons';
+import { dateLocale, tr } from '../lib/i18n';
 
 /* Body weight, beside the log and the stats: a line of every weighing, the
    latest and how far it has moved, a form to log one, and each one listed,
@@ -28,8 +29,8 @@ function toLocalInput(t: number) {
     const p = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
-const dateOf = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-const clockOf = (t: number) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const dateOf = (t: number) => new Date(t).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
+const clockOf = (t: number) => new Date(t).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit', hour12: false });
 
 function WeightForm({
     unit,
@@ -63,7 +64,7 @@ function WeightForm({
         >
             <div>
                 <label className={label} htmlFor="weight-amount">
-                    {'Weight'}
+                    {tr('Weight')}
                 </label>
                 <div className="flex items-center gap-3">
                     <input
@@ -82,7 +83,7 @@ function WeightForm({
             </div>
             <div>
                 <label className={label} htmlFor="weight-time">
-                    {'Weighed at'}
+                    {tr('Weighed at')}
                 </label>
                 <div className="flex items-end gap-3">
                     <input
@@ -100,28 +101,28 @@ function WeightForm({
                         className="inline-flex h-8 items-center px-2.5 text-sm font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
                         onClick={() => setTime(Date.now())}
                     >
-                        {'Now'}
+                        {tr('Now')}
                     </button>
                 </div>
             </div>
             <div>
                 <label className={label} htmlFor="weight-note">
-                    {'Note'}
+                    {tr('Note')}
                 </label>
                 <input
                     id="weight-note"
                     className={`input-base w-full ${note ? 'is-inked' : ''}`}
-                    placeholder={'Morning, after a run…'}
+                    placeholder={tr('Morning, after a run…')}
                     value={note}
                     onChange={e => setNote(e.target.value)}
                 />
             </div>
             <div className="flex items-center gap-3 pt-1">
                 <button type="submit" className="btn-primary" disabled={!ok}>
-                    {editing ? 'Save' : 'Log it'}
+                    {editing ? tr('Save') : tr('Log it')}
                 </button>
                 <button type="button" className="btn-secondary" onClick={onCancel}>
-                    {'Cancel'}
+                    {tr('Cancel')}
                 </button>
                 {onDelete && (
                     <button
@@ -130,7 +131,7 @@ function WeightForm({
                         onClick={onDelete}
                     >
                         <Close size={15} />
-                        {'Delete'}
+                        {tr('Delete')}
                     </button>
                 )}
             </div>
@@ -191,7 +192,7 @@ function WeightChart({ weights, unit }: { weights: WeightEntry[]; unit: WeightUn
 
     return (
         <div ref={box} className="relative -mx-4 md:-mx-6 cursor-crosshair" style={{ touchAction: 'pan-y' }} {...scrub.handlers}>
-            <svg width={W} height={H} className="block tabular-nums select-none" role="img" aria-label={'Body weight over time; press and slide along it to read each weighing'}>
+            <svg width={W} height={H} className="block tabular-nums select-none" role="img" aria-label={tr('Body weight over time; press and slide along it to read each weighing')}>
                 {grid.map(g => (
                     <g key={g}>
                         <line x1={LEFT} x2={LEFT + plotW} y1={y(g)} y2={y(g)} className="tl-grid" />
@@ -293,10 +294,10 @@ export function WeightLog() {
                     onClick={() => setAdding(a => !a)}
                 >
                     {!adding && <Plus size={16} />}
-                    {adding ? 'Close' : 'Log weight'}
+                    {adding ? tr('Close') : tr('Log weight')}
                 </button>
                 <Segmented
-                    aria-label={'Unit'}
+                    aria-label={tr('Unit')}
                     options={[
                         { id: 'kg', label: 'kg' },
                         { id: 'lb', label: 'lb' },
@@ -330,9 +331,9 @@ export function WeightLog() {
                 adding ? null : (
                     <div className="flex flex-col items-center text-center pt-6 pb-10">
                         <Doodle name="notebook" size={4.5} />
-                        <p className={`mt-4 text-sm font-medium ${on}`}>{'No weight logged yet'}</p>
+                        <p className={`mt-4 text-sm font-medium ${on}`}>{tr('No weight logged yet')}</p>
                         <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                            {'Log your weight now and then to see it over time. It’s kept with the journal: on this device, and in your account if you sync. The newest one is also your body weight in Settings.'}
+                            {tr('Log your weight now and then to see it over time. It’s kept with the journal: on this device, and in your account if you sync. The newest one is also your body weight in Settings.')}
                         </p>
                     </div>
                 )
@@ -344,17 +345,17 @@ export function WeightLog() {
                             <span className={`text-sm ${muted}`}>{unit}</span>
                             {change !== null && (
                                 <span className={`ms-auto text-sm tabular-nums ${muted}`}>
-                                    {`${change > 0 ? '+' : change < 0 ? '−' : '±'}${Math.abs(Math.round(change * 10) / 10).toFixed(1)} ${unit} in 30 days`}
+                                    {tr('{0}{1} {2} in 30 days', { 0: change > 0 ? '+' : change < 0 ? '−' : '±', 1: Math.abs(Math.round(change * 10) / 10).toFixed(1), 2: unit })}
                                 </span>
                             )}
                         </div>
-                        <p className={`text-xs ${muted} mt-0.5`}>{`Last weighed ${dateOf(latest.time)}`}</p>
+                        <p className={`text-xs ${muted} mt-0.5`}>{tr('Last weighed {0}', { 0: dateOf(latest.time) })}</p>
                         <div className="mt-4">
                             <WeightChart weights={weights} unit={unit} />
                         </div>
                     </section>
                     <section className="mb-8">
-                        <h2 className="group-heading mb-1">{weights.length === 1 ? '1 weighing' : `${weights.length} weighings`}</h2>
+                        <h2 className="group-heading mb-1">{weights.length === 1 ? tr('1 weighing') : tr('{0} weighings', { 0: weights.length })}</h2>
                         <div className="settings-section">
                             {newestFirst.map(w => (
                                 <WeightRow key={w.id} w={w} unit={unit} open={openRow === w.id} onToggle={() => setOpenRow(o => (o === w.id ? null : w.id))} />

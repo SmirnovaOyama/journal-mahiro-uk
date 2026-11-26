@@ -3,6 +3,7 @@ import { ApiError } from '../lib/account';
 import { newPasswordLevel, type NewPasswordLevel } from '../lib/password';
 import { Account as PersonIcon, CheckCircle, Copy, Download } from './icons';
 import { WaitMark } from './Waiting';
+import { dateLocale, tr } from '../lib/i18n';
 
 /* The pieces the account's pages are made of (pages/Account.tsx,
    pages/TwoFactor.tsx, pages/Admin.tsx): fields, the strength line under a
@@ -16,17 +17,17 @@ export const inputCls = 'input-base text-sm w-full';
 export const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 export const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
-export const message = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : 'Something went wrong. Try again.');
+export const message = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : tr('Something went wrong. Try again.'));
 
 /** "just now", "5 min ago", "3 h ago", "on 4 Nov". */
 export function ago(t: number, now = Date.now()): string {
     const s = Math.max(0, (now - t) / 1000);
-    if (s < 45) return 'just now';
-    if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
-    if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+    if (s < 45) return tr('just now');
+    if (s < 3600) return tr('{0} min ago', { 0: Math.max(1, Math.round(s / 60)) });
+    if (s < 86400) return tr('{0} h ago', { 0: Math.round(s / 3600) });
     const d = new Date(t);
     const sameYear = d.getFullYear() === new Date(now).getFullYear();
-    return `on ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) })}`;
+    return tr('on {0}', { 0: d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) }) });
 }
 
 /** Re-renders every half minute, so "5 min ago" moves on. */
@@ -97,7 +98,7 @@ export function CodeField({ value, onChange, autoFocus = true }: { value: string
     return (
         <div className="space-y-1.5">
             <Field
-                label={backup ? 'Backup code' : 'Code from your authenticator app'}
+                label={backup ? tr('Backup code') : tr('Code from your authenticator app')}
                 value={value}
                 onChange={v => onChange(backup ? v : v.replace(/\D/g, '').slice(0, 6))}
                 autoComplete="one-time-code"
@@ -114,7 +115,7 @@ export function CodeField({ value, onChange, autoFocus = true }: { value: string
                     onChange('');
                 }}
             >
-                {backup ? 'Use the app’s code instead' : 'Use a backup code instead'}
+                {backup ? tr('Use the app’s code instead') : tr('Use a backup code instead')}
             </button>
         </div>
     );
@@ -139,7 +140,7 @@ export function StrengthHint({ id, password }: { id: string; password: string })
     const level = newPasswordLevel(password);
     return (
         <p id={id} className={`text-xs ${level ? LEVEL_TONE[level] : muted}`} aria-live="polite">
-            {level ? LEVEL_TEXT[level] : password ? 'At least 8 characters.' : ''}
+            {level ? tr(LEVEL_TEXT[level]) : password ? tr('At least 8 characters.') : ''}
         </p>
     );
 }
@@ -147,8 +148,8 @@ export function StrengthHint({ id, password }: { id: string; password: string })
 /** Why a new password can't be used, or null. */
 export function newPasswordProblem(password: string): string | null {
     const level = newPasswordLevel(password);
-    if (!level) return 'A password is at least 8 characters.';
-    if (level === 'tooLong' || level === 'weak') return LEVEL_TEXT[level];
+    if (!level) return tr('A password is at least 8 characters.');
+    if (level === 'tooLong' || level === 'weak') return tr(LEVEL_TEXT[level]);
     return null;
 }
 
@@ -228,11 +229,11 @@ function CopySave({ text, file }: { text: string; file: () => [string, string] }
                 }}
             >
                 {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? tr('Copied') : tr('Copy')}
             </button>
             <button type="button" className="btn-secondary btn-sm flex-1" onClick={() => saveText(...file())}>
                 <Download size={16} />
-                {'Save as a file'}
+                {tr('Save as a file')}
             </button>
         </div>
     );
@@ -249,7 +250,7 @@ function KeptIt({ onDone, what }: { onDone: () => void; what: string }) {
                 <span>{what}</span>
             </label>
             <button type="button" className="btn-primary w-full" disabled={!kept} onClick={onDone}>
-                {'Done'}
+                {tr('Done')}
             </button>
         </>
     );
@@ -260,15 +261,15 @@ export function RecoveryKeyShow({ code, username, fresh, onDone }: { code: strin
     return (
         <div className="m-appear space-y-4">
             <div>
-                <h2 className={`text-base font-semibold ${on}`}>{fresh ? 'Your new recovery key' : 'Your recovery key'}</h2>
+                <h2 className={`text-base font-semibold ${on}`}>{fresh ? tr('Your new recovery key') : tr('Your recovery key')}</h2>
                 <p className={`mt-1 text-sm leading-relaxed ${muted}`}>
-                    {'If you forget your password, this sets a new one. Keep it somewhere safe, away from this device: it’s shown only now.'}
-                    {fresh && ' The one before it no longer works.'}
+                    {tr('If you forget your password, this sets a new one. Keep it somewhere safe, away from this device: it’s shown only now.')}
+                    {fresh && tr(' The one before it no longer works.')}
                 </p>
             </div>
             <p
                 className="grid grid-cols-4 gap-x-3 gap-y-2 rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-4 py-4 text-center font-mono text-[1.0625rem] font-medium tracking-[0.08em] text-[var(--text)] select-all max-[360px]:grid-cols-2"
-                aria-label={`Recovery key: ${code.split('-').join(' ')}`}
+                aria-label={tr('Recovery key: {0}', { 0: code.split('-').join(' ') })}
             >
                 {code.split('-').map((g, i) => (
                     <span key={i}>{g}</span>
@@ -279,20 +280,20 @@ export function RecoveryKeyShow({ code, username, fresh, onDone }: { code: strin
                 file={() => [
                     `oyama-journal-recovery-key-${username}.txt`,
                     [
-                        'Oyama Journal recovery key',
+                        tr('Oyama Journal recovery key'),
                         '',
-                        `Username: ${username}`,
-                        `Recovery key: ${code}`,
+                        tr('Username: {0}', { 0: username }),
+                        tr('Recovery key: {0}', { 0: code }),
                         '',
-                        'If you forget your password, this sets a new one at journal.mahiro.uk, in',
-                        'Settings, Account, Forgot your password. Keep it somewhere safe and private.',
-                        'Without your password or this key, nobody can open your journal, not even',
-                        'the server.',
+                        tr('If you forget your password, this sets a new one at journal.mahiro.uk, in'),
+                        tr('Settings, Account, Forgot your password. Keep it somewhere safe and private.'),
+                        tr('Without your password or this key, nobody can open your journal, not even'),
+                        tr('the server.'),
                         '',
                     ].join('\n'),
                 ]}
             />
-            <KeptIt onDone={onDone} what={'I’ve kept it somewhere safe'} />
+            <KeptIt onDone={onDone} what={tr('I’ve kept it somewhere safe')} />
         </div>
     );
 }
@@ -302,9 +303,9 @@ export function BackupCodesShow({ codes, username, onDone }: { codes: string[]; 
     return (
         <div className="m-appear space-y-4">
             <div>
-                <h2 className={`text-base font-semibold ${on}`}>{'Your backup codes'}</h2>
+                <h2 className={`text-base font-semibold ${on}`}>{tr('Your backup codes')}</h2>
                 <p className={`mt-1 text-sm leading-relaxed ${muted}`}>
-                    {'If your phone isn’t to hand, each of these signs you in once in place of a code. Keep them somewhere safe: they’re shown only now.'}
+                    {tr('If your phone isn’t to hand, each of these signs you in once in place of a code. Keep them somewhere safe: they’re shown only now.')}
                 </p>
             </div>
             <ol className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-5 py-4 font-mono text-[0.9375rem] font-medium tracking-[0.06em] text-[var(--text)] select-all">
@@ -316,10 +317,10 @@ export function BackupCodesShow({ codes, username, onDone }: { codes: string[]; 
                 text={codes.join('\n')}
                 file={() => [
                     `oyama-journal-backup-codes-${username}.txt`,
-                    ['Oyama Journal backup codes', '', `Username: ${username}`, '', ...codes, '', 'Each one signs you in once, in place of a code from your authenticator app.', ''].join('\n'),
+                    [tr('Oyama Journal backup codes'), '', tr('Username: {0}', { 0: username }), '', ...codes, '', tr('Each one signs you in once, in place of a code from your authenticator app.'), ''].join('\n'),
                 ]}
             />
-            <KeptIt onDone={onDone} what={'I’ve kept them somewhere safe'} />
+            <KeptIt onDone={onDone} what={tr('I’ve kept them somewhere safe')} />
         </div>
     );
 }

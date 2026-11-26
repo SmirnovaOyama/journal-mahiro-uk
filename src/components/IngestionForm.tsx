@@ -16,6 +16,7 @@ import { isCareSearch } from '../lib/care';
 import { WaitMark } from './Waiting';
 import Switch from './Switch';
 import { Alert, Close } from './icons';
+import { roaName, tr } from '../lib/i18n';
 
 /* Logging one dose: what, how, how much, when. Laid out as hrt.mahiro.uk's
    dose form is, labelled lines one under another, and as it's filled in it
@@ -133,7 +134,7 @@ export function IngestionForm({
     const mass = unit.split('/')[0].trim();
     const perKgLine =
         weight.kg && dose != null && doseOk && dose > 0 && /^(g|mg|μg|µg)$/.test(mass) && !isPerKg(unit)
-            ? `${fmtAmount(dose / weight.kg)} ${unit}/kg at ${formatWeight(weight.kg, weight.unit)}`
+            ? tr('{0} {1}/kg at {2}', { 0: fmtAmount(dose / weight.kg), 1: unit, 2: formatWeight(weight.kg, weight.unit) })
             : null;
     const band = row && inRowUnit != null ? bandOf(row, inRowUnit) : null;
 
@@ -174,9 +175,9 @@ export function IngestionForm({
                 tone: 'warning',
                 text: still
                     ? c!.exact
-                        ? `You logged ${entry.name}${amount} ${formatMinutes(ago)} ago, and it usually lasts ${formatMinutes(c!.course.over)}. A redose adds to what’s still working.`
-                        : `You logged ${entry.name}${amount} ${formatMinutes(ago)} ago. How long it lasts taken that way isn’t documented; other ways, up to ${formatMinutes(c!.course.over)}. A redose may add to what’s still working.`
-                    : `You logged ${entry.name}${amount} ${formatMinutes(ago)} ago.`,
+                        ? tr('You logged {0}{1} {2} ago, and it usually lasts {3}. A redose adds to what’s still working.', { 0: entry.name, 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
+                        : tr('You logged {0}{1} {2} ago. How long it lasts taken that way isn’t documented; other ways, up to {3}. A redose may add to what’s still working.', { 0: entry.name, 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
+                    : tr('You logged {0}{1} {2} ago.', { 0: entry.name, 1: amount, 2: formatMinutes(ago) }),
             });
         }
         // Anything else from the last day it mixes badly with.
@@ -196,7 +197,7 @@ export function IngestionForm({
                 out.push({
                     key: p.b.id,
                     tone: v.tone === 'danger' ? 'danger' : 'warning',
-                    text: `${v.label} with ${p.b.name}, logged in the last day. ${v.meaning}`,
+                    text: tr('{0} with {1}, logged in the last day. {2}', { 0: tr(v.label), 1: p.b.name, 2: tr(v.meaning) }),
                 });
             });
         return out;
@@ -247,13 +248,13 @@ export function IngestionForm({
         >
             {/* What */}
             <div>
-                <span className={label}>{'Substance'}</span>
+                <span className={label}>{tr('Substance')}</span>
                 {name ? (
                     <div className="flex items-center gap-3 min-h-11">
                         {entry && <Molecule id={entry.id} form={entry.form} size="sm" />}
                         <span className="flex-1 min-w-0">
                             <span className="block text-sm font-medium text-[var(--text)]">{name}</span>
-                            {!entry && <span className="block text-xs text-[var(--text-muted)]">{'Not in the catalogue'}</span>}
+                            {!entry && <span className="block text-xs text-[var(--text-muted)]">{tr('Not in the catalogue')}</span>}
                         </span>
                         {!editing && (
                             <button
@@ -267,7 +268,7 @@ export function IngestionForm({
                                     setTimeout(() => searchRef.current?.focus(), 0);
                                 }}
                             >
-                                {'Change'}
+                                {tr('Change')}
                             </button>
                         )}
                     </div>
@@ -277,8 +278,8 @@ export function IngestionForm({
                             ref={searchRef}
                             value={q}
                             onChange={setQ}
-                            label={'Find the substance'}
-                            placeholder={'Name or street name'}
+                            label={tr('Find the substance')}
+                            placeholder={tr('Name or street name')}
                             autoFocus
                         />
                         {!q.trim() && lately.length > 0 && (
@@ -330,7 +331,7 @@ export function IngestionForm({
                                         setUnit('mg');
                                     }}
                                 >
-                                    {`Log “${q.trim()}” as written`}
+                                    {tr('Log “{0}” as written', { 0: q.trim() })}
                                 </button>
                             </div>
                         )}
@@ -342,7 +343,7 @@ export function IngestionForm({
                 <>
                     {/* How */}
                     <div>
-                        <span className={label}>{'Route'}</span>
+                        <span className={label}>{tr('Route')}</span>
                         {/* A row of chips tall from the start, so the lines
                             under it stay where they are when the routes come.
                             Until then: the route already known (an entry being
@@ -352,12 +353,12 @@ export function IngestionForm({
                             {routes ? (
                                 routes.map(r => (
                                     <button type="button" key={r} className={chip(route === r)} aria-pressed={route === r} onClick={() => setRoute(r)}>
-                                        {r}
+                                        {roaName(r)}
                                     </button>
                                 ))
                             ) : route ? (
                                 <button type="button" className={chip(true)} aria-pressed>
-                                    {route}
+                                    {roaName(route)}
                                 </button>
                             ) : (
                                 <WaitMark className="text-[var(--text-muted)]" />
@@ -368,7 +369,7 @@ export function IngestionForm({
                     {/* How much */}
                     <div>
                         <label className={label} htmlFor="dose-amount">
-                            {'Amount'}
+                            {tr('Amount')}
                         </label>
                         {/* The unit's options unfold under the whole line, not under its own 6rem. */}
                         <div className="flex flex-wrap items-end gap-x-3">
@@ -377,7 +378,7 @@ export function IngestionForm({
                                 className={`input-base min-w-0 flex-1 text-lg tabular-nums ${doseText ? 'is-inked' : ''}`}
                                 inputMode="decimal"
                                 autoComplete="off"
-                                placeholder={'Leave empty if unknown'}
+                                placeholder={tr('Leave empty if unknown')}
                                 value={doseText}
                                 onChange={e => setDoseText(e.target.value)}
                                 aria-invalid={!doseOk}
@@ -387,7 +388,7 @@ export function IngestionForm({
                                 options={[...new Set([row?.unit, unit, ...UNITS].filter(Boolean) as string[])].map(u => ({ id: u, label: u }))}
                                 value={unit}
                                 onChange={setUnit}
-                                label={'Unit'}
+                                label={tr('Unit')}
                             />
                         </div>
                         {row?.segments && inRowUnit != null && (
@@ -396,30 +397,30 @@ export function IngestionForm({
                                     value={Math.max(inRowUnit, row.domain?.[0] ?? 0.001)}
                                     band={row.segments.common ? { low: row.segments.common[0], high: row.segments.common[1] } : { low: inRowUnit, high: inRowUnit }}
                                     domain={[Math.max(row.domain?.[0] ?? (row.segments.light?.[0] ?? 1) / 2, 1e-6), row.domain?.[1] ?? (row.segments.heavy?.[0] ?? row.segments.common?.[1] ?? inRowUnit * 2) * 1.6]}
-                                    label={band ? BAND_NAMES[band] : undefined}
+                                    label={band ? tr(BAND_NAMES[band]) : undefined}
                                     tone={band ? BAND_TONE[band] : ''}
                                 />
                             </div>
                         )}
                         {perKgLine && <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">{perKgLine}</p>}
                         {row && isPerKg(row.unit) && !weight.kg && (
-                            <p className="mt-2 text-xs text-[var(--text-muted)]">{'Its doses are given per kilogram: set your body weight in Settings to see where this amount falls.'}</p>
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">{tr('Its doses are given per kilogram: set your body weight in Settings to see where this amount falls.')}</p>
                         )}
                         {row?.absorbed && (
                             <p className="mt-2 text-xs text-[var(--text-muted)]">
-                                {`${absorbedText(row.absorbed).replace(/^./, c => c.toUpperCase())} of a dose taken this way reaches the blood.`}
+                                {tr('{0} of a dose taken this way reaches the blood.', { 0: absorbedText(row.absorbed).replace(/^./, c => c.toUpperCase()) })}
                             </p>
                         )}
                         <label className="mt-3 flex items-center justify-between gap-3 text-sm text-[var(--text)]">
-                            <span>{'It’s a guess'}</span>
-                            <Switch checked={estimate} onChange={setEstimate} label={'The amount is a guess'} />
+                            <span>{tr('It’s a guess')}</span>
+                            <Switch checked={estimate} onChange={setEstimate} label={tr('The amount is a guess')} />
                         </label>
                     </div>
 
                     {/* When */}
                     <div>
                         <label className={label} htmlFor="dose-time">
-                            {'Taken at'}
+                            {tr('Taken at')}
                         </label>
                         <div className="flex items-end gap-3">
                             <input
@@ -437,20 +438,20 @@ export function IngestionForm({
                                 className="inline-flex h-8 items-center px-2.5 text-sm font-medium rounded-full text-[var(--accent-ink)] hover:bg-[var(--accent-subtle)]"
                                 onClick={() => setTime(Date.now())}
                             >
-                                {'Now'}
+                                {tr('Now')}
                             </button>
                         </div>
                     </div>
 
                     <div>
                         <label className={label} htmlFor="dose-note">
-                            {'Note'}
+                            {tr('Note')}
                         </label>
                         <textarea
                             id="dose-note"
                             rows={2}
                             className={`input-base w-full resize-none ${note ? 'is-inked' : ''}`}
-                            placeholder={'Where you got it, how it felt…'}
+                            placeholder={tr('Where you got it, how it felt…')}
                             value={note}
                             onChange={e => setNote(e.target.value)}
                         />
@@ -474,15 +475,15 @@ export function IngestionForm({
 
             <div className="flex items-center gap-3 pt-1">
                 <button type="submit" className="btn-primary" disabled={!canSave}>
-                    {editing ? 'Save' : 'Log it'}
+                    {editing ? tr('Save') : tr('Log it')}
                 </button>
                 <button type="button" className="btn-secondary" onClick={onCancel}>
-                    {'Cancel'}
+                    {tr('Cancel')}
                 </button>
                 {onDelete && (
                     <button type="button" className="ms-auto inline-flex h-9 items-center gap-1 px-3 text-sm font-medium rounded-full text-[var(--danger)] hover:bg-[var(--surface-hover)]" onClick={onDelete}>
                         <Close size={15} />
-                        {'Delete'}
+                        {tr('Delete')}
                     </button>
                 )}
             </div>

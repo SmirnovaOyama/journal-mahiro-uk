@@ -4,6 +4,7 @@ import { KG_PER_LB, WEIGHT_KG_MAX, WEIGHT_KG_MIN, useWeight } from '../lib/store
 import { useAccount } from '../lib/account';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Segmented from '../components/Segmented';
+import { tr } from '../lib/i18n';
 
 /* Body weight, laid out as hrt.mahiro.uk's (pages/WeightSettings.tsx there):
    one big number, its unit beside it, the range under it, and Save. It reads
@@ -43,7 +44,7 @@ export function WeightPage() {
     const divider = 'border-b-(length:--hairline) border-[var(--border)]';
     return (
         <div className="relative md:pb-32">
-            <PageHeader backTo title={'Body weight'} />
+            <PageHeader backTo title={tr('Body weight')} />
             <form onSubmit={submit} noValidate className={`${PAGE_COLUMN} mt-4`}>
                 <div className={`flex items-center justify-between gap-4 py-5 ${divider}`}>
                     <div>
@@ -58,7 +59,7 @@ export function WeightPage() {
                                     const v = Number(e.target.value.replace(',', '.'));
                                     setExact(e.target.value.trim() && Number.isFinite(v) ? fromUnit(v, unit) : null);
                                 }}
-                                aria-label={'Body weight'}
+                                aria-label={tr('Body weight')}
                                 aria-invalid={showError}
                                 aria-describedby="weight-help"
                                 className="input-base w-28 text-center font-light tabular-nums text-[var(--text)] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -69,7 +70,7 @@ export function WeightPage() {
                             <span className="pb-1 text-sm font-medium text-[var(--text-muted)]">{unit}</span>
                         </div>
                         <p id="weight-help" aria-live="polite" className={`mt-2 text-xs ${showError ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`}>
-                            {showError ? `A body weight is between ${range}.` : range}
+                            {showError ? tr('A body weight is between {0}.', { 0: range }) : range}
                         </p>
                     </div>
                     <Segmented
@@ -84,15 +85,15 @@ export function WeightPage() {
                             if (exact != null) setText(shown(exact, next));
                             setUnit(next);
                         }}
-                        aria-label={'Unit'}
+                        aria-label={tr('Unit')}
                     />
                 </div>
                 <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
-                    {'It reads a dose per kilogram, turns a dose given per kilogram into an amount, and estimates blood alcohol. '}
-                    {account ? 'Kept on this device, and in your account, encrypted.' : 'Kept on this device only.'}
+                    {tr('It reads a dose per kilogram, turns a dose given per kilogram into an amount, and estimates blood alcohol. ')}
+                    {account ? tr('Kept on this device, and in your account, encrypted.') : tr('Kept on this device only.')}
                 </p>
                 <button type="submit" className="btn-primary mt-6 w-full">
-                    {'Save'}
+                    {tr('Save')}
                 </button>
                 {w.kg != null && (
                     <button
@@ -103,7 +104,7 @@ export function WeightPage() {
                             back();
                         }}
                     >
-                        {'Forget my weight'}
+                        {tr('Forget my weight')}
                     </button>
                 )}
             </form>

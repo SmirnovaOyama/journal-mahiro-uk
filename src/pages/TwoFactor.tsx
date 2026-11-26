@@ -6,6 +6,7 @@ import { BackupCodesShow, CodeField, ErrorLine, Field, Submit, message, muted, o
 import Doodle from '../components/Doodle';
 import { CheckCircle, Copy, External, Shield } from '../components/icons';
 import { Waiting } from '../components/Waiting';
+import { tr } from '../lib/i18n';
 
 /* Two-step sign-in, as hrt.mahiro.uk has it (pages/TwoFactor.tsx there): a
    code from an authenticator app, as well as the password, to sign in on a
@@ -17,10 +18,10 @@ type Step = 'intro' | 'scan' | 'confirm' | 'codes';
 
 function Steps({ step }: { step: Exclude<Step, 'intro'> }) {
     const order: Exclude<Step, 'intro'>[] = ['scan', 'confirm', 'codes'];
-    const names = { scan: 'Scan', confirm: 'Confirm', codes: 'Keep the codes' } as const;
+    const names = { scan: tr('Scan'), confirm: tr('Confirm'), codes: tr('Keep the codes') } as const;
     const at = order.indexOf(step);
     return (
-        <ol className="mb-6 flex items-center gap-2 text-xs" aria-label={'Steps'}>
+        <ol className="mb-6 flex items-center gap-2 text-xs" aria-label={tr('Steps')}>
             {order.map((s, i) => (
                 <li key={s} className="flex items-center gap-2" aria-current={s === step ? 'step' : undefined}>
                     <span
@@ -99,19 +100,19 @@ export function TwoFactorPage() {
                         <Shield size={20} />
                     </span>
                     <div>
-                        <p className={`text-sm font-semibold ${on}`}>{'Two-step sign-in is on'}</p>
+                        <p className={`text-sm font-semibold ${on}`}>{tr('Two-step sign-in is on')}</p>
                         <p className={`mt-0.5 text-xs leading-relaxed ${muted}`}>
-                            {`Signing in on a new device asks for a code from your app. ${tf.backupCodes} backup ${tf.backupCodes === 1 ? 'code is' : 'codes are'} left.`}
+                            {tr('Signing in on a new device asks for a code from your app. {0} backup {1} left.', { 0: tf.backupCodes, 1: tf.backupCodes === 1 ? 'code is' : 'codes are' })}
                         </p>
                     </div>
                 </div>
-                {tf.backupCodes <= 3 && <p className="callout">{'You’re running low on backup codes. Make new ones while your phone is to hand.'}</p>}
+                {tf.backupCodes <= 3 && <p className="callout">{tr('You’re running low on backup codes. Make new ones while your phone is to hand.')}</p>}
                 <div className="flex flex-wrap gap-2">
                     <button type="button" className="btn-secondary btn-sm" aria-expanded={acting === 'renew'} onClick={() => setActing(a => (a === 'renew' ? null : 'renew'))}>
-                        {'New backup codes'}
+                        {tr('New backup codes')}
                     </button>
                     <button type="button" className="btn-danger btn-sm" aria-expanded={acting === 'off'} onClick={() => setActing(a => (a === 'off' ? null : 'off'))}>
-                        {'Turn it off'}
+                        {tr('Turn it off')}
                     </button>
                 </div>
                 {acting && (
@@ -131,14 +132,14 @@ export function TwoFactorPage() {
                     >
                         <p className="text-sm leading-relaxed">
                             {acting === 'renew'
-                                ? 'Ten new backup codes, and the ones you have now stop working.'
-                                : 'Signing in will ask for your password only. Your backup codes stop working.'}
+                                ? tr('Ten new backup codes, and the ones you have now stop working.')
+                                : tr('Signing in will ask for your password only. Your backup codes stop working.')}
                         </p>
                         <ErrorLine error={error} />
-                        <Field label={'Password'} type="password" value={password} onChange={setPassword} autoComplete="current-password" autoFocus />
+                        <Field label={tr('Password')} type="password" value={password} onChange={setPassword} autoComplete="current-password" autoFocus />
                         <CodeField value={code} onChange={setCode} autoFocus={false} />
-                        <Submit busy={busy} busyLabel={acting === 'renew' ? 'Making them…' : 'Turning it off…'} danger={acting === 'off'} disabled={!password || !code}>
-                            {acting === 'renew' ? 'Make new backup codes' : 'Turn two-step sign-in off'}
+                        <Submit busy={busy} busyLabel={acting === 'renew' ? tr('Making them…') : tr('Turning it off…')} danger={acting === 'off'} disabled={!password || !code}>
+                            {acting === 'renew' ? tr('Make new backup codes') : tr('Turn two-step sign-in off')}
                         </Submit>
                     </form>
                 )}
@@ -149,13 +150,13 @@ export function TwoFactorPage() {
             <div className="space-y-6">
                 <div className="flex flex-col items-center text-center">
                     <Doodle name="lock" size={4} />
-                    <p className={`mt-4 text-base font-semibold ${on}`}>{'A second lock on the door'}</p>
+                    <p className={`mt-4 text-base font-semibold ${on}`}>{tr('A second lock on the door')}</p>
                     <p className={`mt-1.5 text-sm leading-relaxed ${muted}`}>
-                        {'With two-step sign-in, a new device needs a six-digit code from an app on your phone as well as your password. Someone who learns your password still can’t get in.'}
+                        {tr('With two-step sign-in, a new device needs a six-digit code from an app on your phone as well as your password. Someone who learns your password still can’t get in.')}
                     </p>
                 </div>
                 <p className={`text-xs leading-relaxed ${muted}`}>
-                    {'Any authenticator app works: Apple Passwords, Google Authenticator, 1Password, Bitwarden, Aegis, Ente Auth.'}
+                    {tr('Any authenticator app works: Apple Passwords, Google Authenticator, 1Password, Bitwarden, Aegis, Ente Auth.')}
                 </p>
                 <ErrorLine error={error} />
                 <button
@@ -169,7 +170,7 @@ export function TwoFactorPage() {
                         })
                     }
                 >
-                    {busy ? 'Starting…' : 'Set it up'}
+                    {busy ? tr('Starting…') : tr('Set it up')}
                 </button>
             </div>
         );
@@ -178,23 +179,23 @@ export function TwoFactorPage() {
         body = (
             <div className="space-y-5">
                 <Steps step="scan" />
-                <p className="text-sm leading-relaxed">{'Scan this with your authenticator app, or on this phone, open it in the app.'}</p>
+                <p className="text-sm leading-relaxed">{tr('Scan this with your authenticator app, or on this phone, open it in the app.')}</p>
                 {/* Dark on white whatever the theme: some cameras won't read a light-on-dark code. */}
                 <div className="mx-auto w-fit rounded-[var(--radius-md)] bg-white p-3 shadow-[inset_0_0_0_var(--hairline)_var(--border)]">
                     <QRCodeSVG value={setup.uri} size={176} bgColor="#ffffff" fgColor="#1a1714" level="M" marginSize={0} />
                 </div>
                 <a href={setup.uri} className="btn-secondary btn-sm w-full no-underline">
                     <External size={15} />
-                    {'Open in an authenticator app'}
+                    {tr('Open in an authenticator app')}
                 </a>
                 <div className="space-y-1.5">
-                    <p className={`text-xs ${muted}`}>{'Or type in this key:'}</p>
+                    <p className={`text-xs ${muted}`}>{tr('Or type in this key:')}</p>
                     <div className="flex items-center gap-2">
                         <code className="flex-1 select-all rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-3 py-2 font-mono text-sm tracking-wide text-[var(--text)]">{grouped}</code>
                         <button
                             type="button"
                             className="btn-secondary btn-sm"
-                            aria-label={'Copy the key'}
+                            aria-label={tr('Copy the key')}
                             onClick={async () => {
                                 try {
                                     await navigator.clipboard.writeText(setup.secret);
@@ -210,7 +211,7 @@ export function TwoFactorPage() {
                     </div>
                 </div>
                 <button type="button" className="btn-primary w-full" onClick={() => setStep('confirm')}>
-                    {'Next'}
+                    {tr('Next')}
                 </button>
             </div>
         );
@@ -228,10 +229,10 @@ export function TwoFactorPage() {
                 noValidate
             >
                 <Steps step="confirm" />
-                <p className="text-sm leading-relaxed">{'Enter the code your app shows now, and your password, to turn it on.'}</p>
+                <p className="text-sm leading-relaxed">{tr('Enter the code your app shows now, and your password, to turn it on.')}</p>
                 <ErrorLine error={error} />
                 <Field
-                    label={'Code from your authenticator app'}
+                    label={tr('Code from your authenticator app')}
                     value={code}
                     onChange={v => setCode(v.replace(/\D/g, '').slice(0, 6))}
                     autoComplete="one-time-code"
@@ -240,23 +241,23 @@ export function TwoFactorPage() {
                     placeholder="123456"
                     autoFocus
                 />
-                <Field label={'Password'} type="password" value={password} onChange={setPassword} autoComplete="current-password" />
-                <Submit busy={busy} busyLabel={'Turning it on…'} disabled={code.length !== 6 || !password}>
-                    {'Turn it on'}
+                <Field label={tr('Password')} type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+                <Submit busy={busy} busyLabel={tr('Turning it on…')} disabled={code.length !== 6 || !password}>
+                    {tr('Turn it on')}
                 </Submit>
                 <button type="button" className="link-button w-full text-center text-sm" onClick={() => setStep('scan')}>
-                    {'Back to the code to scan'}
+                    {tr('Back to the code to scan')}
                 </button>
             </form>
         );
     }
 
     return (
-        <NeedsAccount title={'Two-step sign-in'}>
+        <NeedsAccount title={tr('Two-step sign-in')}>
             {body}
             {info && !codes && (
                 <p className={`mt-8 text-xs leading-relaxed ${muted}`}>
-                    {'Lost your phone? A backup code signs you in instead, once each. Lost those too? The site’s admin can turn two-step sign-in off for you, once they know it’s you.'}
+                    {tr('Lost your phone? A backup code signs you in instead, once each. Lost those too? The site’s admin can turn two-step sign-in off for you, once they know it’s you.')}
                 </p>
             )}
         </NeedsAccount>

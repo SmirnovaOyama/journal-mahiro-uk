@@ -175,10 +175,12 @@ html.mono {
 
 /* Apple draws SF Pro Text for UI copy and SF Pro Display from 20px up.
    Chinese, Japanese and Korean take the system face for the page language. */
-:lang(zh-TW) {
+:lang(zh-TW),
+:lang(zh-Hant) {
     --font-cjk: "PingFang TC", "PingFang HK", "PingFang SC", "Hiragino Sans";
 }
-:lang(zh-HK) {
+:lang(zh-HK),
+:lang(zh-Hant-HK) {
     --font-cjk: "PingFang HK", "PingFang TC", "PingFang SC", "Hiragino Sans";
 }
 :lang(ja) {

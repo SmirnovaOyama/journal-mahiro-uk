@@ -1,5 +1,6 @@
 import { Link } from './Link';
 import PixelCat from './PixelCat';
+import { tr } from '../lib/i18n';
 
 /* What a search for N55 finds: a few lines under the field on pregabalin
    and what too much of it does. Plain, in English, no window. */
@@ -21,19 +22,19 @@ export function N55Egg() {
             <div className="flex items-center gap-3">
                 <PixelCat pose="donut" size={40} />
                 <h2 id="n55-title" className="text-base font-semibold text-[var(--text)]">
-                    {'What a pregabalin OD does'}
+                    {tr('What a pregabalin OD does')}
                 </h2>
             </div>
             <ul className="n55-list mt-3 text-sm leading-relaxed text-[var(--text)]">
                 {HARMS.map(h => (
-                    <li key={h}>{h}</li>
+                    <li key={h}>{tr(h)}</li>
                 ))}
             </ul>
             <p className="mt-3 text-sm leading-relaxed font-medium text-[var(--text)]">
-                {'If someone can’t be woken, is breathing slowly or is having a seizure, call emergency services now (120, 112, 911 or 999), lay them on their side, and stay with them.'}
+                {tr('If someone can’t be woken, is breathing slowly or is having a seizure, call emergency services now (120, 112, 911 or 999), lay them on their side, and stay with them.')}
             </p>
             <Link to={{ page: 'substance', id: 'pregabalin' }} className="btn-secondary btn-sm no-underline mt-4">
-                {'Read about pregabalin'}
+                {tr('Read about pregabalin')}
             </Link>
         </section>
     );
