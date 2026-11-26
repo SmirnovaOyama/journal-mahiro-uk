@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useElementSize } from '../hooks/useElementSize';
 import type { Course } from '../lib/time';
 import { useScrub, yOnPieces, type Piece } from './scrub';
@@ -18,8 +18,8 @@ import { tr } from '../lib/i18n';
    above them does. The width is measured before the first paint and nothing
    is drawn until it is known: drawn at a guessed width first, the gridlines
    ran off the screen for a frame and the clock times were worked out for the
-   wrong width, then jumped. The curves fade in the first time a session is
-   shown; coming back to it, they are simply there. */
+   wrong width, then jumped. The curves fade in each time the chart appears,
+   at the right width from their first frame. */
 
 export interface ChartDose {
     id: string;
@@ -38,9 +38,6 @@ const BASE = 160;
 const LEFT = 0;
 const RIGHT = 0;
 const MIN = 60_000;
-
-/** Sessions whose chart has been shown this visit, by their first dose. */
-const shown = new Set<string>();
 
 function clock(t: number) {
     const d = new Date(t);
@@ -65,12 +62,6 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     const { width } = useElementSize(box);
     const W = Math.round(width);
     const scrub = useScrub();
-    // Shown before in this visit: no fade. Decided once, on the first render.
-    const firstId = doses.reduce<ChartDose | null>((a, d) => (!a || d.time < a.time ? d : a), null)?.id;
-    const [still] = useState(() => !!firstId && shown.has(firstId));
-    useEffect(() => {
-        if (firstId) shown.add(firstId);
-    }, [firstId]);
     if (!doses.length) return null;
 
     const first = Math.min(...doses.map(d => d.time));
@@ -138,7 +129,7 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     const onRight = cx !== null && cx < W / 2;
 
     return (
-        <div ref={setBox} className={`relative cursor-crosshair ${still ? 'chart-still' : ''}`} style={{ touchAction: 'pan-y', minHeight: H }} {...scrub.handlers}>
+        <div ref={setBox} className="relative cursor-crosshair" style={{ touchAction: 'pan-y', minHeight: H }} {...scrub.handlers}>
             {W > 0 && (
             <svg
                 width={W}
