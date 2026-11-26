@@ -6,6 +6,8 @@ import { Link } from '../components/Link';
 import { Molecule } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { SearchField, listKeys } from '../components/SearchField';
+import { CareNote } from '../components/CareNote';
+import { isCareSearch } from '../lib/care';
 import { rowBleed } from '../components/SettingsListItem';
 import { SubstanceRow } from '../components/SubstanceRow';
 import { ChevronRight, Clover, Close } from '../components/icons';
@@ -125,7 +127,8 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                     onKeyDown={e => listKeys(e, hits.length, active, setActive, n => hits[n] && add(hits[n].entry))}
                     autoFocus={chosen.length < 2 && !('ontouchstart' in window)}
                 />
-                {q.trim() && (
+                {isCareSearch(q) && <CareNote q={q} />}
+                {q.trim() && (hits.length > 0 || !isCareSearch(q)) && (
                     <div className="settings-section mt-1 m-appear" id="mix-results" role="listbox">
                         {hits.length ? (
                             hits.map((h, i) => (
