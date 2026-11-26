@@ -605,10 +605,16 @@ const zh: Record<string, string> = {
     'Mixing advice from TripSit and PsychonautWiki. Information, not medical advice. If someone is unresponsive or breathing slowly, call emergency services.': '混用建議來自 TripSit 與 PsychonautWiki。僅供參考，不是醫療建議。如果有人沒有反應或呼吸緩慢，請撥打急救電話。',
 
     // pages/Onboarding.tsx
-    'Sublingual, in µg': '舌下，單位 µg',
     'Saturday night': '週六晚上',
     'MDMA and Cannabis': 'MDMA 與 Cannabis',
     'Monday': '週一',
+    'Friday': '週五',
+    'Thursday': '週四',
+    'Sunday afternoon': '週日下午',
+    'LSD and Cannabis': 'LSD 與 Cannabis',
+    'Ketamine, taken twice': 'Ketamine，用了兩次',
+    'Mushrooms and a Cannabis edible': 'Mushrooms 與 Cannabis 食品',
+    'Caffeine, twice, and L-Theanine': 'Caffeine 兩次，加上 L-Theanine',
     'No account needed': '不需要帳號',
     'Kept on this device': '保存在這台裝置',
     'Encrypted sync, if you want it': '需要的話，可加密同步',

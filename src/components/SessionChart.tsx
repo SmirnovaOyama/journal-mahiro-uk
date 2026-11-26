@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useElementSize } from '../hooks/useElementSize';
+import { DRAW_MS, DrawnCurve } from './DrawnCurve';
 import type { Course } from '../lib/time';
 import { useScrub, yOnPieces, type Piece } from './scrub';
 import { tr } from '../lib/i18n';
@@ -18,8 +19,16 @@ import { tr } from '../lib/i18n';
    above them does. The width is measured before the first paint and nothing
    is drawn until it is known: drawn at a guessed width first, the gridlines
    ran off the screen for a frame and the clock times were worked out for the
-   wrong width, then jumped. The curves fade in each time the chart appears,
-   at the right width from their first frame. */
+   wrong width, then jumped.
+
+   Each time it appears it draws itself, at the right width from its first
+   frame: each dose's dot pops onto the baseline, its curve is drawn on from
+   there left to right (DrawnCurve: eased, with a blurred streak at the pen
+   while it's fast), doses one after another in the order taken, and "now"
+   comes in last, once the curves have landed. */
+
+/** Between one dose's curve starting and the next one's, ms. */
+const STAGGER = 80;
 
 export interface ChartDose {
     id: string;
@@ -110,9 +119,12 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     for (let t = d0.getTime(); t <= end; t += every) if (t >= start) ticks.push(t);
     // The time the session began, under its first dot; hours too close to it make way.
     const x0 = x(first);
-    const axis = [first, ...ticks.filter(t => Math.abs(x(t) - x0) > 44)];
+    const axis = [first, ...ticks.filter(t => Math.abs(x(t) - x0) > 56)];
 
     const showNow = now >= start && now <= end;
+    // In the order taken: each dose's turn to be drawn.
+    const order = new Map([...doses].sort((a, b) => a.time - b.time).map((d, k) => [d.id, k * STAGGER]));
+    const landed = (doses.length - 1) * STAGGER + DRAW_MS * 0.7;
 
     // The moment under the cursor, and each dose there.
     const cx = scrub.x === null ? null : Math.min(LEFT + plotW, Math.max(LEFT, scrub.x));
@@ -148,21 +160,35 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                             {clock(t)}
                         </text>
                     ))}
-                {doses.map(d => {
-                    if (!d.course) return null;
-                    const p = path(pieces(d));
-                    return (
-                        <g key={d.id} className="chart-appear">
-                            <path d={`${p} Z`} fill={d.color} opacity={cx === null ? 0.1 : 0.07} stroke="none" />
-                            <path d={p} fill="none" stroke={d.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                        </g>
-                    );
-                })}
+                {doses.map(d =>
+                    d.course ? (
+                        <DrawnCurve
+                            key={d.id}
+                            d={path(pieces(d))}
+                            color={d.color}
+                            fillOpacity={cx === null ? 0.1 : 0.07}
+                            delay={(order.get(d.id) ?? 0) + 60}
+                            height={H}
+                        />
+                    ) : null,
+                )}
                 {doses.map(d => (
-                    <circle key={`dot-${d.id}`} cx={x(d.time)} cy={y(0)} r={4} fill="var(--bg)" stroke={d.color} strokeWidth={2} />
+                    <circle
+                        key={`dot-${d.id}`}
+                        cx={x(d.time)}
+                        cy={y(0)}
+                        r={4}
+                        fill="var(--bg)"
+                        stroke={d.color}
+                        strokeWidth={2}
+                        className="chart-mark"
+                        style={{ animationDelay: `${order.get(d.id) ?? 0}ms` }}
+                    />
                 ))}
-                {showNow && cx === null && (
-                    <g className="chart-appear">
+                {/* Kept on the page while reading a moment, only hidden, so
+                    letting go doesn't play its entrance again. */}
+                {showNow && (
+                    <g className="chart-appear" style={{ animationDelay: `${landed}ms` }} visibility={cx === null ? 'visible' : 'hidden'}>
                         <line x1={x(now)} x2={x(now)} y1={TOP} y2={BASE} className="tl-now" />
                         <text x={x(now)} y={TOP - 2} textAnchor={x(now) > LEFT + plotW - 30 ? 'end' : 'middle'} className="tl-axis">
                             {tr('now')}
