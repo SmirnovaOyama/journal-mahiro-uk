@@ -668,7 +668,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         {how && (
                             <Fold
                                 title={tr('How it works')}
-                                icon="key"
+                                icon="question"
                                 hint={
                                     how.text
                                         ? firstSentence(how.text)

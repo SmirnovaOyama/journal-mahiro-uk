@@ -58,7 +58,7 @@ export type DoodleName =
     | 'pencil'
     | 'shield'
     | 'molecule'
-    | 'key';
+    | 'question';
 
 const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     // A syringe drawn with volume, needle down to the left: a plump barrel
@@ -490,19 +490,17 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             <Line d="M25 16.2 C 27 15, 29 13.7, 31 12.4 C 32.2 14, 33.4 15.6, 34.4 17.4" />
         </>
     ),
-    // A key in one outline, as a key is cut: a round bow up to the right with
-    // its hole a dot, and the blade running down to the left to a stepped bit.
-    // How a drug works, the key to a lock.
-    key: (
+    // A question mark, its hook one outline with the wash inside and its dot
+    // solid under it. How a drug works: the question the row answers.
+    question: (
         <>
             <path
                 className={WASH}
                 stroke="none"
-                d="M14.7 19.4 C 13.2 15.2, 14.9 10.4, 18.7 8 C 22.5 5.6, 27.5 6, 30.7 9.2 C 34 12.3, 34.8 17.2, 32.5 21.1 C 30.3 25, 25.7 27, 21.4 25.8 C 20.4 26.6, 19.4 27.4, 18.4 28.2 C 17 28.3, 15.4 28.1, 13.9 28.3 C 14 30, 13.8 31.8, 13.9 33.4 C 11.4 33.5, 9 33.3, 6.6 33.5 C 6.5 31.7, 6.7 29.8, 6.5 28 C 9.2 25.2, 12 22.3, 14.7 19.4 Z"
+                d="M11 15 C 11.1 9.7, 15.2 5.9, 20.3 6 C 25.3 6.1, 29.2 9.8, 29 14.6 C 28.8 18.9, 25.3 20.6, 23.2 22.9 C 22.6 23.6, 22.4 24.4, 22.5 25.2 C 22.4 26.7, 21.3 27.7, 19.8 27.7 C 18.3 27.7, 17.2 26.6, 17.2 25.2 C 17.1 23, 17.7 21.3, 19 19.8 C 20.6 17.9, 23.8 17.1, 23.9 14.5 C 24 12.5, 22.4 11.2, 20.3 11.1 C 18.2 11, 16.2 12.5, 16.1 15 C 16.1 16.5, 15 17.7, 13.6 17.8 C 12.1 17.8, 11 16.6, 11 15 Z"
             />
-            <Line d="M14.7 19.4 C 13.2 15.2, 14.9 10.4, 18.7 8 C 22.5 5.6, 27.5 6, 30.7 9.2 C 34 12.3, 34.8 17.2, 32.5 21.1 C 30.3 25, 25.7 27, 21.4 25.8 C 20.4 26.6, 19.4 27.4, 18.4 28.2 C 17 28.3, 15.4 28.1, 13.9 28.3 C 14 30, 13.8 31.8, 13.9 33.4 C 11.4 33.5, 9 33.3, 6.6 33.5 C 6.5 31.7, 6.7 29.8, 6.5 28 C 9.2 25.2, 12 22.3, 15.1 19" />
-            {/* The hole in the bow: a dot */}
-            <Line d="M25.5 14.2 L 25.7 14.3" w={3.2} />
+            <Line d="M11 15 C 11.1 9.7, 15.2 5.9, 20.3 6 C 25.3 6.1, 29.2 9.8, 29 14.6 C 28.8 18.9, 25.3 20.6, 23.2 22.9 C 22.6 23.6, 22.4 24.4, 22.5 25.2 C 22.4 26.7, 21.3 27.7, 19.8 27.7 C 18.3 27.7, 17.2 26.6, 17.2 25.2 C 17.1 23, 17.7 21.3, 19 19.8 C 20.6 17.9, 23.8 17.1, 23.9 14.5 C 24 12.5, 22.4 11.2, 20.3 11.1 C 18.2 11, 16.2 12.5, 16.1 15 C 16.1 16.5, 15 17.7, 13.6 17.8 C 12.1 17.9, 10.9 16.7, 11.1 14.7" />
+            <Line d="M19.8 32.5 L 20 32.7" w={5} />
         </>
     ),
 };
