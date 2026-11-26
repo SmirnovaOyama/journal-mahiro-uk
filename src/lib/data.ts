@@ -64,6 +64,8 @@ export interface IndexEntry {
   groups?: string[];
   /** 'wd': a reference entry from Wikidata, with no doses. */
   src?: 'wd';
+  /** What its row says instead of its kind and family (lib/xunxun.ts). */
+  says?: string;
 }
 
 export interface DoseRow {

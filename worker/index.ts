@@ -16,6 +16,7 @@ import zhData, { terms as zhTerms } from '../src/lib/zh-Hant-data';
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
 import { SITE, essayPreview, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, type Preview } from '../src/lib/preview';
 import { parse } from '../src/lib/routes';
+import { XUNXUN_ID } from '../src/lib/xunxun';
 import { handleApi, type ApiEnv } from './api';
 
 interface Env extends ApiEnv {
@@ -85,6 +86,8 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
 
     switch (route.page) {
         case 'substance': {
+            // 寻寻's page is the app's own, with no file behind it: there, and kept out of search engines.
+            if (route.id === XUNXUN_ID) return { ...site, path: url.pathname, found: true, privatePage: true };
             const detail = await json<Detail>(env, origin, `/data/substances/${encodeURIComponent(route.id)}.json`);
             if (!detail) return { ...site, path: url.pathname, found: false };
             speakFor(lang);
