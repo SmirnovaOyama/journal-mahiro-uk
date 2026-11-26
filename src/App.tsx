@@ -69,7 +69,10 @@ function AppContent() {
     const scroller = useRef<HTMLDivElement>(null);
 
     // A new page remounts and starts at its top; adding to the mix keeps the
-    // same page, so it stays where it is with the cursor in its field.
+    // same page, so it stays where it is with the cursor in its field. The
+    // Journal's tabs (Log, Stats, Weight) are panels of one page too: keyed
+    // apart, choosing one rebuilt the page, so the underline was redrawn under
+    // the new tab instead of sliding there and the panel never slid in.
     const key =
         route.page === 'substance'
             ? `s:${route.id}`
@@ -80,7 +83,7 @@ function AppContent() {
               : route.page === 'settings'
                 ? `settings:${route.sub ?? ''}`
                 : route.page === 'journal'
-                  ? `journal:${route.session ?? route.substance ?? route.view ?? ''}`
+                  ? `journal:${route.session ?? route.substance ?? ''}`
                   : route.page;
     useLayoutEffect(() => {
         scroller.current?.scrollTo(0, 0);

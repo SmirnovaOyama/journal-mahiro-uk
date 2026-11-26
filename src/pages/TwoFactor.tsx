@@ -4,7 +4,8 @@ import { disableTwoFactor, enableTwoFactor, fetchAccount, renewBackupCodes, setu
 import { NeedsAccount } from './Account';
 import { BackupCodesShow, CodeField, ErrorLine, Field, Submit, message, muted, on } from '../components/AccountParts';
 import Doodle from '../components/Doodle';
-import { Busy, CheckCircle, Copy, External, Shield } from '../components/icons';
+import { CheckCircle, Copy, External, Shield } from '../components/icons';
+import { Waiting } from '../components/Waiting';
 
 /* Two-step sign-in, as hrt.mahiro.uk has it (pages/TwoFactor.tsx there): a
    code from an authenticator app, as well as the password, to sign in on a
@@ -86,10 +87,7 @@ export function TwoFactorPage() {
         body = error ? (
             <ErrorLine error={error} />
         ) : (
-            <p className={`flex items-center gap-2 text-sm ${muted}`}>
-                <Busy size={16} className="animate-spin" />
-                {'Loading…'}
-            </p>
+            <Waiting />
         );
     } else if (codes) {
         body = <BackupCodesShow codes={codes} username={username} onDone={done} />;

@@ -1,7 +1,8 @@
 import React, { useEffect, useId, useState } from 'react';
 import { ApiError } from '../lib/account';
 import { newPasswordLevel, type NewPasswordLevel } from '../lib/password';
-import { Account as PersonIcon, Busy, CheckCircle, Copy, Download } from './icons';
+import { Account as PersonIcon, CheckCircle, Copy, Download } from './icons';
+import { WaitMark } from './Waiting';
 
 /* The pieces the account's pages are made of (pages/Account.tsx,
    pages/TwoFactor.tsx, pages/Admin.tsx): fields, the strength line under a
@@ -177,7 +178,7 @@ export function Submit({
         <button type="submit" disabled={busy || disabled} className={`${danger ? 'btn-danger' : 'btn-primary'} w-full`}>
             {busy ? (
                 <span className="inline-flex items-center gap-2">
-                    <Busy size={16} className="animate-spin" />
+                    <WaitMark />
                     {busyLabel}
                 </span>
             ) : (

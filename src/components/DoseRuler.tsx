@@ -152,7 +152,10 @@ export function DoseRuler({
   return (
     <div>
       <p className={`text-xs font-medium ${muted}`}>{label}</p>
-      <div className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+      {/* A readout, not text: a drag along the rail that strays up over it,
+          or a quick second press, must not leave the point and the unit
+          highlighted (the digits are reels and never were selectable). */}
+      <div className="mt-1.5 flex min-w-0 select-none flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-display inline-flex items-baseline gap-x-2 font-light leading-none tracking-[-0.035em] tabular-nums text-[length:var(--text-reading-sm-size)] sm:text-[length:var(--text-reading-md-size)] md:text-[length:var(--text-reading-size)]">
           <span className={on}>
             <Odometer value={value} decimals={model.decimals} places={model.places} instant={follow} />
@@ -168,10 +171,13 @@ export function DoseRuler({
           still scrolls under a vertical swipe. The range input is for
           keyboards and screen readers. */}
       <div
-        className="relative mt-0.5 cursor-grab rounded-[var(--radius-sm)] active:cursor-grabbing has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-[var(--accent-ink)]"
+        className="relative mt-0.5 cursor-grab select-none rounded-[var(--radius-sm)] active:cursor-grabbing has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-[var(--accent-ink)]"
         style={{ touchAction: 'pan-y' }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
+          // A press that began in a text field or on a line of prose may
+          // still be holding a selection; a drag here would stretch it.
+          window.getSelection()?.removeAllRanges();
           try {
             e.currentTarget.setPointerCapture(e.pointerId);
           } catch {
