@@ -23,6 +23,7 @@ const LINES: Line[] = [
 /** A sentence, and the kaomoji at its end kept whole on one line. */
 function Kao({ text }: { text: string }) {
     const i = text.lastIndexOf(' ');
+    if (i < 0 || !text.endsWith(')')) return <>{text}</>;
     return (
         <>
             {text.slice(0, i + 1)}
@@ -36,20 +37,20 @@ const COPY = {
         title: 'Hey, are you okay? (っ´ω`c)',
         body: [
             'We just wanted to say hi before anything else. If you came here because things feel really heavy right now, we’re so glad you’re still here, and we’re sorry it hurts this much. (´；ω；`)',
-            'You don’t need the right words, or to be “bad enough”, to talk to someone. The people below are kind, they listen, and they’re up all night. (｡•ᴗ•｡)',
-            'Whatever is going on, you matter, and you deserve to feel better than this. (*´ω`*)♡',
+            'You don’t need the right words, or to be “bad enough”, to talk to someone. The people below are kind, they listen, and they’re up all night.',
+            'Whatever is going on, you matter, and you deserve to feel better than this.',
         ],
-        urgent: 'If you’ve already taken something, please call an ambulance right away: 120 in mainland China, 112, 911 or 999 elsewhere. Nobody will be cross with you, and help that comes early really works. (っ´ω`)っ',
+        urgent: 'If you’ve already taken something, please call an ambulance right away: 120 in mainland China, 112, 911 or 999 elsewhere. Nobody will be cross with you, and help that comes early really works.',
         heading: 'People who’d love to hear from you, any time',
     },
     zh: {
         title: '你还好吗 (っ´ω`c)',
         body: [
             '想先跟你打个招呼。如果你是因为心里很沉、很累才来到这里，真的很高兴你还在，也很心疼你这么难受 (´；ω；`)',
-            '找人说说话不需要想好怎么说，也不需要“难受到一定程度”才可以。下面这些人都很温柔，会认真听你说，整晚都在 (｡•ᴗ•｡)',
-            '不管发生了什么，你都很重要，你值得比现在好受一些 (*´ω`*)♡',
+            '找人说说话不需要想好怎么说，也不需要“难受到一定程度”才可以。下面这些人都很温柔，会认真听你说，整晚都在',
+            '不管发生了什么，你都很重要，你值得比现在好受一些',
         ],
-        urgent: '如果已经吃下了什么，请马上拨打 120。没有人会怪你，越早处理越有机会好起来 (っ´ω`)っ',
+        urgent: '如果已经吃下了什么，请马上拨打 120。没有人会怪你，越早处理越有机会好起来',
         heading: '随时都有人愿意听你说',
     },
 };
