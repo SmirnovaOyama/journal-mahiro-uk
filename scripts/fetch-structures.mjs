@@ -93,8 +93,14 @@ const DRAW = {
     '2c-b-fly-nbome': { smiles: 'COc1ccccc1CNCCc1c2CCOc2c(Br)c2CCOc12' },
     '3-6-dmpm': { smiles: 'CC1CNC(C)C(c2ccccc2)O1' },
 
+    // αET is α-ethyltryptamine; by its short name PubChem finds AET, an
+    // unrelated isothiouronium salt.
+    aet: { smiles: 'CCC(N)Cc1c[nH]c2ccccc12' },
+
     // A plant's or a mixture's main active compound.
     cannabis: { name: 'dronabinol', role: 'active' },
+    // Its alias "O" found oxygen.
+    opium: { name: 'morphine', role: 'active' },
     mushrooms: { name: 'psilocybin', role: 'active' },
     'psilocybin-mushrooms': { name: 'psilocybin', role: 'active' },
     'psilocybe-cubensis': { name: 'psilocybin', role: 'active' },

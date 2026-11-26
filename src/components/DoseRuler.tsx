@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DoseRow } from '../lib/data';
 import LevelRail from './LevelRail';
@@ -57,8 +58,12 @@ export function DoseRuler({
   label,
   footer,
   onPick,
+  aside,
 }: {
   row: DoseRow;
+  /** A line beside the amount, from it: the same dose per kilogram of the
+   *  reader's weight, or a per-kilogram dose as an amount. */
+  aside?: (value: number) => React.ReactNode;
   /** Told the amount whenever it changes, so the page can log it. */
   onPick?: (v: number) => void;
   /** The small label over the number, as "Estradiol" is on hrt's Overview. */
@@ -155,6 +160,7 @@ export function DoseRuler({
           <span className={`text-sm font-normal tracking-normal ${muted}`}>{row.unit}</span>
           <span className="sr-only">{name(band)}</span>
         </span>
+        {aside && <span className={`text-xs tabular-nums ${muted}`}>{aside(value)}</span>}
       </div>
 
       {/* The rail itself takes the finger, anywhere along it: a press moves
@@ -220,7 +226,6 @@ export function DoseRuler({
               className="tap-target flex w-full items-center justify-between gap-3 py-1.5 text-start"
             >
               <span className="flex min-w-0 items-center gap-3">
-                <span className={`band-dot band-${b}`} aria-hidden="true" />
                 <span className="min-w-0">
                   <span className={`block text-sm ${here ? on : muted}`}>{name(b)}</span>
                   <span className={`block text-xs tabular-nums ${muted}`}>{text}</span>

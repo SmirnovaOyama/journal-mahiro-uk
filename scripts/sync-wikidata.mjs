@@ -701,6 +701,29 @@ for (const e of index) {
     existingNames.set(squash(e.id), e.id);
 }
 
+/** How well an item describes an existing entry. Items share the first block
+ *  of an InChIKey with their isomers and labelled copies (ketamine and
+ *  esketamine, mescaline and 4-D, its deuterated twin), so the block alone
+ *  picked whichever came last. The entry's own name counts most, then the
+ *  exact key and an article of its own; an isomer or a salt counts against.
+ *  Below 2, it isn't linked:
+ *  no link beats a wrong one. */
+const entryById = new Map(index.map(e => [e.id, e]));
+function fit(d, id) {
+    const e = entryById.get(id);
+    if (!e) return 0;
+    const names = new Set([e.name, e.id, ...String(e.aliases ?? '').split(',')].map(squash).filter(n => n.length >= 3));
+    const s = structures[id];
+    const key = s && s.role === 'self' ? keyOf[s.cid] : null;
+    return (
+        ([d.en, d.enwiki, ...(d.aliasEn ?? [])].some(n => n && names.has(squash(n))) ? 4 : 0) +
+        (key && d.keys.includes(key) ? 2 : 0) -
+        (STEREO.test(d.en) || SALT.test(d.en) ? 1 : 0) +
+        // The item with the encyclopedia article is the substance's own.
+        (d.enwiki ? 1.5 : 0)
+    );
+}
+
 // What each item is to the site: an existing entry it describes, or a new one.
 const enrich = new Map(); // existing id → item
 const fresh = new Map(); // structure block → items
@@ -714,9 +737,7 @@ for (const d of Object.values(info)) {
     const target = sameBlock ?? sameName;
     if (target) {
         const prev = enrich.get(target);
-        // The item for the compound itself beats one for a salt or an isomer.
-        if (!prev || (!STEREO.test(d.en) && !SALT.test(d.en) && (STEREO.test(prev.en) || SALT.test(prev.en) || !prev.enwiki)))
-            enrich.set(target, d);
+        if (fit(d, target) >= 2 && (!prev || fit(d, target) > fit(prev, target))) enrich.set(target, d);
         continue;
     }
     const g = block ?? `cid${Math.min(...d.cids)}`;
@@ -893,6 +914,11 @@ for (const e of index) {
     delete detail.summaryZh;
     delete detail.zhAliases;
     detail.helpfulLinks = (detail.helpfulLinks ?? []).filter(l => !/zh\.wikipedia\.org/.test(l.url) && !CJK.test(l.title));
+    // This script's own links from before go; the item linked now adds its own.
+    detail.helpfulLinks = detail.helpfulLinks.filter(
+        l => !(l.description === 'Encyclopedia article' || /^Structured data on /.test(l.description) || l.description === 'Chemistry, safety and literature'),
+    );
+    delete detail.wikidata;
     const d = enrich.get(e.id);
     if (d) {
         linked++;

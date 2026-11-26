@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWeights, type WeightEntry } from '../lib/journal';
-import { LB_PER_KG, useWeightUnit, type WeightUnit } from '../lib/store';
+import { KG_PER_LB, WEIGHT_KG_MAX, WEIGHT_KG_MIN, setWeightUnit, useWeight } from '../lib/store';
 import Doodle from './Doodle';
 import Segmented from './Segmented';
 import { useScrub } from './scrub';
@@ -9,7 +9,12 @@ import { ChevronDown, Close, Plus } from './icons';
 /* Body weight, beside the log and the stats: a line of every weighing, the
    latest and how far it has moved, a form to log one, and each one listed,
    newest first, to change or delete. Kept in kg in the journal (so it syncs
-   and exports with it); shown in kg or lb, as chosen here, on this device. */
+   and exports with it); shown in the unit of the body weight in Settings.
+   Logging the newest weighing also sets that body weight, so per-kilogram
+   doses and blood alcohol read from the latest one. */
+
+type WeightUnit = 'kg' | 'lb';
+const LB_PER_KG = 1 / KG_PER_LB;
 
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
@@ -44,7 +49,7 @@ function WeightForm({
     const [note, setNote] = useState(editing?.note ?? '');
     const n = Number(text.replace(',', '.'));
     const kg = fromUnit(n, unit);
-    const ok = text.trim() !== '' && Number.isFinite(n) && kg >= 1 && kg < 700;
+    const ok = text.trim() !== '' && Number.isFinite(n) && kg >= WEIGHT_KG_MIN && kg <= WEIGHT_KG_MAX;
     const label = `block text-xs font-medium ${muted} mb-1.5`;
     return (
         <form
@@ -267,7 +272,9 @@ function WeightRow({ w, unit, open, onToggle }: { w: WeightEntry; unit: WeightUn
 
 export function WeightLog() {
     const { weights, add } = useWeights();
-    const { unit, setUnit } = useWeightUnit();
+    const body = useWeight();
+    const unit = body.unit;
+    const setUnit = setWeightUnit;
     const [adding, setAdding] = useState(false);
     const [openRow, setOpenRow] = useState<string | null>(null);
     const latest = weights[weights.length - 1];
@@ -307,6 +314,9 @@ export function WeightLog() {
                                 unit={unit}
                                 onSave={w => {
                                     add(w);
+                                    // The newest weighing is the body weight Settings keeps.
+                                    const newest = !latest || w.time >= latest.time;
+                                    if (newest && w.kg >= WEIGHT_KG_MIN && w.kg <= WEIGHT_KG_MAX) body.save(w.kg, unit);
                                     setAdding(false);
                                 }}
                                 onCancel={() => setAdding(false)}
@@ -322,7 +332,7 @@ export function WeightLog() {
                         <Doodle name="notebook" size={4.5} />
                         <p className={`mt-4 text-sm font-medium ${on}`}>{'No weight logged yet'}</p>
                         <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                            {'Log your weight now and then to see it over time. It’s kept with the journal: on this device, and in your account if you sync.'}
+                            {'Log your weight now and then to see it over time. It’s kept with the journal: on this device, and in your account if you sync. The newest one is also your body weight in Settings.'}
                         </p>
                     </div>
                 )

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePixelCats, type CatStyle } from '../contexts/PixelCatContext';
-import { go, type SettingsSub } from '../lib/router';
-import { useRecent, useSaved, useTheme, type ThemeChoice } from '../lib/store';
+import { go, useOpenedFromLink, type SettingsSub } from '../lib/router';
+import { formatWeight, useRecent, useSaved, useTheme, useWeight, type ThemeChoice } from '../lib/store';
 import { exportFile, merge, parseImport, useJournal, useWeights } from '../lib/journal';
 import { loadIndex, resolveName } from '../lib/data';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
@@ -14,6 +14,10 @@ import { showOnboardingAgain } from './Onboarding';
 import { useAccount } from '../lib/account';
 import { AccountPage, AccountTile, DeleteAccountPage, DevicesPage, PasswordPage, RecoverPage, RecoveryKeyPage } from './Account';
 import { AdminPage } from './Admin';
+import { TwoFactorPage } from './TwoFactor';
+import { WeightPage } from './Weight';
+import { useWide } from '../hooks/useWide';
+import { SettingsTile } from '../components/SettingsTile';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
    there): on a phone, the three groups as a list of tiles, each opening its
@@ -28,7 +32,6 @@ const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 
 const rowLabel = 'text-sm text-[var(--text)]';
 const rowValue = 'flex items-center gap-1 text-sm text-[var(--text-muted)]';
 const muted = 'text-[var(--text-muted)]';
-const on = 'text-[var(--text)]';
 const section = settingsSection;
 
 const SectionHeading: React.FC<{ title: string }> = ({ title }) => <h2 className="group-heading mb-1">{title}</h2>;
@@ -126,18 +129,6 @@ const CAT_STYLE_SWATCHES: { id: CatStyle; background: string }[] = [
     { id: 'pink', background: 'var(--pixel-pink)' },
 ];
 
-function useWide() {
-    const q = '(min-width: 768px)';
-    const [wide, setWide] = useState(() => window.matchMedia(q).matches);
-    useEffect(() => {
-        const mq = window.matchMedia(q);
-        const on = () => setWide(mq.matches);
-        mq.addEventListener('change', on);
-        return () => mq.removeEventListener('change', on);
-    }, []);
-    return wide;
-}
-
 export function Settings({ sub }: { sub?: SettingsSub }) {
     const { choice, setChoice } = useTheme();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -146,6 +137,8 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     const journal = useJournal();
     const weights = useWeights();
     const { account } = useAccount();
+    const weight = useWeight();
+    const fromLink = useOpenedFromLink();
     const [importNote, setImportNote] = useState<string | null>(null);
     const wide = useWide();
 
@@ -197,7 +190,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             id: 'general',
             label: 'General',
             Icon: Sliders,
-            hint: 'Appearance, pixel cats',
+            hint: 'Appearance, body weight, pixel cats',
         },
         { id: 'data', label: 'Data', Icon: Database, hint: 'Journal, saved, looked at lately' },
         { id: 'about', label: 'About', Icon: Info, hint: 'Sources, disclaimer' },
@@ -212,6 +205,11 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         label={'Appearance'}
                         value={themeLabel(choice)}
                         onClick={() => open('appearance')}
+                    />
+                    <NavRow
+                        label={'Body weight'}
+                        value={weight.kg ? formatWeight(weight.kg, weight.unit) : 'Not set'}
+                        onClick={() => open('weight')}
                     />
                     <SwitchRow
                         label={'Pixel cats'}
@@ -374,14 +372,17 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
 
     const catContent = (id: Cat) => (id === 'general' ? renderGeneral() : id === 'data' ? renderData() : renderAbout());
 
-    // The account and its pages (pages/Account.tsx).
-    if (sub === 'account') return <AccountPage />;
+    // The account and its pages (pages/Account.tsx), two-step sign-in
+    // (pages/TwoFactor.tsx), and the admin's (pages/Admin.tsx).
+    if (sub === 'account' || sub === 'sync' || sub === 'security') return <AccountPage sub={sub} />;
+    if (sub === 'devices') return <DevicesPage />;
     if (sub === 'password') return <PasswordPage />;
     if (sub === 'recovery-key') return <RecoveryKeyPage />;
-    if (sub === 'devices') return <DevicesPage />;
+    if (sub === 'two-factor') return <TwoFactorPage />;
+    if (sub === 'weight') return <WeightPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;
     if (sub === 'recover') return <RecoverPage />;
-    if (sub === 'admin') return <AdminPage />;
+    if (sub === 'admin' || sub === 'admin-overview' || sub === 'admin-accounts') return <AdminPage sub={sub} />;
 
     // A choice is its own page: the appearance.
     if (sub === 'appearance') {
@@ -433,7 +434,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     // On a wide window: the groups as tabs under the title.
     if (wide) {
         const cat: Cat = sub === 'data' || sub === 'about' ? sub : 'general';
-        return <WideSettings title={'Settings'} cats={cats} cat={cat} content={catContent} />;
+        return <WideSettings title={'Settings'} cats={cats} cat={cat} content={catContent} backTo={fromLink} />;
     }
 
     // On a phone: the list of groups, or the group opened from it.
@@ -447,29 +448,12 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     }
     return (
         <div className="relative">
-            <PageHeader title={'Settings'} />
+            <PageHeader title={'Settings'} backTo={fromLink} />
+            {/* The account first, then the groups: one list of the same tiles. */}
             <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
                 <AccountTile />
-            </div>
-            <div className={`${PAGE_COLUMN} mt-6 ${section}`}>
                 {cats.map(({ id, label, Icon, hint }) => (
-                    <button
-                        key={id}
-                        onClick={() => open(id)}
-                        style={{ '--divider-inset': '3rem' } as React.CSSProperties}
-                        className={`${rowBase} ${rowBleed}`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
-                                <Icon size={20} strokeWidth={1.75} className={muted} />
-                            </div>
-                            <div className="text-start">
-                                <p className={`text-sm font-medium ${on}`}>{label}</p>
-                                <p className={`text-xs ${muted} mt-0.5`}>{hint}</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
-                    </button>
+                    <SettingsTile key={id} Icon={Icon} label={label} hint={hint} onClick={() => open(id)} />
                 ))}
             </div>
         </div>
@@ -481,16 +465,18 @@ function WideSettings({
     cats,
     cat,
     content,
+    backTo,
 }: {
     title: string;
     cats: { id: Cat; label: string }[];
     cat: Cat;
     content: (c: Cat) => React.ReactNode;
+    backTo?: boolean;
 }) {
     const anim = useSwitchAnimation(cat, CAT_ORDER);
     return (
         <div className="md:pb-32">
-            <PageHeader title={title} />
+            <PageHeader title={title} backTo={backTo} />
             <div className={`${PAGE_COLUMN} mt-3`}>
                 <div className={`${settingsSection} mb-6`}>
                     <AccountTile />

@@ -18,6 +18,8 @@ PubChem's own 2D layout.
 - 702 come from PsychonautWiki and TripSit, with doses by route on a rail from
   light to heavy, how long it lasts drawn on a clock, tolerance, effects, and
   what it mustn't be mixed with.
+- How much of a dose gets into the blood, by route, where it's known (110
+  routes), so the same amount isn't mistaken for the same dose another way.
 - 2,339 are reference entries from Wikidata and Wikipedia: what the substance
   is, its names, its structure and its known interactions. They never have a
   dose.
@@ -45,7 +47,16 @@ included, and get one answer: the most serious risk first, with the reason.
 **Sync it, if you want.** Make an account with a username and a password, and
 the journal and the saved list are kept the same on each device signed in to
 it. They're encrypted in the browser before they're sent, so the server keeps
-a copy it can't read. See [Accounts](#accounts).
+a copy it can't read. Two-step sign-in, with an authenticator app and backup
+codes, is there to turn on. See [Accounts](#accounts).
+
+**Body weight.** Set once in Settings (kg or lb, 20 to 400 kg), as hrt.mahiro.uk
+keeps it, or log each weighing under the journal's Weight tab, which keeps
+the history (synced and exported with the journal) and sets the newest one. With it, a dose given per kilogram (ibogaine's) reads as an amount,
+an amount reads per kilogram on the dose rail and in the journal, and a
+session with alcohol in it shows blood alcohol, roughly: how high it went,
+where it is now, and about when it's back to none (Widmark's formula, as a
+range, since it doesn't know your sex). It syncs with an account, encrypted.
 
 **Read any chart by touch.** Press and slide along a timeline or a duration
 curve to read any moment. Tap a bar to read its month.
@@ -65,8 +76,10 @@ for chat apps and search engines.
 | `/journal/<session>` | One session |
 | `/journal/substance/<id>` | One substance's history in the journal |
 | `/saved`, `/settings` | Saved substances; settings |
-| `/settings/account` | The account: sign in or make one, sync, devices, password, recovery key |
-| `/settings/admin` | The admin's page |
+| `/settings/account` | The account: sign in or make one; on a phone, its parts as tiles (`/settings/sync`, `/settings/security`, `/settings/devices`), on a wide window as tabs |
+| `/settings/two-factor` | Two-step sign-in |
+| `/settings/weight` | Body weight |
+| `/settings/admin` | The admin's page: `/settings/admin-overview`, `/settings/admin-accounts` |
 
 ## Data
 
@@ -77,6 +90,12 @@ for chat apps and search engines.
 | [Wikidata](https://www.wikidata.org) | Kinds, interactions, and the substances the two above don't cover | CC0 |
 | [Wikipedia](https://www.wikipedia.org) | Summaries, linked from each page | CC BY-SA 4.0 |
 | [PubChem](https://pubchem.ncbi.nlm.nih.gov) | 2D structures | Public domain (NCBI) |
+
+A substance's Wikidata item is matched by structure, then checked by name:
+an isomer, a salt or a labelled copy of it (esketamine for ketamine, 4-D for
+mescaline) isn't linked, and no link is better than a wrong one. Absorption
+figures from Wikipedia are only taken from the substance's own article, with
+the route named, and never from animal studies.
 
 A reference entry comes from Wikidata's classes of psychoactive drugs, from
 nervous-system ATC codes, or from Wikipedia's lists of drugs (PiHKAL, TiHKAL,
@@ -115,6 +134,12 @@ The server never sees the password, the journal, or the saved list.
   used but not read out. The session is a random token; the server keeps
   only its SHA-256. Signing out asks whether to keep the journal on the
   device.
+- **Two-step sign-in.** A six-digit code from an authenticator app (TOTP,
+  RFC 6238) after the password, or one of ten single-use backup codes. A code
+  works once. Setting a new password with the recovery key asks for one too,
+  and goes in two steps: the first proves the key and the code and gets a
+  ticket good for ten minutes; only that ticket lets the second set the
+  password.
 - **Limits.** Ten sign-in tries a minute per address and per account name,
   and five wrong passwords in a row lock the name for 15 minutes, doubling
   up to an hour. A device stays signed in for 60 days after it was last
@@ -127,11 +152,14 @@ Cloudflare D1.
 
 One account is the admin's, by its username. The admin page (Settings,
 Account, Admin) shows what the server knows: accounts, when each was last
-seen, devices, the size of each encrypted copy, sign-ups a day, locks, and
-how many accounts were deleted and by whom. From it the admin can sign an
-account out everywhere, lift a lock, or delete an account, which asks for
-the admin's password again. It can't read any journal, the admin's
-included, or reset anyone's password.
+seen, devices, the size of each encrypted copy, two-step sign-in, sign-ups a
+day, locks, and how many accounts were deleted and by whom. From it the
+admin can sign an account out everywhere, lift a lock, turn off two-step
+sign-in for someone who lost their phone and backup codes, or delete an
+account; the last two ask for the admin's password again. It can't read any
+journal, the admin's included, or reset anyone's password. The admin page opens only once the
+admin's account has two-step sign-in on; a new admin account goes straight
+from its recovery key to setting it up.
 
 The admin's name can't be taken by anyone else: it can only be made with
 the admin's password, which the server never has. It keeps two secrets, the
@@ -160,7 +188,9 @@ npm run dev
 | `npx wrangler d1 migrations apply oyama-journal --local` | Make the account tables in the local database (`--remote` for the real one) |
 | `node scripts/admin-key.mjs <username>` | The admin's key hash, from its password (see [Admin](#admin)) |
 | `npm run build` | Type-check and build into `dist/` |
-| `npm run data` | Every data step in turn: PsychonautWiki and TripSit, then Wikidata and Wikipedia, then PubChem structures |
+| `npm run data` | Every data step in turn: PsychonautWiki and TripSit, then Wikidata and Wikipedia, PubChem structures, absorption by route, and the dose check |
+| `node scripts/absorption.mjs` | How much of a dose gets in, by route: PsychonautWiki's figures, and Wikipedia's drug infoboxes where the route is named |
+| `node scripts/check-doses.mjs` | Checks every route's doses rise in order on their rail, mends rows whose ranges change unit, and fails on any left |
 | `node scripts/sync-wikidata.mjs --write` | Rebuild the reference entries from the cache in `scripts/.cache/`, without fetching |
 | `npm run og` | Draw the link preview cards into `public/og/` |
 | `npm run sitemap` | Write `public/sitemap.xml` |
@@ -199,10 +229,14 @@ tables is a new file in `migrations/`, applied with
   - `IngestionForm`: logging a dose.
   - `scrub.ts`: reading the charts by touch.
   - `StackedBars`: the column charts, read by touch too.
+  - `ProfileHeader`: the top of the account page.
+  - `Absorption`: how much gets in, by route.
 - `src/lib/`:
   - `data.ts`, `mix.ts`: the data and the mix checker.
   - `journal.ts`: the journal's store, sessions, import, export and merging.
-  - `account.ts`: signing in and out, and syncing.
+  - `account.ts`: signing in and out, two-step sign-in, and syncing.
+  - `eggs.ts`: a few things for whoever looks up estradiol.
+  - `alcohol.ts`: blood alcohol, roughly, from the body weight.
   - `keys.ts`: the keys, and encrypting the journal.
   - `password.ts`: how guessable a new password is.
   - `molsvg.ts`: skeletal formulas from 2D coordinates.

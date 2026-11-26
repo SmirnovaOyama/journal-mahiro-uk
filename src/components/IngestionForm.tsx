@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type DoseRow, type IndexEntry } from '../lib/data';
+import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type DoseRow, type IndexEntry, convertAmount, fmtAmount, isPerKg } from '../lib/data';
 import { useJournal, type Ingestion, type Prefill } from '../lib/journal';
 import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
-import { courseOf, formatMinutes } from '../lib/time';
+import { courseFor, formatMinutes } from '../lib/time';
 import { useDetail } from '../lib/useIndex';
 import LevelRail from './LevelRail';
+import { formatWeight, useWeight } from '../lib/store';
+import { absorbedText } from './Absorption';
+import Choice from './Choice';
 import { Molecule } from './Molecule';
 import { SearchField } from './SearchField';
 import Switch from './Switch';
@@ -54,7 +57,6 @@ export function bandOf(row: DoseRow, v: number): Band | null {
 }
 
 /** Same unit, written either way: μg (Greek mu) and µg (micro sign). */
-const sameUnit = (a: string, b: string) => a.replace('µ', 'μ').toLowerCase() === b.replace('µ', 'μ').toLowerCase();
 
 export function IngestionForm({
     index,
@@ -106,7 +108,16 @@ export function IngestionForm({
 
     const dose = doseText.trim() === '' ? null : Number(doseText.replace(',', '.'));
     const doseOk = dose === null || (Number.isFinite(dose) && dose >= 0);
-    const band = row && dose != null && doseOk && sameUnit(row.unit, unit) ? bandOf(row, dose) : null;
+    // In the route's own unit: 0.1 mg is 100 µg, and with a body weight, an
+    // amount is so much a kilogram (a dose given per kilogram).
+    const weight = useWeight();
+    const inRowUnit = row && dose != null && doseOk ? convertAmount(dose, unit, row.unit, weight.kg) : null;
+    const mass = unit.split('/')[0].trim();
+    const perKgLine =
+        weight.kg && dose != null && doseOk && dose > 0 && /^(g|mg|μg|µg)$/.test(mass) && !isPerKg(unit)
+            ? `${fmtAmount(dose / weight.kg)} ${unit}/kg at ${formatWeight(weight.kg, weight.unit)}`
+            : null;
+    const band = row && inRowUnit != null ? bandOf(row, inRowUnit) : null;
 
     // ── what the journal already says ──
     const [matrix, setMatrix] = useState<ComboMatrix>();
@@ -135,14 +146,18 @@ export function IngestionForm({
         const same = recent.filter(i => i.substance === entry.id && i.time <= time).sort((a, b) => b.time - a.time)[0];
         if (same) {
             const ago = Math.max(1, Math.round((time - same.time) / 60000));
-            const course = courseOf(detail?.durationRows.find(r => r.roa === same.route) ?? detail?.durationRows[0]);
-            const still = course && ago < course.over;
+            // By the route it was taken; if that isn't documented, the longest
+            // any route lasts, and the warning says so.
+            const c = courseFor(detail?.durationRows, same.route);
+            const still = c && ago < c.course.over;
             const amount = same.dose != null ? ` (${same.dose} ${same.unit})` : '';
             out.push({
                 key: 'redose',
                 tone: 'warning',
                 text: still
-                    ? `You logged ${entry.name}${amount} ${formatMinutes(ago)} ago, and it usually lasts ${formatMinutes(course!.over)}. A redose adds to what’s still working.`
+                    ? c!.exact
+                        ? `You logged ${entry.name}${amount} ${formatMinutes(ago)} ago, and it usually lasts ${formatMinutes(c!.course.over)}. A redose adds to what’s still working.`
+                        : `You logged ${entry.name}${amount} ${formatMinutes(ago)} ago. How long it lasts taken that way isn’t documented; other ways, up to ${formatMinutes(c!.course.over)}. A redose may add to what’s still working.`
                     : `You logged ${entry.name}${amount} ${formatMinutes(ago)} ago.`,
             });
         }
@@ -262,7 +277,6 @@ export function IngestionForm({
                                             setUnit('');
                                         }}
                                     >
-                                        <span className="size-2 rounded-full me-1.5" style={{ background: data.colors[l.substance] }} />
                                         {l.name}
                                     </button>
                                 ))}
@@ -324,10 +338,11 @@ export function IngestionForm({
                         <label className={label} htmlFor="dose-amount">
                             {'Amount'}
                         </label>
-                        <div className="flex items-end gap-3">
+                        {/* The unit's options unfold under the whole line, not under its own 6rem. */}
+                        <div className="flex flex-wrap items-end gap-x-3">
                             <input
                                 id="dose-amount"
-                                className={`input-base flex-1 text-lg tabular-nums ${doseText ? 'is-inked' : ''}`}
+                                className={`input-base min-w-0 flex-1 text-lg tabular-nums ${doseText ? 'is-inked' : ''}`}
                                 inputMode="decimal"
                                 autoComplete="off"
                                 placeholder={'Leave empty if unknown'}
@@ -335,29 +350,33 @@ export function IngestionForm({
                                 onChange={e => setDoseText(e.target.value)}
                                 aria-invalid={!doseOk}
                             />
-                            <select
-                                className="input-base w-24 shrink-0"
+                            <Choice
+                                className="w-24 shrink-0"
+                                options={[...new Set([row?.unit, unit, ...UNITS].filter(Boolean) as string[])].map(u => ({ id: u, label: u }))}
                                 value={unit}
-                                onChange={e => setUnit(e.target.value)}
-                                aria-label={'Unit'}
-                            >
-                                {[...new Set([row?.unit, ...UNITS].filter(Boolean) as string[])].map(u => (
-                                    <option key={u} value={u}>
-                                        {u}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={setUnit}
+                                label={'Unit'}
+                            />
                         </div>
-                        {row?.segments && dose != null && doseOk && sameUnit(row.unit, unit) && (
+                        {row?.segments && inRowUnit != null && (
                             <div className="mt-2">
                                 <LevelRail
-                                    value={Math.max(dose, row.domain?.[0] ?? 0.001)}
-                                    band={row.segments.common ? { low: row.segments.common[0], high: row.segments.common[1] } : { low: dose, high: dose }}
-                                    domain={[Math.max(row.domain?.[0] ?? (row.segments.light?.[0] ?? 1) / 2, 1e-6), row.domain?.[1] ?? (row.segments.heavy?.[0] ?? row.segments.common?.[1] ?? dose * 2) * 1.6]}
+                                    value={Math.max(inRowUnit, row.domain?.[0] ?? 0.001)}
+                                    band={row.segments.common ? { low: row.segments.common[0], high: row.segments.common[1] } : { low: inRowUnit, high: inRowUnit }}
+                                    domain={[Math.max(row.domain?.[0] ?? (row.segments.light?.[0] ?? 1) / 2, 1e-6), row.domain?.[1] ?? (row.segments.heavy?.[0] ?? row.segments.common?.[1] ?? inRowUnit * 2) * 1.6]}
                                     label={band ? BAND_NAMES[band] : undefined}
                                     tone={band ? BAND_TONE[band] : ''}
                                 />
                             </div>
+                        )}
+                        {perKgLine && <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">{perKgLine}</p>}
+                        {row && isPerKg(row.unit) && !weight.kg && (
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">{'Its doses are given per kilogram: set your body weight in Settings to see where this amount falls.'}</p>
+                        )}
+                        {row?.absorbed && (
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">
+                                {`${absorbedText(row.absorbed).replace(/^./, c => c.toUpperCase())} of a dose taken this way reaches the blood.`}
+                            </p>
                         )}
                         <label className="mt-3 flex items-center justify-between gap-3 text-sm text-[var(--text)]">
                             <span>{'It’s a guess'}</span>

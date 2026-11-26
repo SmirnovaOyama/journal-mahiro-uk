@@ -61,7 +61,11 @@ export interface IndexEntry {
 
 export interface DoseRow {
   roa: string;
-  bioavailability?: string;
+  /** How much of a dose taken this way gets into the blood, in percent
+   *  (scripts/absorption.mjs). A `min` of 0 means "up to `max`". */
+  absorbed?: { min: number; max: number; source?: string; page?: string; note?: string };
+  /** Anything else known about this route ("higher unmetabolized serum P4"). */
+  note?: string;
   source?: string;
   unit: string;
   threshold?: string;
@@ -246,4 +250,41 @@ export function describe(e: Pick<IndexEntry, 'category' | 'chemicalClass'>): str
   const kind = e.category === 'Other' ? 'A substance' : `${/^[aeiou]/.test(word) ? 'An' : 'A'} ${word}`;
   if (!family) return `${kind}.`;
   return `${kind} in the ${familyText} family.`;
+}
+
+/** Units of mass, in micrograms. */
+const MASS: Record<string, number> = { g: 1e6, mg: 1e3, μg: 1, µg: 1, ug: 1, mcg: 1, ng: 1e-3 };
+
+/** A unit per kilogram of body weight ("mg/kg of body weight"). */
+export const isPerKg = (unit: string) => /\/\s*kg\b|kg of body weight/i.test(unit);
+const massOf = (unit: string) => unit.split('/')[0].trim();
+
+/** An amount in another unit: the same number in the same unit, converted
+ *  between units of mass (0.1 mg is 100 µg), or null when they don't
+ *  convert (mL to mg). With a body weight, an amount and so much a
+ *  kilogram convert too (75 mg at 50 kg is 1.5 mg/kg). */
+export function convertAmount(value: number, from: string, to: string, kg?: number | null): number | null {
+  const a = from.trim().replace('µ', 'μ');
+  const b = to.trim().replace('µ', 'μ');
+  if (a === b) return value;
+  if (isPerKg(a) || isPerKg(b)) {
+    if (isPerKg(a) && isPerKg(b)) return convertAmount(value, massOf(a), massOf(b));
+    if (!kg) return null;
+    if (isPerKg(b)) {
+      const m = convertAmount(value, a, massOf(b));
+      return m == null ? null : m / kg;
+    }
+    return convertAmount(value * kg, massOf(a), b);
+  }
+  const f = MASS[a];
+  const t = MASS[b];
+  return f && t ? (value * f) / t : null;
+}
+
+/** "1.6", "0.42", "1,050": an amount as it reads best. */
+export function fmtAmount(v: number): string {
+  if (v >= 100) return Math.round(v).toLocaleString('en-GB');
+  if (v >= 10) return String(Math.round(v * 10) / 10);
+  if (v >= 1) return String(Math.round(v * 100) / 100);
+  return String(Number(v.toPrecision(2)));
 }
