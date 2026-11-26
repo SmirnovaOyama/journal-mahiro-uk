@@ -64,33 +64,38 @@ const PageHeader: React.FC<{
             <div
                 className={`glass glass-bar sticky top-0 z-20 transition-shadow ${scrolled ? 'shadow-[inset_0_calc(-1*var(--hairline))_0_var(--border)]' : ''}`}
             >
-                <div className={`${columnClassName} pt-4 pb-3 flex items-end justify-between gap-4`}>
-                    <div className="min-w-0 flex-1">
-                        {onBack ? (
-                            <button
-                                onClick={onBack}
-                                className="flex min-w-0 max-w-full items-center gap-3 -ml-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
-                            >
-                                <ArrowLeft size={22} aria-hidden="true" className={`${muted} shrink-0`} />
-                                <span
-                                    className={`font-display text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}
+                <div className={`${columnClassName} pt-4 pb-3`}>
+                    {/* The actions share the title's line, centred on it: set
+                        against the whole block they floated between the title
+                        and the line under it, level with neither. */}
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                            {onBack ? (
+                                <button
+                                    onClick={onBack}
+                                    className="flex min-w-0 max-w-full items-center gap-3 -ml-2 -my-1.5 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-hover)]"
                                 >
+                                    <ArrowLeft size={22} aria-hidden="true" className={`${muted} shrink-0`} />
+                                    <span
+                                        className={`font-display text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}
+                                    >
+                                        {title}
+                                    </span>
+                                    <span className="sr-only">{tr(', Back')}</span>
+                                </button>
+                            ) : (
+                                <h1 className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>
                                     {title}
-                                </span>
-                                <span className="sr-only">{tr(', Back')}</span>
-                            </button>
-                        ) : (
-                            <h1 className={`text-[1.625rem] leading-8 font-semibold tracking-[-0.02em] truncate ${on}`}>
-                                {title}
-                            </h1>
-                        )}
-                        {/* History pins its day labels at exactly this header's
-                            height (top-[5rem]): 16 + 32 + 2 + 18 + 12 at the base
-                            size. All of it is in rem, so on a wide screen, where
-                            --ui-scale lifts the root size, the two grow together. */}
-                        {subtitle && <p className={`text-xs ${muted} mt-0.5`}>{subtitle}</p>}
+                                </h1>
+                            )}
+                        </div>
+                        {actions && <div className="flex items-center gap-1 -mr-2 shrink-0">{actions}</div>}
                     </div>
-                    {actions && <div className="flex items-center gap-1 -mr-2 shrink-0">{actions}</div>}
+                    {/* History pins its day labels at exactly this header's
+                        height (top-[5rem]): 16 + 32 + 2 + 18 + 12 at the base
+                        size. All of it is in rem, so on a wide screen, where
+                        --ui-scale lifts the root size, the two grow together. */}
+                    {subtitle && <p className={`text-xs ${muted} mt-0.5`}>{subtitle}</p>}
                 </div>
             </div>
         </>

@@ -48,6 +48,7 @@ export const ChevronDown = glyph('chevron-down', 'ChevronDown');
 export const ChevronUp = glyph('chevron-up', 'ChevronUp');
 export const Search = glyph('search', 'Search');
 export const Bookmark = glyph('bookmark', 'Bookmark');
+export const Heart = glyph('heart', 'Heart');
 export const BookmarkPlus = glyph('bookmark-plus', 'BookmarkPlus');
 export const Select = glyph('select', 'Select');
 export const Merge = glyph('merge', 'Merge');
