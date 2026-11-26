@@ -245,3 +245,9 @@ export function useWeight() {
 export function formatWeight(kg: number, unit: 'kg' | 'lb'): string {
   return unit === 'lb' ? `${Math.round(kg / KG_PER_LB)} lb` : `${Number(kg.toFixed(1))} kg`;
 }
+
+/** Changes only the unit weights are shown in, keeping the weight. */
+export function setWeightUnit(unit: 'kg' | 'lb') {
+  if ((weight?.unit ?? 'kg') === unit) return;
+  setWeightValue({ kg: weight?.kg ?? null, unit, at: Date.now() });
+}
