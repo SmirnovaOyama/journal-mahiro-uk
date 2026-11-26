@@ -59,6 +59,11 @@ async function pageFor(env: Env, url: URL): Promise<Page> {
             if (!detail) return { ...site, path: url.pathname, found: false };
             return { ...substancePreview(detail, byId.get(detail.id)), path: `/s/${detail.id}`, found: true };
         }
+        case 'report': {
+            const report = await json<{ id: string; title: string; summary: string }>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.json`);
+            if (!report) return { ...site, path: url.pathname, found: false };
+            return { ...site, title: report.title, description: report.summary, path: `/report/${report.id}`, found: true };
+        }
         case 'mix': {
             const chosen = route.ids.map(id => byId.get(id)).filter((e): e is IndexEntry => !!e);
             if (chosen.length < 2) return { ...mixPreview(chosen.map(e => e.name)), path: url.pathname, found: true };

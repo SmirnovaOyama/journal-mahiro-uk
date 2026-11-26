@@ -20,7 +20,6 @@ import { DoseRuler } from '../components/DoseRuler';
 import { Absorption } from '../components/Absorption';
 import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
 import { Fold } from '../components/Fold';
-import { CaseReport } from '../components/CaseReport';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
@@ -361,7 +360,15 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             {detail.warnings?.map(w => (
                                 <div key={w.url + w.text.slice(0, 24)}>
                                     <Advisory>{w.text} {w.source}</Advisory>
-                                    {w.report && <CaseReport id={w.report} />}
+                                    {w.report && (
+                                        <Link
+                                            to={{ page: 'report', id: w.report }}
+                                            className={`mt-1 ml-6 inline-flex items-center gap-1 text-sm no-underline text-[var(--text)] hover:underline`}
+                                        >
+                                            {'Read the full report'}
+                                            <ChevronRight size={16} />
+                                        </Link>
+                                    )}
                                 </div>
                             ))}
                         </div>
