@@ -119,7 +119,7 @@ export interface Detail {
   summary: string;
   advisory?: string;
   /** Warnings added by hand from a case report, each with where it comes from. */
-  warnings?: { text: string; source: string; url: string }[];
+  warnings?: { text: string; source: string; url: string; report?: string }[];
   doseBasis?: string;
   doseUnit: string;
   doseRows: DoseRow[];
