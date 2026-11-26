@@ -4,6 +4,7 @@
 export type Route =
     | { page: 'home' }
     | { page: 'substance'; id: string }
+    | { page: 'report'; id: string }
     | { page: 'mix'; ids: string[] }
     | { page: 'kind'; category: string }
     | { page: 'browse' }
@@ -56,6 +57,7 @@ const SETTINGS_SUBS: readonly SettingsSub[] = [
 export function parse(path: string): Route {
     const parts = path.replace(/^[#/]+/, '').split('/').map(decodeURIComponent);
     if (parts[0] === 's' && parts[1]) return { page: 'substance', id: parts[1].toLowerCase() };
+    if (parts[0] === 'report' && parts[1]) return { page: 'report', id: parts[1].toLowerCase() };
     if (parts[0] === 'mix') return { page: 'mix', ids: (parts[1] || '').split('+').filter(Boolean) };
     if (parts[0] === 'kind' && parts[1]) return { page: 'kind', category: parts[1] };
     if (parts[0] === 'browse') return { page: 'browse' };
@@ -77,6 +79,8 @@ export function href(r: Route): string {
     switch (r.page) {
         case 'substance':
             return `/s/${encodeURIComponent(r.id)}`;
+        case 'report':
+            return `/report/${encodeURIComponent(r.id)}`;
         case 'mix':
             return r.ids.length ? `/mix/${r.ids.map(encodeURIComponent).join('+')}` : '/mix';
         case 'kind':
