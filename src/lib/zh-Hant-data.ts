@@ -605,7 +605,7 @@ const families: Record<string, string> = {
     'Morphinans': '嗎啡喃類',
     'Substituted morphinans': '取代嗎啡喃類',
     'MAOIs': '單胺氧化酶抑制劑',
-    'Substituted phenidates': '取代哌醋甲酯類',
+    'Substituted phenidates': '取代派醋甲酯類',
     'Gabapentinoids': '加巴噴丁類',
     'Nitazenes': '尼他嗪類',
     'Barbiturates': '巴比妥類',

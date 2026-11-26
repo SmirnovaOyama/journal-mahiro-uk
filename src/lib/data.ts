@@ -157,6 +157,9 @@ export interface Detail {
    *  Wikipedia writes it for Taiwan (scripts/zh-data.mjs). */
   zh?: string;
   summaryZh?: string;
+  /** The other names it goes by in Chinese, in Taiwan's writing, for the
+   *  page to name under the one it leads with ("氯胺酮, K他命"). */
+  zhOther?: string;
   /** How it works (scripts/pharmacology.mjs): the opening of what its article
    *  says of its mechanism; the receptors, transporters and channels the
    *  IUPHAR/BPS Guide to Pharmacology records it binding to, by what it does
