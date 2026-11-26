@@ -10,6 +10,8 @@ import { absorbedText } from './Absorption';
 import Choice from './Choice';
 import { Molecule } from './Molecule';
 import { SearchField } from './SearchField';
+import { CareNote } from './CareNote';
+import { isCareSearch } from '../lib/care';
 import Switch from './Switch';
 import { Alert, Close } from './icons';
 
@@ -282,6 +284,7 @@ export function IngestionForm({
                                 ))}
                             </div>
                         )}
+                        {isCareSearch(q) && <CareNote q={q} />}
                         {q.trim() && (
                             <div className="mt-2 flex flex-col">
                                 {hits.map(h => (
