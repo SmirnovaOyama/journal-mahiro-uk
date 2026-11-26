@@ -10,7 +10,7 @@ interface NavTab {
 /**
  * The bottom bar on a phone: a frosted floating island that content scrolls
  * visibly beneath, drawn with the same hairline as the rest of the page and
- * no shadow. The current tab is black and the others grey: that is the whole
+ * no shadow. The current tab is terracotta and the others grey: that is the whole
  * difference. The colour eases over, icon and label as one, since the icon
  * takes its ink from the label's (app.css, .nav-tab); a tab pressed sinks a
  * little under the finger. (A tinted pill used to glide to the new tab while
@@ -79,7 +79,7 @@ const BottomNav: React.FC<{
                             key={id}
                             onClick={() => onSelect(id)}
                             aria-current={isActive ? 'page' : undefined}
-                            className={`nav-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] ${isActive ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
+                            className={`nav-tab flex-1 flex flex-col items-center justify-center gap-0.5 py-1 rounded-[var(--radius-lg)] ${isActive ? 'text-[var(--accent-ink)]' : 'text-[var(--text-muted)]'}`}
                         >
                             <span className="nav-ico grid h-[30px] w-[52px] place-items-center">
                                 <TabIcon size={22} />

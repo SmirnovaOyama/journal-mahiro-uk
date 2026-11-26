@@ -72,15 +72,16 @@ export const RATINGS = ['-', '±', '+', '++', '+++', '++++'] as const;
 const KEY = 'journal.log.v1';
 export const SESSION_GAP = 12 * 3600_000;
 
-/** Colours for substances, in the order they're handed out, each readable
- *  on white and on the dark page. No reds: red on a page means a risk, and a
- *  curve in it read as one. A colour already given keeps, red or not. */
+/** Colours for substances, in the order they're handed out: the site's clay
+ *  and the hues around it, each readable on white and on the dark page. */
 export const PALETTE = [
+    'oklch(62% 0.13 40)', // terracotta
     'oklch(60% 0.12 250)', // sky
     'oklch(62% 0.12 150)', // sage
     'oklch(70% 0.13 80)', // sand
     'oklch(58% 0.14 330)', // plum
     'oklch(62% 0.11 195)', // teal
+    'oklch(58% 0.15 20)', // rose
     'oklch(64% 0.12 110)', // olive
     'oklch(55% 0.13 285)', // indigo
     'oklch(66% 0.12 60)', // amber
