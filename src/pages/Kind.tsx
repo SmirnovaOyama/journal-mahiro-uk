@@ -9,6 +9,9 @@ import { tr } from '../lib/i18n';
  *  letters that sticks under the header to jump through a long list. The
  *  ones with doses come first; the reference entries (from Wikidata, names
  *  and what they are, no doses) join them on asking. */
+/** Documented: with doses of its own, or (a reference entry) with FreeODwiki's. */
+const isDocumented = (e: IndexEntry) => e.src !== 'wd' || !!e.primaryBand;
+
 export function Kind({ category, index }: { category: string; index: IndexEntry[] | null }) {
     const info = categoryInfo(category);
     const title = tr(info.plural);
@@ -18,11 +21,11 @@ export function Kind({ category, index }: { category: string; index: IndexEntry[
 
     const [all, setAll] = useState(false);
     const ofKind = useMemo(() => (index ?? []).filter(e => e.category === info.id), [index, info]);
-    const documented = ofKind.filter(e => e.src !== 'wd').length;
+    const documented = ofKind.filter(isDocumented).length;
     const showAll = all || documented === 0;
     const groups = useMemo(() => {
         const items = ofKind
-            .filter(e => showAll || e.src !== 'wd')
+            .filter(e => showAll || isDocumented(e))
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
         const out: { letter: string; items: IndexEntry[] }[] = [];
         for (const e of items) {

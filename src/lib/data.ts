@@ -170,6 +170,8 @@ export interface Detail {
    *  be habit-forming, from the infobox. */
   sideEffects?: Quoted & { addiction?: string; dependence?: string; figures?: string };
   advisory?: string;
+  /** 'FreeODwiki' where the advisory is its warning, brought along with its doses (scripts/freeodwiki.mjs). */
+  advisorySource?: string;
   /** Warnings added by hand from a case report, each with where it comes from. */
   warnings?: { text: string; source: string; url: string; report?: string }[];
   /** How it's sold in a place, added by hand from that place's own rule. */
