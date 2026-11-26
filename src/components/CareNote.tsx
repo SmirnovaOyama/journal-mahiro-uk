@@ -47,11 +47,11 @@ const COPY = {
     zh: {
         title: '你还好吗 (っ´ω`c)',
         body: [
-            '想先跟你打个招呼。如果你是因为心里很沉、很累才来到这里，真的很高兴你还在，也很心疼你这么难受 (´；ω；`)',
-            '找人说说话不需要想好怎么说，也不需要“难受到一定程度”才可以。下面这些人都很温柔，会认真听你说，整晚都在',
-            '不管发生了什么，你都很重要，你值得比现在好受一些',
+            '很高兴能在这里与你相遇，也许你已经独自走过了很长一段艰难的路，有许多不曾诉说的委屈，也有许多无人知晓的心事，倘若此刻的你感到疲倦，不妨暂且搁下那些沉重的思绪，寻一处安全的地方歇息片刻，或许今夜漫长，但往后的岁月里，还有未曾看过的风景、未曾读完的故事，以及尚未与你相遇的人',
+            '愿你在疲惫时有所依靠，在寒冷时有人与你分享温暖，倘若心事太过沉重，下方也有愿意倾听你的人，愿每一位疲倦的旅人，都不必化作星辰，亦能在人间寻得归处，若你已经服用了任何有毒物质，请立即拨打 120，不要等待症状出现，也不要自行催吐，及时救治仍有机会让一切好起来',
         ],
-        urgent: '如果已经吃下了什么，请马上拨打 120。没有人会怪你，越早处理越有机会好起来',
+        // In the words above already.
+        urgent: '',
         heading: '随时都有人愿意听你说',
     },
     // The same words for a reader of the site in 正體中文, with Taiwan's and Hong Kong's numbers.
@@ -85,7 +85,9 @@ export function CareNote({ q }: { q: string }) {
                             <Kao text={p} />
                         </p>
                     ))}
-                    <p className="mt-3 text-sm leading-relaxed font-medium text-[var(--text)]"><Kao text={t.urgent} /></p>
+                    {t.urgent && (
+                        <p className="mt-3 text-sm leading-relaxed font-medium text-[var(--text)]"><Kao text={t.urgent} /></p>
+                    )}
                 </div>
             </div>
             <h3 className="group-heading mt-5 mb-1">{t.heading}</h3>
