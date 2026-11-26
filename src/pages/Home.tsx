@@ -28,10 +28,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
 
     const hits = useMemo(() => (index ? search(index, q, 200) : []), [index, q]);
     const care = isCareSearch(q);
-    // N55 opens its window once each time the search becomes it.
     const n55 = isN55Search(q);
-    const [n55Open, setN55Open] = useState(false);
-    useEffect(() => setN55Open(n55), [n55]);
     useEffect(() => {
         setActive(0);
         setLimit(20);
@@ -73,7 +70,6 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     </span>
                 }
             />
-            {n55Open && <N55Egg onClose={() => setN55Open(false)} />}
             <div className={`${PAGE_COLUMN} pt-1 pb-8`}>
                 <SearchField
                     ref={input}
@@ -87,7 +83,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     autoFocus={!('ontouchstart' in window)}
                 />
 
-                {care ? <CareNote q={q} /> : isHrtSearch(q) && <HrtEgg q={q} />}
+                {care ? <CareNote q={q} /> : n55 ? <N55Egg /> : isHrtSearch(q) && <HrtEgg q={q} />}
                 {q.trim() ? (
                     <section className="m-appear mt-6" aria-live="polite">
                         {hits.length === 0 ? (
