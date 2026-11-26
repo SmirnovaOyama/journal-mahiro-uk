@@ -10,6 +10,7 @@ import { isZh } from '../lib/i18n';
    girl. 寻寻觅觅 is Li Qingzhao's and holds the name; 参商 is Du Fu's, the
    two stars that never share a sky, and in English they are Orion and the
    Scorpion, which are the same two. The last line is the user's own.
+   Under the verse, a second picture: asleep under a cherry tree at dusk.
    Hearts the first time it shows on a visit, and again at a tap on the
    picture. The Chinese is in the site's script for a reader of 正體中文;
    the name is a name and stays as it is written. */
@@ -89,6 +90,17 @@ export function XunxunEgg() {
                 {isZh() ? <Stanzas verse={VERSE.zhHant} lang="zh-Hant" /> : <Stanzas verse={VERSE.zh} lang="zh-Hans" />}
                 <Stanzas verse={VERSE.en} lang="en" />
             </figcaption>
+            {/* Asleep under the cherry tree, in the light of dusk (graded into the file). */}
+            <img
+                src="/xunxun-dusk.webp"
+                alt=""
+                width={960}
+                height={536}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                className="block mt-6 w-full h-auto rounded-3xl select-none"
+            />
         </figure>
     );
 }
