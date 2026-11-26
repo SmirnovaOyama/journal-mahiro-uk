@@ -5,8 +5,9 @@
 //
 // A new entry holds only what is known for sure: its names, what kind of
 // drug it is, its PubChem compound (for the drawing), the opening of its
-// Wikipedia article, and the interactions Wikidata lists. Never a dose:
-// doses come from PsychonautWiki and TripSit only.
+// Wikipedia article, and the interactions Wikidata lists. Never a dose
+// here: doses come from PsychonautWiki and TripSit, and for a few of these
+// entries from FreeODwiki, later (scripts/freeodwiki.mjs).
 //
 //   node scripts/sync-wikidata.mjs            fetch what isn't cached, then write
 //   node scripts/sync-wikidata.mjs --refetch  fetch everything again

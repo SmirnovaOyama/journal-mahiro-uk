@@ -341,7 +341,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
         ) : null;
 
     const muted = 'text-[var(--text-muted)]';
-    const reference = detail.source === 'Wikidata';
+    // A reference entry (from Wikidata) has no doses, unless FreeODwiki gave it some
+    // (scripts/freeodwiki.mjs): then it's read as any other, with a word on where they're from.
+    const dosed = detail.doseRows.length > 0;
+    const reference = detail.source === 'Wikidata' && !dosed;
+    const unchecked = detail.doseRows.some(r => r.source === 'FreeODwiki');
     const how = detail.pharmacology;
     const uses = detail.uses;
     const side = detail.sideEffects;
@@ -477,7 +481,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         </Link>
                     )}
 
-                    {(limited || detail.advisory || detail.warnings?.length) && (
+                    {(limited || unchecked || detail.advisory || detail.warnings?.length) && (
                         <div className="mt-4 space-y-2">
                             {limited && (
                                 <Advisory>
@@ -485,6 +489,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 </Advisory>
                             )}
                             {detail.advisory && <Advisory><Linked text={detail.advisory} /></Advisory>}
+                            {unchecked && (
+                                <Advisory>
+                                    {tr('These doses and timings are from FreeODwiki, a community wiki, and no second source here confirms them. Treat them as rough, and start lower than they say.')}
+                                </Advisory>
+                            )}
                             {detail.warnings?.map(w => (
                                 <div key={w.url + w.text.slice(0, 24)}>
                                     <Advisory><Linked text={w.text} /> {w.source}</Advisory>

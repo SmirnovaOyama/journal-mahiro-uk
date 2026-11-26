@@ -27,11 +27,14 @@ mass (2,949: a plant or a family of drugs has none of its own).
   Beside the words, rows of facts: what kind of drug it is (1,022); what it
   binds to and what it does there, from the Guide to Pharmacology (214); what
   the body does with it, from how soon it works to its half-life, what breaks
-  it down, what it turns into and how it leaves (789); what it's sold as
+  it down, what it turns into and how it leaves (787); what it's sold as
   (514) and how it's taken (1,234).
 - 2,339 are reference entries from Wikidata and Wikipedia: what the substance
   is, how it works, what it's used for, its names, its structure and its
-  known interactions. They never have a dose.
+  known interactions. They have no dose, but for 16 that FreeODwiki gives
+  doses and timings for (olanzapine, clozapine, amantadine, loperamide and
+  others): those are shown with a line saying where they're from, and with
+  the warnings FreeODwiki sets beside them.
 - Search by name, street name or family, or browse by kind. Each kind lists
   the documented substances first, with the rest a tap away.
 
@@ -96,6 +99,7 @@ for chat apps and search engines.
 | --- | --- | --- |
 | [PsychonautWiki](https://psychonautwiki.org) | Doses, durations, effects, tolerance, interactions, and how a substance works where Wikipedia doesn't say | CC BY-SA 4.0 |
 | [TripSit](https://tripsit.me) | Combinations, factsheets | See [TripSit/drugs](https://github.com/TripSit/drugs) |
+| [FreeODwiki](https://freeodwiki.org) | Doses and timings for substances the two above give none for | CC BY-SA 4.0 |
 | [Wikidata](https://www.wikidata.org) | Kinds, interactions, and the substances the two above don't cover | CC0 |
 | [Wikipedia](https://www.wikipedia.org) | Summaries; how each works, what it's used for and its side effects; the drug infobox's figures. Linked from each page | CC BY-SA 4.0 |
 | [IUPHAR/BPS Guide to Pharmacology](https://www.guidetopharmacology.org) | What a drug binds to, and what it does there | CC BY-SA 4.0 |
@@ -123,6 +127,14 @@ the drugs whose primary target the Guide marks. Its other rows can be stray
 findings (lorazepam's only row there is an orphan receptor), and Wikidata's
 copy of them gets the kind of action wrong (olanzapine an agonist of the
 receptors it blocks), so neither is used.
+
+FreeODwiki's doses (`scripts/freeodwiki.mjs`) are taken only for a substance
+with none of its own, only as figures (a route's ladder and its timings),
+and only from its pages laid out as PsychonautWiki's are, most of which are
+PsychonautWiki's drafts in translation. Its "OverdoseWiki" archive isn't
+read for doses: by its own account those ladders are partly guesses, and for
+several medicines it declines to give any. A page is a substance's only by
+the name it gives itself, in English or (through Wikidata) in Chinese.
 
 A reference entry comes from Wikidata's classes of psychoactive drugs, from
 nervous-system ATC codes, or from Wikipedia's lists of drugs (PiHKAL, TiHKAL,

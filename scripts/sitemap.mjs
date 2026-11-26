@@ -15,7 +15,7 @@ const urls = [
     ['/browse', '0.6'],
     ['/mix', '0.6'],
     ...kinds.map(k => [`/kind/${encodeURIComponent(k)}`, '0.5']),
-    ...index.map(e => [`/s/${encodeURIComponent(e.id)}`, e.src === 'wd' ? '0.4' : e.status === 'Well-documented' ? '0.8' : '0.7']),
+    ...index.map(e => [`/s/${encodeURIComponent(e.id)}`, e.src === 'wd' && !e.primaryBand ? '0.4' : e.status === 'Well-documented' ? '0.8' : '0.7']),
 ];
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
