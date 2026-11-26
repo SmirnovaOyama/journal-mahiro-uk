@@ -7,6 +7,8 @@ export type CaseReport = {
     id: string;
     title: string;
     summary: string;
+    /** A line of dedication, set under the picture. */
+    epigraph?: string;
     source: string;
     url: string;
     picture?: { src: string; alt: string; credit?: string };
@@ -68,6 +70,7 @@ export function Report({ id }: { id: string }) {
                                 )}
                             </figure>
                         )}
+                        {report.epigraph && <p className="text-base text-[var(--text)]">{report.epigraph}</p>}
                         <p className="text-[var(--text-muted)]">{report.source}</p>
                         {report.sections.map(s => (
                             <section key={s.heading} className="space-y-2">
