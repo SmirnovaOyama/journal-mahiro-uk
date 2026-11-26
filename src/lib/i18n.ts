@@ -62,6 +62,16 @@ export function tr(text: string, vars?: Record<string, string | number>, sense?:
     return vars ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : s;
 }
 
+/** A line with a space where Chinese meets Latin letters or digits, as the
+ *  site's Chinese is set ("不要與 GBL 混用"). Nothing is added inside a
+ *  word, or next to full-width punctuation, which carries its own space. */
+export function spaced(text: string): string {
+    if (lang === 'en') return text;
+    return text
+        .replace(/([\u3400-\u9fff])([A-Za-z0-9(])/g, '$1 $2')
+        .replace(/([A-Za-z0-9)%])([\u3400-\u9fff])/g, '$1 $2');
+}
+
 /** The locale dates and clock times are written in. */
 export const dateLocale = () => (lang === 'zh-Hant' ? 'zh-TW' : 'en-GB');
 
