@@ -2,11 +2,12 @@ import { useEffect, useRef } from 'react';
 import { sparkleFrom } from '../lib/eggs';
 import { isZh } from '../lib/i18n';
 
-/* What a search for 寻寻 finds: a picture, the name, and a few lines of
-   verse under the field. Betelgeuse, which is always about to go off and
-   hasn't; the two girls a year below at school, both of them Misaka
-   Sisters, and the writer a year ahead and not Misaka Mikoto; Oyama Mahiro,
-   who slept and woke up a girl. The last line is the user's own.
+/* What a search for 寻寻 finds: a picture, the name, and three short stanzas
+   under the field. Betelgeuse over red walls and green tiles, always about
+   to become something else and never yet; Misaka Mikoto's twenty thousand
+   Sisters, two of them a year below at school and none of them the writer;
+   Oyama Mahiro, who slept and woke up a girl, and the 寻 of that name
+   written twice, still looking. The last line is the user's own.
    Hearts the first time it shows on a visit, and again at a tap on the
    picture. The verse is Chinese for every reader, in the site's script for
    a reader of 正體中文; the name is a name and stays as it is written. */
@@ -16,26 +17,18 @@ export const isXunxunSearch = (q: string) => /^(寻寻|尋尋|xunxun)$/.test(q.t
 
 const VERSE = {
     zh: {
-        lines: [
-            '参宿四红了很久，',
-            '都说它要炸开，它始终没有。',
-            '光走了几百年，落在红墙绿瓦上。',
-            '那时低我一届的两个女孩，都是御坂姐妹。',
-            '我早来一年，却不是御坂美琴。',
-            '绪山真寻睡了一觉，醒来就是了。',
-            '我也睡过很多觉。',
+        stanzas: [
+            ['红墙绿瓦上面是冬夜，', '冬夜上面是参宿四，红着。', '都说它就要成为别的什么了，', '它始终没有。'],
+            ['御坂美琴有两万个妹妹，', '两个在我的下一届，', '没有一个是我。'],
+            ['绪山真寻睡了一觉，醒来就是了。', '我把寻字写了两遍，', '还在寻。'],
         ],
         last: '想要成为，但是始终成为不了的“女孩子”',
     },
     zhHant: {
-        lines: [
-            '參宿四紅了很久，',
-            '都說它要炸開，它始終沒有。',
-            '光走了幾百年，落在紅牆綠瓦上。',
-            '那時低我一屆的兩個女孩，都是御坂姐妹。',
-            '我早來一年，卻不是御坂美琴。',
-            '緒山真尋睡了一覺，醒來就是了。',
-            '我也睡過很多覺。',
+        stanzas: [
+            ['紅牆綠瓦上面是冬夜，', '冬夜上面是參宿四，紅著。', '都說它就要成為別的什麼了，', '它始終沒有。'],
+            ['御坂美琴有兩萬個妹妹，', '兩個在我的下一屆，', '沒有一個是我。'],
+            ['緒山真尋睡了一覺，醒來就是了。', '我把尋字寫了兩遍，', '還在尋。'],
         ],
         last: '想要成為，但是始終成為不了的「女孩子」',
     },
@@ -67,12 +60,14 @@ export function XunxunEgg() {
             />
             <figcaption className="mt-3">
                 <span className="block text-base font-semibold text-[var(--text)]">寻寻</span>
-                <span className="block mt-2 text-sm leading-loose text-[var(--text-muted)]">
-                    {verse.lines.map(l => (
-                        <span key={l} className="block">{l}</span>
-                    ))}
-                </span>
-                <span className="block mt-3 text-sm font-medium leading-relaxed text-[var(--text)]">{verse.last}</span>
+                {verse.stanzas.map(stanza => (
+                    <span key={stanza[0]} className="block mt-3 text-sm leading-loose text-[var(--text-muted)]">
+                        {stanza.map(l => (
+                            <span key={l} className="block">{l}</span>
+                        ))}
+                    </span>
+                ))}
+                <span className="block mt-4 text-sm font-medium leading-relaxed text-[var(--text)]">{verse.last}</span>
             </figcaption>
         </figure>
     );
