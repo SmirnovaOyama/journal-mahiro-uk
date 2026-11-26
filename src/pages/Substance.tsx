@@ -349,7 +349,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         </Link>
                     )}
 
-                    {(limited || detail.advisory) && (
+                    {(limited || detail.advisory || detail.warnings?.length) && (
                         <div className="mt-4 space-y-2">
                             {limited && (
                                 <Advisory>
@@ -357,6 +357,14 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 </Advisory>
                             )}
                             {detail.advisory && <Advisory>{detail.advisory}</Advisory>}
+                            {detail.warnings?.map(w => (
+                                <Advisory key={w.url + w.text.slice(0, 24)}>
+                                    {w.text}{' '}
+                                    <a href={w.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                                        {w.source}
+                                    </a>
+                                </Advisory>
+                            ))}
                         </div>
                     )}
 
