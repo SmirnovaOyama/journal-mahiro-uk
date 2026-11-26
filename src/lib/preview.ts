@@ -159,6 +159,15 @@ export function kindPreview(category: string, count: number): Preview {
     };
 }
 
+/** The essay under Settings, About: a page of its own to share. */
+export function essayPreview(count?: number): Preview {
+    return {
+        ...sitePreview(count),
+        title: tr('A Borrowed Spring'),
+        description: tr('An essay on using, in four seasons: spring wind, cherry blossom, cicada song and autumn leaves.'),
+    };
+}
+
 export function pagePreview(page: 'browse' | 'saved' | 'settings' | 'journal', count?: number): Preview {
     const base = sitePreview(count);
     if (page === 'browse')
