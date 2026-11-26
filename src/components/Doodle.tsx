@@ -54,7 +54,9 @@ export type DoodleName =
     | 'person'
     | 'report'
     | 'lens'
-    | 'flask';
+    | 'flask'
+    | 'pencil'
+    | 'shield';
 
 const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     // A syringe drawn with volume, needle down to the left: a plump barrel
@@ -437,6 +439,34 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             />
             <Line d="M13.4 25.2 C 18 24.9, 23 25.3, 27.6 25" w={1.4} />
             <Line d="M13.4 29 C 16.4 28.8, 19.4 29.1, 22.2 28.9" w={1.4} />
+        </>
+    ),
+    // A pencil on the slant, point down to the left, with a line it has just
+    // struck through: what a report got wrong.
+    pencil: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M27.4 7.6 C 29.4 8.8, 31.4 10.6, 32.6 12.6 C 27.8 17.6, 21.4 23.8, 16 29 C 14 28.2, 11.8 26, 11 24 C 16.4 18.6, 22.4 12.6, 27.4 7.6 Z"
+            />
+            <Line d="M27.4 7.6 C 29.4 8.8, 31.4 10.6, 32.6 12.6 C 27.8 17.6, 21.4 23.8, 16 29 C 14 28.2, 11.8 26, 11 24 C 16.4 18.6, 22.4 12.6, 27.8 7.2" />
+            <Line d="M11 24 C 10 26.6, 9.2 29, 8.4 31.4 C 10.8 30.6, 13.4 29.8, 16 29" />
+            <Line d="M24.4 10.6 C 26.4 11.8, 28.2 13.6, 29.4 15.6" w={1.5} />
+            <Line d="M9.8 29.6 L 8.8 30.9" w={2.4} />
+            <Line d="M6.6 35 C 14 34.6, 22 35.2, 33.4 34.6" w={1.5} />
+        </>
+    ),
+    // A shield with a tick on it: what keeps you safe.
+    shield: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M20 6.6 C 23.6 8.6, 27.6 9.8, 31.6 10 C 31.8 19.6, 28.4 27.8, 20 33.4 C 11.6 27.6, 8.2 19.6, 8.6 10 C 12.6 9.8, 16.4 8.6, 20 6.6 Z"
+            />
+            <Line d="M20 6.6 C 23.6 8.6, 27.6 9.8, 31.6 10 C 31.8 19.6, 28.4 27.8, 20 33.4 C 11.6 27.6, 8.2 19.6, 8.6 10 C 12.6 9.8, 16.4 8.6, 20.4 6.3" />
+            <Line d="M14.6 19.8 C 16 21.2, 17.4 22.6, 18.6 24.2 C 21 20.6, 23.6 17.4, 26.4 14.6" w={2} />
         </>
     ),
 };

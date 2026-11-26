@@ -19,6 +19,7 @@ import { useDetail } from '../lib/useIndex';
 import { DoseRuler } from '../components/DoseRuler';
 import { Absorption } from '../components/Absorption';
 import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
+import Doodle from '../components/Doodle';
 import { Fold } from '../components/Fold';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
@@ -363,8 +364,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {w.report && (
                                         <Link
                                             to={{ page: 'report', id: w.report }}
-                                            className={`mt-1 ml-6 inline-flex items-center gap-1 text-sm no-underline text-[var(--text)] hover:underline`}
+                                            className={`mt-1 ml-5 inline-flex items-center gap-1.5 text-sm no-underline text-[var(--text)] hover:underline`}
                                         >
+                                            <Doodle name="report" size={1.75} />
                                             {'Read the full report'}
                                             <ChevronRight size={16} />
                                         </Link>
