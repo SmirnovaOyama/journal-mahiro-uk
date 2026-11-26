@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import Doodle from '../components/Doodle';
 import LevelRail from '../components/LevelRail';
 import { Molecule } from '../components/Molecule';
@@ -341,9 +341,33 @@ const HUE: Record<string, string> = {
     'L-Theanine': PALETTE[7],
 };
 
+/** How long one night takes to fade before the next is drawn, ms. */
+const NIGHT_OUT_MS = 260;
+
+/* The chart's frame (its gridlines) stays where it is the whole time. When
+   the next night comes, what's drawn on the frame fades out where it stands,
+   with its line underneath, and nothing moves or blurs. Once it has gone,
+   the next night is drawn the way the journal draws a session: dots land,
+   curves are inked left to right, "now" comes last, and its line settles in
+   underneath.
+
+   The chart is drawn again each time this screen is shown. When the screen
+   is left, the chart stays standing and slides away with it. */
 function JournalStage({ active }: { active: boolean }) {
     const [now] = useState(() => Date.now());
     const k = useCycle(SESSIONS.length, 4200, active);
+    // The night on the chart, a step behind `k` while the last one fades.
+    const [shown, setShown] = useState(k);
+    useEffect(() => {
+        if (shown === k) return;
+        const t = window.setTimeout(() => setShown(k), still() ? 0 : NIGHT_OUT_MS);
+        return () => window.clearTimeout(t);
+    }, [k, shown]);
+    // Counts the visits, before the paint, so the first frame is already the new drawing.
+    const [visit, setVisit] = useState(0);
+    useLayoutEffect(() => {
+        if (active) setVisit(v => v + 1);
+    }, [active]);
     const doses = (i: number): ChartDose[] =>
         SESSIONS[i].doses.map(([name, ago, [a, b, c, d], strength], j) => ({
             id: `${i}-${j}`,
@@ -353,26 +377,25 @@ function JournalStage({ active }: { active: boolean }) {
             strength,
             label: name,
         }));
-    const chart = (i: number) => <SessionChart doses={doses(i)} now={now} />;
-    const row = (i: number) => {
-        const s = SESSIONS[i];
-        return (
-            <div className="flex items-center gap-3">
-                <SessionMark colors={[...new Set(s.doses.map(d => HUE[d[0]]))]} size={24} />
-                <span className="min-w-0">
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text)]">
-                        {tr(s.title)}
-                        {s.star && <Heart size={13} fill="currentColor" className="text-[var(--text-muted)]" />}
-                    </span>
-                    <span className="block truncate text-xs text-[var(--text-muted)]">{tr(s.what)}</span>
-                </span>
-            </div>
-        );
-    };
+    const s = SESSIONS[shown];
     return (
-        <div className="w-full max-w-[24rem]">
-            {active && <Crossfade k={k} render={chart} />}
-            <Crossfade k={k} delay={110} render={row} className="mt-1" />
+        <div className="ob-night w-full max-w-[24rem]" data-fading={shown !== k || undefined}>
+            {/* Its height kept before the first visit, so the line under it doesn't jump. */}
+            <div className="min-h-[196px]">
+                {visit > 0 && <SessionChart key={`${visit}-${shown}`} doses={doses(shown)} now={now} />}
+            </div>
+            <div className="ob-night-fade mt-1">
+                <div key={shown} className="ob-night-in flex items-center gap-3">
+                    <SessionMark colors={[...new Set(s.doses.map(d => HUE[d[0]]))]} size={24} />
+                    <span className="min-w-0">
+                        <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text)]">
+                            {tr(s.title)}
+                            {s.star && <Heart size={13} fill="currentColor" className="text-[var(--text-muted)]" />}
+                        </span>
+                        <span className="block truncate text-xs text-[var(--text-muted)]">{tr(s.what)}</span>
+                    </span>
+                </div>
+            </div>
         </div>
     );
 }
