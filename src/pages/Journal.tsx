@@ -23,6 +23,7 @@ import { IngestionForm } from '../components/IngestionForm';
 import { Link } from '../components/Link';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import Segmented from '../components/Segmented';
+import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { StackedBars, type Bucket } from '../components/StackedBars';
 import { AlcoholLine } from '../components/AlcoholLine';
 import { SessionChart, type ChartDose } from '../components/SessionChart';
@@ -314,6 +315,12 @@ export function Journal({
     return <JournalHome index={index} byId={byId} view={view} />;
 }
 
+const JOURNAL_TAB_ORDER = ['log', 'stats'] as const;
+const JOURNAL_TABS = [
+    { id: 'log', label: 'Log' },
+    { id: 'stats', label: 'Stats' },
+] as const;
+
 function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: Map<string, IndexEntry>; view?: 'stats' }) {
     const { data, add } = useJournal();
     const now = useNow();
@@ -348,6 +355,8 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     const thisYear = new Date().getFullYear();
 
     const count = sessions.length;
+    const tab = view === 'stats' ? 'stats' : 'log';
+    const anim = useSwitchAnimation(tab, JOURNAL_TAB_ORDER);
     return (
         <div className="md:pb-32">
             <PageHeader
@@ -375,11 +384,20 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                     </>
                 }
             />
-            <div className={`${PAGE_COLUMN} pb-10`}>
+            <div className={`${PAGE_COLUMN} mt-3 pb-10`}>
+                {/* Log and Stats are two panels of the page, so they are tabs
+                    like Settings': a strip across the column, straight under
+                    the title, that the form opening below never moves. */}
+                <Tabs
+                    tabs={JOURNAL_TABS}
+                    value={tab}
+                    onChange={v => go(v === 'stats' ? { page: 'journal', view: 'stats' } : { page: 'journal' }, { replace: true })}
+                    className="mb-6"
+                />
                 <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
                     <div className="disclosure-inner">
                         {adding && (
-                            <div className="pt-2 pb-8">
+                            <div className="pb-8">
                                 <IngestionForm
                                     index={index}
                                     byId={byId}
@@ -399,76 +417,67 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                     </div>
                 </div>
 
-                <Segmented
-                    className="mb-6"
-                    aria-label={'Show'}
-                    options={[
-                        { id: 'log', label: 'Log' },
-                        { id: 'stats', label: 'Stats' },
-                    ]}
-                    value={view === 'stats' ? 'stats' : 'log'}
-                    onChange={v => go(v === 'stats' ? { page: 'journal', view: 'stats' } : { page: 'journal' }, { replace: true })}
-                />
-
-                {view === 'stats' ? (
-                    <Stats byId={byId} now={now} />
-                ) : count === 0 ? (
-                    adding ? null : (
-                        <div className="flex flex-col items-center text-center pt-6 pb-10">
-                            <Doodle name="notebook" size={4.5} />
-                            <p className={`mt-4 text-sm font-medium ${on}`}>{'Nothing logged yet'}</p>
-                            <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                                {'Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix. It stays on this device, unless you make an account to sync it.'}
-                            </p>
-                            <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
-                                {'Log a dose'}
-                            </button>
-                        </div>
-                    )
-                ) : (
-                    <>
-                        {live && (
-                            <section className="mb-9">
-                                <h2 className="group-heading mb-1">{'Current'}</h2>
-                                <div className="settings-section">
-                                    <SessionRow s={live} data={data} byId={byId} />
-                                </div>
-                                <div className="mt-3">
-                                    <SessionChart doses={chartDoses(live, details, color)} now={now} />
-                                    <AlcoholLine s={live} now={now} />
-                                </div>
-                                <div className="mt-3">
-                                    <Interactions pairs={pairsOf(live, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution)} />
-                                </div>
-                                {/* Thinking of adding something: check it against what's already in. */}
-                                <Link
-                                    to={{ page: 'mix', ids: substancesOf(live).filter(x => byId.has(x)) }}
-                                    className={`${headerActionAccent} tap-target -ms-2.5 mt-2 no-underline`}
-                                >
-                                    {'Check something else against this'}
-                                    <ChevronRight size={15} />
-                                </Link>
-                            </section>
-                        )}
-
-                        {previous.length > 0 ? (
-                            [...years.entries()].map(([y, list], k) => (
-                                <section key={y} className="mb-8">
-                                    <h2 className="group-heading mb-1">
-                                        {k === 0 && (y === thisYear || years.size === 1) ? (live ? 'Previous' : onlyStarred ? 'Favourites' : 'Sessions') : String(y)}
-                                    </h2>
+                <div key={tab} className={anim}>
+                    {view === 'stats' ? (
+                        <Stats byId={byId} now={now} />
+                    ) : count === 0 ? (
+                        adding ? null : (
+                            <div className="flex flex-col items-center text-center pt-6 pb-10">
+                                <Doodle name="notebook" size={4.5} />
+                                <p className={`mt-4 text-sm font-medium ${on}`}>{'Nothing logged yet'}</p>
+                                <p className={`mt-1 text-sm ${muted} max-w-xs`}>
+                                    {'Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix. It stays on this device, unless you make an account to sync it.'}
+                                </p>
+                                <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
+                                    {'Log a dose'}
+                                </button>
+                            </div>
+                        )
+                    ) : (
+                        <>
+                            {live && (
+                                <section className="mb-9">
+                                    <h2 className="group-heading mb-1">{'Current'}</h2>
                                     <div className="settings-section">
-                                        {list.map(s => (
-                                            <SessionRow key={s.id} s={s} data={data} byId={byId} />
-                                        ))}
+                                        <SessionRow s={live} data={data} byId={byId} />
                                     </div>
+                                    <div className="mt-3">
+                                        <SessionChart doses={chartDoses(live, details, color)} now={now} />
+                                        <AlcoholLine s={live} now={now} />
+                                    </div>
+                                    <div className="mt-3">
+                                        <Interactions pairs={pairsOf(live, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution)} />
+                                    </div>
+                                    {/* Thinking of adding something: check it against what's already in. */}
+                                    <Link
+                                        to={{ page: 'mix', ids: substancesOf(live).filter(x => byId.has(x)) }}
+                                        className={`${headerActionAccent} tap-target -ms-2.5 mt-2 no-underline`}
+                                    >
+                                        {'Check something else against this'}
+                                        <ChevronRight size={15} />
+                                    </Link>
                                 </section>
-                            ))
-                        ) : onlyStarred ? (
-                            <p className={`text-sm ${muted}`}>{'No favourites yet. Open a session and tap its star.'}</p>
-                        ) : null}
-                    </>
-                )}
+                            )}
+
+                            {previous.length > 0 ? (
+                                [...years.entries()].map(([y, list], k) => (
+                                    <section key={y} className="mb-8">
+                                        <h2 className="group-heading mb-1">
+                                            {k === 0 && (y === thisYear || years.size === 1) ? (live ? 'Previous' : onlyStarred ? 'Favourites' : 'Sessions') : String(y)}
+                                        </h2>
+                                        <div className="settings-section">
+                                            {list.map(s => (
+                                                <SessionRow key={s.id} s={s} data={data} byId={byId} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                ))
+                            ) : onlyStarred ? (
+                                <p className={`text-sm ${muted}`}>{'No favourites yet. Open a session and tap its star.'}</p>
+                            ) : null}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
