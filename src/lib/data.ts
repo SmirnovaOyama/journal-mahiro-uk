@@ -1,5 +1,5 @@
 import type { DosageForm } from '../components/doodles';
-import { dateLocale, isZh, tr } from './i18n';
+import { dataText, dateLocale, isZh, tr } from './i18n';
 
 /* What public/data holds: written by scripts/sync-substances.mjs from
    PsychonautWiki and TripSit, then by scripts/sync-wikidata.mjs, which adds
@@ -336,7 +336,12 @@ export function describe(e: Pick<IndexEntry, 'category' | 'chemicalClass'>): str
   const fam = fams.find((f) => /^substituted /i.test(f)) ?? fams[0] ?? '';
   const family = fam.replace(/s$/i, '').toLowerCase();
   // An acronym keeps its capitals: "the SSRI family", not "the ssri family".
-  const familyText = /^[A-Z]{3,}s?$/.test(fam) ? fam.replace(/s$/, '') : family;
+  let familyText = /^[A-Z]{3,}s?$/.test(fam) ? fam.replace(/s$/, '') : family;
+  // In Chinese the family has its own name ("取代色胺"), with no plural to strip.
+  if (isZh() && fam) {
+    const zh = dataText(fam);
+    if (zh !== fam) familyText = zh;
+  }
   const word = e.category.toLowerCase();
   // Chinese has no article and names the kind as the lists do.
   const kind = e.category === 'Other' ? tr('A substance') : isZh() ? tr(e.category) : `${/^[aeiou]/.test(word) ? 'An' : 'A'} ${word}`;

@@ -942,6 +942,23 @@ const zh: Record<string, string> = {
     'What are the risks of taking these together? Add everything you plan to take, including alcohol and any medication.': '一起用有什麼風險？把打算用的全部加進來，包括酒精和任何藥物。',
     'Still working, from your journal': '日誌中仍在作用',
     'Common checks': '常見查詢',
+    // lib/preview.ts: what a shared link or a search result says
+    'Oyama Journal': 'Oyama Journal',
+    'Doses, durations and what not to mix': '劑量、作用時間，以及什麼不能混用',
+    '{0}, for {1} psychoactive substances. Log what you take, on your device only. No sign-up.': '{0}，收錄 {1} 種精神活性物質。記下你用了什麼，只存在你的裝置上，不需註冊。',
+    '{0}.': '{0}。',
+    'Common dose {0}{1}, lasting {2}.': '常見劑量 {0}{1}，作用約 {2}。',
+    'Common dose {0}{1}.': '常見劑量 {0}{1}。',
+    ' {0}': '（{0}）',
+    'Lasts {0}.': '作用約 {0}。',
+    'Don’t mix with {0}.': '不要與 {0} 混用。',
+    'Little is known about it: take extra care with any amount.': '關於它所知很少：任何劑量都要格外小心。',
+    'What are the risks of taking these together? Add everything you plan to take, alcohol and medicines included.': '一起用有什麼風險？把打算用的全部加進來，包括酒精和藥物。',
+    '{0}. All {1}, A to Z, each with its doses, durations and what not to mix.': '{0}。共 {1} 種，依字母排列，每一種都有劑量、作用時間與不能混用的東西。',
+    '{0}: every kind of drug, A to Z.': '{0}：各類藥物，依字母排列。',
+    'Log what you take and when. Kept on your device, and synced encrypted if you want.': '記下你用了什麼、什麼時候用的。資料存在你的裝置上，也可以選擇加密同步。',
+    // pages/Substance.tsx
+    'the Chinese Wikipedia': '中文維基百科',
 };
 
 export default zh;
