@@ -108,7 +108,9 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
             if (!wish?.length || !picture) return page;
             return {
                 ...page,
-                image: `/og/report/${report.id}.png`,
+                /* The number is the card’s drawing: raise it when a card is redrawn, so
+                   an app that kept the old picture fetches the new one. */
+                image: `/og/report/${report.id}.png?v=2`,
                 imageAlt: picture.alt,
                 shareDescription: (wish.length > 1 ? wish.slice(1) : wish).join(' '),
             };
