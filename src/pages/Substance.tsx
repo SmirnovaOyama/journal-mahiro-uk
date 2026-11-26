@@ -322,8 +322,13 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
         .split(',')
         .map(a => a.trim())
         .filter(a => a && squash(a) !== squash(detail.name));
-    // Under its Chinese name, the name the sources use comes first among the others.
-    if (isZh() && detail.zh) aliases.unshift(detail.name);
+    // Under its Chinese name, the other Chinese names come first among the
+    // others, then the name the sources use, then the names they list.
+    if (isZh() && detail.zh)
+        aliases.unshift(
+            ...(detail.zhOther ? detail.zhOther.split(',').map(a => a.trim()).filter(Boolean) : []),
+            detail.name,
+        );
     const limited = detail.status === 'Limited data';
     // In 正體中文, zh.wikipedia's opening where it has one; else the English sources'.
     const zhSummary = isZh() && detail.summaryZh ? detail.summaryZh : '';

@@ -29,6 +29,28 @@ try {
 const twForm = n => (n && variants.tw[n]) || n;
 const bothForms = n => [n, variants.tw[n], variants.cn[n]].filter(Boolean);
 
+/* What Taiwan actually calls a handful of substances, where Wikipedia's
+   converter leaves the mainland's pharmacological name standing (it writes
+   氯胺酮 for ketamine in every variant, though Taiwan's own control lists
+   and news say 愷他命), or where the botanical or chemical name is not the
+   one anybody reading a harm-reduction page is looking for. The name it
+   displaces stays searchable, so 氯胺酮 still finds ketamine.
+
+   Each line is a substance's id in public/data/substances. */
+const TAIWAN = {
+    ketamine: '愷他命',
+    methamphetamine: '甲基安非他命',
+    amphetamine: '安非他命',
+    cannabis: '大麻',
+    alcohol: '酒精',
+    // "N2O" is the catalogue's name for it; here it is the balloons.
+    nitrous: '笑氣',
+    nicotine: '尼古丁',
+    zolpidem: '佐沛眠',
+    methylphenidate: '派醋甲酯',
+    buprenorphine: '丁基原啡因',
+};
+
 const CJK = /[㐀-鿿]/;
 const cjkShare = s => [...s].filter(c => CJK.test(c)).length / Math.max(1, [...s].length);
 // A title's disambiguation: "鴉片 (藥物)".
@@ -72,6 +94,7 @@ for (const e of index) {
     }
     delete d.zh;
     delete d.summaryZh;
+    delete d.zhOther;
     d.helpfulLinks = (d.helpfulLinks ?? []).filter(l => !/zh\.wikipedia\.org/.test(l.url));
     const qid = d.wikidata ?? qidOf[e.id];
     const it = qid && items[qid];
@@ -85,20 +108,36 @@ for (const e of index) {
         const name = [L['zh-tw'], bare(t['zh-tw']), L['zh-hant'], L['zh-hk'], bare(t['zh-hk']), twForm(L['zh']), twForm(bare(t['zh']))].find(showable);
         // An acronym or a code ("LSD", "2C-B", "MDMA") is what people call it here too.
         const keepLatin = /^[A-Z0-9αβγ][A-Za-z0-9αβγ,()\-]{0,9}$/.test(e.name) && /[A-Z0-9]{2}/.test(e.name);
-        if (name && !keepLatin) {
+        if (TAIWAN[e.id]) {
+            e.zh = d.zh = TAIWAN[e.id];
+            named++;
+        } else if (name && !keepLatin) {
             e.zh = d.zh = name;
             named++;
         }
         // Searched by any of its Chinese names, in either writing, so
-        // 愷他命 and 氯胺酮 both find ketamine.
+        // 愷他命 and 氯胺酮 both find ketamine. The name Taiwan's own
+        // displaced is one of them.
         const all = new Set(
-            [...Object.values(L), ...Object.values(t).map(bare), ...Object.values(it.aliases).flat()]
+            [...Object.values(L), ...Object.values(t).map(bare), ...Object.values(it.aliases).flat(), name]
                 .filter(Boolean)
                 .flatMap(bothForms)
                 .filter(searchable),
         );
         if (e.zh) all.delete(e.zh);
         if (all.size) e.zhAliases = [...all].join(', ');
+        // The few of those a page is worth showing under the name it leads
+        // with: short, in Taiwan's writing, and not the mainland's form of
+        // one already listed, so 愷他命's page names 氯胺酮 and K他命.
+        if (e.zh) {
+            const shown = [];
+            for (const n of all) {
+                if (!showable(n) || twForm(n) !== n || shown.some(s => variants.cn[s] === n)) continue;
+                shown.push(n);
+                if (shown.length === 4) break;
+            }
+            if (shown.length) d.zhOther = shown.join(', ');
+        }
         const summary = opening(w?.['zh-tw']);
         if (summary) {
             d.summaryZh = summary;
@@ -110,6 +149,10 @@ for (const e of index) {
                 description: 'zh:Encyclopedia article',
                 url: `https://zh.wikipedia.org/zh-tw/${encodeURIComponent(it.zhwiki.replace(/ /g, '_'))}`,
             });
+    } else if (TAIWAN[e.id]) {
+        // Taiwan's name stands even where Wikidata knows nothing of it.
+        e.zh = d.zh = TAIWAN[e.id];
+        named++;
     }
     await fs.writeFile(file, JSON.stringify(d));
 }
