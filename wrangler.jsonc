@@ -26,6 +26,8 @@
       "/settings/*",
       "/journal",
       "/journal/*",
+      // The app's own name and line, in the visitor's language.
+      "/manifest.webmanifest",
       "/api/*"
     ]
   },
