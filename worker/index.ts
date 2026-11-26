@@ -47,6 +47,9 @@ interface Page extends Preview {
     found: boolean;
     /** A page about what's on someone's own device: nothing for a search engine. */
     privatePage?: boolean;
+    /** The line under the card when the link is shared, where it isn't the
+     *  description a search engine is given. */
+    shareDescription?: string;
 }
 
 /** The language a link previewer or a search engine asked for: 正體中文 for
@@ -89,13 +92,25 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
         }
         case 'report': {
             // The report's own telling in that language, where there is one.
+            type Shared = { id: string; title: string; summary: string; closing?: string[][]; closingPicture?: { alt: string } };
             const report =
-                (lang === 'zh-Hant'
-                    ? await json<{ id: string; title: string; summary: string }>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.zh-Hant.json`)
-                    : undefined) ??
-                (await json<{ id: string; title: string; summary: string }>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.json`));
+                (lang === 'zh-Hant' ? await json<Shared>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.zh-Hant.json`) : undefined) ??
+                (await json<Shared>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.json`));
             if (!report) return { ...site, path: url.pathname, found: false };
-            return { ...site, title: report.title, description: report.summary, path: `/report/${report.id}`, found: true };
+            const page = { ...site, title: report.title, description: report.summary, path: `/report/${report.id}`, found: true };
+            /* A report that closes on a wish is shared as that wish: its own
+               card (scripts/og/render.mjs) and the wish under it, in the
+               telling's language (the English one keeps the Chinese it was
+               written in as its first line). A search engine still gets the
+               summary. */
+            const wish = report.closing?.[0];
+            if (!wish?.length || !report.closingPicture) return page;
+            return {
+                ...page,
+                image: `/og/report/${report.id}.png`,
+                imageAlt: report.closingPicture.alt,
+                shareDescription: (wish.length > 1 ? wish.slice(1) : wish).join(' '),
+            };
         }
         case 'mix': {
             const chosen = route.ids.map(id => byId.get(id)).filter((e): e is IndexEntry => !!e);
@@ -214,11 +229,11 @@ export default {
             })
             .on('meta[property="og:url"]', content(canonical))
             .on('meta[property="og:title"]', content(page.title))
-            .on('meta[property="og:description"]', content(page.description))
+            .on('meta[property="og:description"]', content(page.shareDescription ?? page.description))
             .on('meta[property="og:image"]', content(image))
             .on('meta[property="og:image:alt"]', content(page.imageAlt))
             .on('meta[name="twitter:title"]', content(page.title))
-            .on('meta[name="twitter:description"]', content(page.description))
+            .on('meta[name="twitter:description"]', content(page.shareDescription ?? page.description))
             .on('meta[name="twitter:image"]', content(image))
             .on('meta[name="twitter:image:alt"]', content(page.imageAlt))
             .on('#share-image img', {
