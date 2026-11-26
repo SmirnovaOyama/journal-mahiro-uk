@@ -4,8 +4,9 @@ import { isZh } from '../lib/i18n';
 
 /* What a search for 寻寻 finds: a picture, the name, and a few lines of
    verse under the field. Betelgeuse, which is always about to go off and
-   hasn't; Misaka Mikoto's coin, which burns up inside fifty metres; Oyama
-   Mahiro, who slept and woke up a girl. The last line is the user's own.
+   hasn't; the two girls a year below at school, both of them Misaka
+   Sisters, and the writer a year ahead and not Misaka Mikoto; Oyama Mahiro,
+   who slept and woke up a girl. The last line is the user's own.
    Hearts the first time it shows on a visit, and again at a tap on the
    picture. The verse is Chinese for every reader, in the site's script for
    a reader of 正體中文; the name is a name and stays as it is written. */
@@ -19,7 +20,8 @@ const VERSE = {
             '参宿四红了很久，',
             '都说它要炸开，它始终没有。',
             '光走了几百年，落在红墙绿瓦上。',
-            '御坂美琴弹起的硬币，飞不出五十米。',
+            '那时低我一届的两个女孩，都是御坂姐妹。',
+            '我早来一年，却不是御坂美琴。',
             '绪山真寻睡了一觉，醒来就是了。',
             '我也睡过很多觉。',
         ],
@@ -30,7 +32,8 @@ const VERSE = {
             '參宿四紅了很久，',
             '都說它要炸開，它始終沒有。',
             '光走了幾百年，落在紅牆綠瓦上。',
-            '御坂美琴彈起的硬幣，飛不出五十米。',
+            '那時低我一屆的兩個女孩，都是御坂姐妹。',
+            '我早來一年，卻不是御坂美琴。',
             '緒山真尋睡了一覺，醒來就是了。',
             '我也睡過很多覺。',
         ],
