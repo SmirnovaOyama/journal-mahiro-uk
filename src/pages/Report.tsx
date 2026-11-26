@@ -3,7 +3,7 @@ import { useOpenedFromLink } from '../lib/router';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Doodle, { type DoodleName } from '../components/Doodle';
 import { Linked } from '../components/Linked';
-import { tr } from '../lib/i18n';
+import { isZh, tr } from '../lib/i18n';
 
 export type CaseReport = {
     id: string;
@@ -22,13 +22,17 @@ export type CaseReport = {
 };
 
 const cache = new Map<string, Promise<CaseReport | null>>();
+/** A report in the reader's language: its 正體中文 telling
+ *  (<id>.zh-Hant.json) where there is one, else the English. */
 export function loadReport(id: string) {
-    let p = cache.get(id);
+    const zh = isZh();
+    const key = `${id}|${zh ? 'zh' : 'en'}`;
+    let p = cache.get(key);
     if (!p) {
-        p = fetch(`/data/reports/${encodeURIComponent(id)}.json`)
-            .then(r => (r.ok ? (r.json() as Promise<CaseReport>) : null))
-            .catch(() => null);
-        cache.set(id, p);
+        const get = (name: string) =>
+            fetch(`/data/reports/${encodeURIComponent(name)}.json`).then(r => (r.ok ? (r.json() as Promise<CaseReport>) : null));
+        p = (zh ? get(`${id}.zh-Hant`).catch(() => null).then(r => r ?? get(id)) : get(id)).catch(() => null);
+        cache.set(key, p);
     }
     return p;
 }
@@ -48,7 +52,7 @@ export function Report({ id }: { id: string }) {
 
     return (
         <>
-            <PageHeader title={report ? report.title.replace(/:.*$/, '') : tr('Report')} backTo={fromLink} subtitle={report?.title.replace(/^[^:]*:\s*/, '')} />
+            <PageHeader title={report ? report.title.replace(/[:：].*$/, '') : tr('Report')} backTo={fromLink} subtitle={report?.title.replace(/^[^:：]*[:：]\s*/, '')} />
             <div className={`${PAGE_COLUMN} pb-10`}>
                 {report === null ? (
                     <p className="pt-8 text-sm text-[var(--text-muted)]">{tr('There’s no report here.')}</p>

@@ -15,10 +15,40 @@ export type Lang = 'en' | 'zh-Hant';
 let lang: Lang = 'en';
 let dict: Record<string, string> | null = null;
 
-/** Sets the language to speak, with its words (none for English). */
-export function speak(next: Lang, words: Record<string, string> | null) {
+/** The catalogue's own words (lib/zh-Hant-data.ts), keyed loosely. */
+let data: Map<string, string> | null = null;
+
+/** A line as the catalogue's words are keyed: case, hyphens, doubled
+ *  spaces, a leading "Note:" and a final full stop don't count. */
+const loose = (s: string) =>
+    s
+        .replace(/^\s*note:\s*/i, '')
+        .replace(/[-‐–]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/[.。]$/, '')
+        .toLowerCase();
+
+/** Sets the language to speak, with its words (none for English) and the catalogue's. */
+export function speak(next: Lang, words: Record<string, string> | null, catalogue?: Record<string, string> | null) {
     lang = next;
     dict = words;
+    data = catalogue ? new Map(Object.entries(catalogue).map(([k, v]) => [loose(k), v])) : null;
+}
+
+/** A phrase from the catalogue (an effect, an interaction's note, a family,
+ *  a note on doses) in the reader's language: whole, or each part of a
+ *  list ("Stimulants, Nootropic"), or a span of time. What has no
+ *  正體中文 stays as its source wrote it. */
+export function dataText(raw: string): string {
+    if (lang === 'en' || !raw || !data) return raw;
+    const whole = data.get(loose(raw));
+    if (whole) return whole;
+    if (/[,;]/.test(raw)) {
+        const out = raw.split(/\s*[,;]\s*/).filter(Boolean).map(p => data!.get(loose(p)));
+        if (out.every(Boolean)) return out.join('、');
+    }
+    return /\d/.test(raw) ? spanText(raw) : raw;
 }
 
 export const currentLang = () => lang;

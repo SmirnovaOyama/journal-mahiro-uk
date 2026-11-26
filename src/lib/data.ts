@@ -46,7 +46,13 @@ export function categoryInfo(id: string) {
 
 export interface IndexEntry {
   id: string;
-  name: string;aliases: string;
+  name: string;
+  aliases: string;
+  /** Its name in 正體中文, where Wikidata or zh.wikipedia has a short one
+   *  (scripts/zh-data.mjs). */
+  zh?: string;
+  /** Other Chinese names, in traditional and simplified writing, to search by. */
+  zhAliases?: string;
   category: Category;
   form: DosageForm;
   status: string;
@@ -131,7 +137,6 @@ export interface Detail {
   wikidata?: string;
   atc?: string[];
   groups?: string[];
-  summaryZh?: string;
   form: DosageForm;
   status: string;
   aliases: string;
@@ -148,6 +153,10 @@ export interface Detail {
   molarMass?: number;
   summarySources?: string;
   summary: string;
+  /** Its name in 正體中文, and the opening of its zh.wikipedia article as
+   *  Wikipedia writes it for Taiwan (scripts/zh-data.mjs). */
+  zh?: string;
+  summaryZh?: string;
   /** How it works (scripts/pharmacology.mjs): the opening of what its article
    *  says of its mechanism; the receptors, transporters and channels the
    *  IUPHAR/BPS Guide to Pharmacology records it binding to, by what it does
@@ -237,6 +246,17 @@ export function squash(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9À-￿]+/g, '');
 }
 
+/** A substance's name as the reader's language has it: its Chinese name
+ *  when the site speaks 正體中文 and it has one, else the catalogue's. */
+export function nameOf(e: Pick<IndexEntry, 'name' | 'zh'>): string {
+  return (isZh() && e.zh) || e.name;
+}
+
+/** Every Chinese name an entry goes by. */
+function zhNames(e: IndexEntry): string[] {
+  return [e.zh, ...(e.zhAliases ? e.zhAliases.split(',') : [])].map((a) => (a ?? '').trim()).filter(Boolean);
+}
+
 function aliasList(e: IndexEntry): string[] {
   return e.aliases
     .split(',')
@@ -275,6 +295,18 @@ export function search(index: IndexEntry[], query: string, limit = 50): Hit[] {
           via = a;
         }
       }
+      // Chinese names, in either script. Chinese has no spaces between
+      // words, so a name found anywhere in one counts: 酮 finds 氯胺酮.
+      if (!score && /[\u3400-\u9fff]/.test(q)) {
+        for (const a of zhNames(entry)) {
+          const sa = squash(a);
+          const s = sa === q ? 90 : sa.startsWith(q) ? 75 : sa.includes(q) ? 45 : 0;
+          if (s > score) {
+            score = s;
+            via = a === entry.zh ? undefined : a;
+          }
+        }
+      }
       if (!score && name.includes(q)) score = 40;
       if (!score && q.length >= 3 && squash(entry.chemicalClass).includes(q)) score = 15;
     }
@@ -291,7 +323,8 @@ export function resolveName(index: IndexEntry[], name: string): IndexEntry | und
   return (
     index.find((e) => e.id === name.toLowerCase()) ??
     index.find((e) => squash(e.name) === q) ??
-    index.find((e) => aliasList(e).some((a) => squash(a) === q))
+    index.find((e) => aliasList(e).some((a) => squash(a) === q)) ??
+    index.find((e) => zhNames(e).some((a) => squash(a) === q))
   );
 }
 

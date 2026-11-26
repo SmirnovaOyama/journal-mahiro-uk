@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { loadCombos, loadDetail, type ComboMatrix, type Detail, type IndexEntry, convertAmount } from '../lib/data';
+import { loadCombos, loadDetail, type ComboMatrix, type Detail, type IndexEntry, convertAmount, nameOf as shownName } from '../lib/data';
 import {
     RATINGS,
     clearPrefill,
@@ -120,7 +120,7 @@ function chartDoses(s: Session, details: Record<string, Detail>, colors: (id: st
         // In the row's own unit: 0.1 mg of LSD is 100 µg against its µg doses.
         const amount = i.dose != null && row ? convertAmount(i.dose, i.unit, row.unit) : null;
         const strength = amount != null && common ? amount / ((common[0] + common[1]) / 2) : 1;
-        return { id: i.id, time: i.time, color: colors(i.substance), course, strength, label: d?.name ?? i.name };
+        return { id: i.id, time: i.time, color: colors(i.substance), course, strength, label: (d && shownName(d)) || i.name };
     });
 }
 
@@ -181,7 +181,7 @@ function DoseRow({
             >
                 <span className="flex-1 min-w-0">
                     <span className="flex items-baseline justify-between gap-3">
-                        <span className={`text-sm font-medium ${on} [overflow-wrap:anywhere]`}>{entry?.name ?? i.name}</span>
+                        <span className={`text-sm font-medium ${on} [overflow-wrap:anywhere]`}>{(entry && shownName(entry)) || i.name}</span>
                         <span className={`text-xs tabular-nums ${muted} shrink-0`}>{clock(i.time)}</span>
                     </span>
                     <span className={`mt-0.5 flex flex-wrap items-baseline gap-x-3 text-xs tabular-nums ${muted}`}>
@@ -212,7 +212,7 @@ function DoseRow({
                             />
                             {entry && (
                                 <Link to={{ page: 'substance', id: entry.id }} className={`mt-4 inline-flex items-center gap-1 text-sm ${muted}`}>
-                                    {tr('About {0}', { 0: entry.name })}
+                                    {tr('About {0}', { 0: shownName(entry) })}
                                     <ChevronRight size={15} />
                                 </Link>
                             )}
@@ -241,7 +241,7 @@ function Interactions({ pairs }: { pairs: PairResult[] }) {
                     >
                         <span className="flex-1 min-w-0">
                             <span className={`block text-sm ${on}`}>
-                                {p.a.name} + {p.b.name}
+                                {shownName(p.a)} + {shownName(p.b)}
                             </span>
                             <span className={`block text-xs ${muted} mt-0.5`}>{tr(v.meaning)}</span>
                         </span>
@@ -268,7 +268,7 @@ function shortDate(t: number) {
 
 const substancesOf = (s: Session) => [...new Set(s.ingestions.map(i => i.substance))];
 const nameOf = (x: string, s: Session | Ingestion[], byId: Map<string, IndexEntry>) =>
-    byId.get(x)?.name ?? (Array.isArray(s) ? s : s.ingestions).find(i => i.substance === x)?.name ?? x;
+    (byId.get(x) && shownName(byId.get(x)!)) ?? (Array.isArray(s) ? s : s.ingestions).find(i => i.substance === x)?.name ?? x;
 
 function SessionRow({ s, data, byId, now }: { s: Session; data: JournalData; byId: Map<string, IndexEntry>; now?: number }) {
     const meta = data.meta?.[s.id] ?? {};
@@ -573,7 +573,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const totals = new Map<string, { name: string; sum: number; unit: string; n: number; mixed: boolean }>();
     for (const i of s.ingestions) {
         const k = i.substance;
-        const t = totals.get(k) ?? { name: byId.get(k)?.name ?? i.name, sum: 0, unit: i.unit, n: 0, mixed: false };
+        const t = totals.get(k) ?? { name: (byId.get(k) && shownName(byId.get(k)!)) || i.name, sum: 0, unit: i.unit, n: 0, mixed: false };
         t.n++;
         if (i.dose != null) {
             if (t.unit !== i.unit && t.sum) t.mixed = true;
@@ -901,7 +901,7 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
     const now = useNow();
     const doses = useMemo(() => historyOf(data.ingestions, id), [data.ingestions, id]);
     const entry = byId.get(id);
-    const name = entry?.name ?? doses[0]?.name ?? id;
+    const name = (entry && shownName(entry)) || doses[0]?.name || id;
     const sessions = useMemo(() => sessionsOf(data.ingestions).filter(s => s.ingestions.some(i => i.substance === id)), [data.ingestions, id]);
     useEffect(() => {
         document.title = name;

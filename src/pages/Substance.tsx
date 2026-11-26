@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     describe,
     resolveName,
+    nameOf,
     squash,
     type ActHow,
     type BodyStep,
@@ -33,10 +34,11 @@ import { Timeline } from '../components/Timeline';
 import { Alert, ChevronRight, Clover, External, Heart, Info, Plus } from '../components/icons';
 import { Waiting } from '../components/Waiting';
 import { Linked } from '../components/Linked';
-import { dateLocale, roaName, spanText, tr } from '../lib/i18n';
+import { dataText, dateLocale, isZh, roaName, spanText, tr } from '../lib/i18n';
 
 /** A link's line. The sync writes a handful of these, in English. */
 const linkSays = (d: string) => {
+    if (d.startsWith('zh:')) return tr(d.slice(3));
     const m = d.match(/^Structured data on (.+)$/);
     return m ? tr('Structured data on {0}', { 0: m[1] }) : tr(d);
 };
@@ -92,7 +94,7 @@ function dedupe(combos: Combination[]): Combination[] {
 /** Ends a line from the data with a full stop if it has none. */
 function sentence(s: string) {
     const t = s.trim();
-    return /[.!?]$/.test(t) ? t : `${t}.`;
+    return /[.!?。！？]$/.test(t) ? t : `${t}${/[\u3000-\u9fff]/.test(t) ? '。' : '.'}`;
 }
 
 function cap(s: string) {
@@ -210,6 +212,8 @@ function QuotedFrom({ q, figures, also }: { q: Quoted; figures?: string; also?: 
 /** Up to the first full stop that ends a sentence: not the ones in "e.g.",
  *  "vs." or an initial, nor one with no new sentence after it. */
 function firstSentence(s: string) {
+    const zhStop = s.indexOf('。');
+    if (/[\u3400-\u9fff]/.test(s.slice(0, 8)) && zhStop > 0) return s.slice(0, zhStop + 1);
     const stop = /[.!?]["”’)]*(?=\s+["“‘(]?[A-Z0-9]|\s*$)/g;
     for (let m = stop.exec(s); m; m = stop.exec(s)) {
         if (s[m.index] === '.' && /(?:\b(?:e\.g|i\.e|vs|etc|approx|ca|cf|Dr|St|No|al)|\b[A-Z])$/.test(s.slice(0, m.index))) continue;
@@ -250,7 +254,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     useEffect(() => {
         if (detail) {
             pushRecent(detail.id);
-            document.title = detail.name;
+            document.title = nameOf(detail);
         }
     }, [detail]);
 
@@ -318,16 +322,21 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
         .split(',')
         .map(a => a.trim())
         .filter(a => a && squash(a) !== squash(detail.name));
+    // Under its Chinese name, the name the sources use comes first among the others.
+    if (isZh() && detail.zh) aliases.unshift(detail.name);
     const limited = detail.status === 'Limited data';
+    // In 正體中文, zh.wikipedia's opening where it has one; else the English sources'.
+    const zhSummary = isZh() && detail.summaryZh ? detail.summaryZh : '';
+    const summary = zhSummary || detail.summary;
     const whatItIs = describe(
         { category: detail.category, chemicalClass: detail.chemicalClass ?? entry?.chemicalClass ?? '' },
     );
 
     const safety = [
-        detail.toxicity?.length && [tr('Toxicity'), cap(detail.toxicity.join('. '))],
-        detail.addictionPotential && [tr('Addiction'), cap(detail.addictionPotential)],
-        detail.halfLife && [tr('Half-life'), spanText(detail.halfLife)],
-        detail.marquis && [tr('Marquis reagent'), detail.marquis],
+        detail.toxicity?.length && [tr('Toxicity'), cap(detail.toxicity.map(dataText).join(tr('. ')))],
+        detail.addictionPotential && [tr('Addiction'), cap(dataText(detail.addictionPotential))],
+        detail.halfLife && [tr('Half-life'), dataText(detail.halfLife)],
+        detail.marquis && [tr('Marquis reagent'), dataText(detail.marquis)],
     ].filter(Boolean) as [string, string][];
 
     const routePicker =
@@ -370,7 +379,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     return (
         <>
             <PageHeader
-                title={detail.name}
+                title={nameOf(detail)}
                 backTo
                 actions={
                     <>
@@ -488,7 +497,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {tr('Little is known about this one. Treat any dose as stronger than you expect.')}
                                 </Advisory>
                             )}
-                            {detail.advisory && <Advisory><Linked text={detail.advisory} /></Advisory>}
+                            {detail.advisory && <Advisory><Linked text={dataText(detail.advisory)} /></Advisory>}
                             {unchecked && (
                                 <Advisory>
                                     {tr('These doses and timings are from FreeODwiki, a community wiki, and no second source here confirms them. Treat them as rough, and start lower than they say.')}
@@ -496,7 +505,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             )}
                             {detail.warnings?.map(w => (
                                 <div key={w.url + w.text.slice(0, 24)}>
-                                    <Advisory><Linked text={w.text} /> {w.source}</Advisory>
+                                    <Advisory><Linked text={dataText(w.text)} /> {dataText(w.source)}</Advisory>
                                     {w.report && (
                                         <Link
                                             to={{ page: 'report', id: w.report }}
@@ -545,7 +554,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <div className="pb-5 space-y-3 text-sm leading-relaxed text-[var(--text-muted)] max-w-prose">
                                 {detail.doseBasis && (
                                     <p className="callout text-[var(--text)] font-medium">
-                                        <Linked text={sentence(detail.doseBasis.replace(/^Note:\s*/i, ''))} />
+                                        <Linked text={sentence(dataText(detail.doseBasis.replace(/^Note:\s*/i, '')))} />
                                     </p>
                                 )}
                                 <p>
@@ -628,11 +637,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                                                 className={`chip chip-${g.tone}`}
                                                             >
                                                                 <Molecule id={other.id} form={other.form} size="xs" />
-                                                                {other.name}
+                                                                {nameOf(other)}
                                                             </Link>
                                                         ) : (
                                                             <span className={`chip chip-${g.tone} chip-static`}>
-                                                                {c.substance}
+                                                                {dataText(c.substance)}
                                                             </span>
                                                         )}
                                                     </li>
@@ -647,20 +656,21 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                 </section>
 
                 <section>
-                    <SectionTitle title={tr('More about {0}', { 0: detail.name })} />
+                    <SectionTitle title={tr('More about {0}', { 0: nameOf(detail) })} />
                     <div className="settings-section">
-                        {(detail.summary) && (
+                        {(summary) && (
                             <Fold
                                 title={tr('What it is')}
                                 icon="molecule"
                                 hint={(() => {
-                                    const text = detail.summary;
-                                    const first = firstSentence(text);
-                                    return first.length < text.trim().length - 2 ? first : undefined;
+                                    const first = firstSentence(summary);
+                                    return first.length < summary.trim().length - 2 ? first : undefined;
                                 })()}
                             >
-                                <p className="text-sm max-w-prose"><Linked text={detail.summary} /></p>
-                                {(
+                                <p className="text-sm max-w-prose" lang={zhSummary ? undefined : 'en'}><Linked text={summary} /></p>
+                                {zhSummary ? (
+                                    <p className="footnote">{tr('From {0}.', { 0: tr('the Chinese Wikipedia') })}</p>
+                                ) : (
                                     detail.summarySources && <p className="footnote">{tr('From {0}.', { 0: detail.summarySources })}</p>
                                 )}
                             </Fold>
@@ -796,16 +806,16 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             </Fold>
                         )}
                         {detail.availability && detail.availability.length > 0 && (
-                            <Fold title={tr('Where it’s sold')} hint={detail.availability.map(a => a.where).join(tr(', '))}>
+                            <Fold title={tr('Where it’s sold')} hint={detail.availability.map(a => dataText(a.where)).join(tr(', '))}>
                                 <div className="grid gap-5">
                                     {detail.availability.map(a => (
                                         <div key={a.where}>
-                                            <h3 className="text-sm font-medium">{a.where}</h3>
-                                            <p className="text-sm max-w-prose mt-1"><Linked text={a.rule} /></p>
+                                            <h3 className="text-sm font-medium">{dataText(a.where)}</h3>
+                                            <p className="text-sm max-w-prose mt-1"><Linked text={dataText(a.rule)} /></p>
                                             <p className="footnote !mt-1">
                                                 {tr('From ')}
                                                 <a href={a.url} target="_blank" rel="noreferrer" className="underline underline-offset-[3px]">
-                                                    {a.source}
+                                                    {dataText(a.source)}
                                                 </a>
                                             </p>
                                         </div>
@@ -827,7 +837,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {detail.tolerance.buildUp && (
                                         <div className="fact-row">
                                             <dt>{tr('Builds up')}</dt>
-                                            <dd>{cap(detail.tolerance.buildUp)}</dd>
+                                            <dd>{cap(dataText(detail.tolerance.buildUp))}</dd>
                                         </div>
                                     )}
                                     {detail.tolerance.reset && (
@@ -839,7 +849,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {detail.tolerance.crossTolerances?.map(c => (
                                         <div className="fact-row" key={c.group}>
                                             <dt>{tr('Also lowers the effect of')}</dt>
-                                            <dd>{c.items.join(', ')}</dd>
+                                            <dd>{c.items.map(dataText).join(tr(', '))}</dd>
                                         </div>
                                     ))}
                                 </dl>
@@ -856,10 +866,10 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         <li key={e.name}>
                                             {e.url ? (
                                                 <a href={e.url} target="_blank" rel="noreferrer">
-                                                    {e.name}
+                                                    {dataText(e.name)}
                                                 </a>
                                             ) : (
-                                                e.name
+                                                dataText(e.name)
                                             )}
                                         </li>
                                     ))}
@@ -870,7 +880,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <Fold title={tr('Sources and further reading')} icon="report">
                                 {detail.helpfulLinks.length > 0 && (
                                     <div className="settings-section">
-                                        {detail.helpfulLinks.map(l => (
+                                        {/* The zh.wikipedia article, for a reader in Chinese only, and first. */}
+                                        {[...detail.helpfulLinks]
+                                            .filter(l => isZh() || !l.description.startsWith('zh:'))
+                                            .sort((a, b) => Number(b.description.startsWith('zh:')) - Number(a.description.startsWith('zh:')))
+                                            .map(l => (
                                             <a
                                                 key={l.url}
                                                 href={l.url}
