@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { PHONE_TAB_ICONS } from './PhoneTabIcons';
 
 interface NavTab {
@@ -27,6 +27,10 @@ interface NavTab {
  * sits over what's being read; a short scroll back up, the top of the page or
  * its end brings it back, and so does every new page. `pageKey` is the page
  * being shown, so the bar knows when that happens.
+ *
+ * It also stays out of the way for as long as something on the page holds it
+ * there (useNavHeldAway): the form a dose is logged in, whose warnings and
+ * Log it would otherwise open under the bar.
  */
 const BottomNav: React.FC<{
     tabs: NavTab[];
@@ -87,7 +91,9 @@ const BottomNav: React.FC<{
         };
     }, []);
 
-    const hidden = useScrollAway(pageKey);
+    const scrolledAway = useScrollAway(pageKey);
+    const held = useSyncExternalStore(watchHolds, () => holds > 0);
+    const hidden = scrolledAway || held;
 
     useEffect(() => {
         if (!pill || placed) return;
@@ -137,6 +143,33 @@ const BottomNav: React.FC<{
         </nav>
     );
 };
+
+// How many things on the page are holding the bar away just now.
+let holds = 0;
+const holdWatchers = new Set<() => void>();
+const watchHolds = (fn: () => void) => {
+    holdWatchers.add(fn);
+    return () => {
+        holdWatchers.delete(fn);
+    };
+};
+const setHolds = (by: number) => {
+    holds += by;
+    holdWatchers.forEach(fn => fn());
+};
+
+/**
+ * Keeps the phone's bottom bar out of the way for as long as the component
+ * calling it is on the page, wherever the page is scrolled: for a task that
+ * needs the whole screen and is closed by its own buttons. The bar comes back
+ * the moment the last one holding it is gone.
+ */
+export function useNavHeldAway() {
+    useEffect(() => {
+        setHolds(1);
+        return () => setHolds(-1);
+    }, []);
+}
 
 /** How far the page must move one way before the bar follows, so a finger
  * resting on the glass or a small correction doesn't make it flicker. */

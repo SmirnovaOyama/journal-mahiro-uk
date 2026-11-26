@@ -28,6 +28,7 @@ import Segmented from '../components/Segmented';
 import { rowBleed } from '../components/SettingsListItem';
 import { Timeline } from '../components/Timeline';
 import { Alert, Bookmark, ChevronRight, Clover, External, Info, Plus } from '../components/icons';
+import { Waiting } from '../components/Waiting';
 
 const MIX_GROUPS: {
     title: string;tone: string;
@@ -174,7 +175,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
         return (
             <>
                 <PageHeader title={entry?.name ?? ''} backTo />
-                <div className={`${PAGE_COLUMN} py-8 text-sm text-[var(--text-muted)]`}>{'Loading…'}</div>
+                <div className={`${PAGE_COLUMN} py-8`}>
+                    <Waiting wide />
+                </div>
             </>
         );
     if (failed || !detail)

@@ -46,7 +46,6 @@ import { useWide } from '../hooks/useWide';
 import {
     Account as PersonIcon,
     Alert,
-    Busy,
     CheckCircle,
     Close,
     Cloud,
@@ -62,6 +61,7 @@ import {
     Shield,
     Trash,
 } from '../components/icons';
+import { WaitMark, Waiting } from '../components/Waiting';
 
 export { ago } from '../components/AccountParts';
 
@@ -113,7 +113,7 @@ function SyncIcon({ status }: { status: SyncStatus }) {
     const cls = `${muted} shrink-0`;
     switch (status) {
         case 'syncing':
-            return <Busy size={20} className={`${cls} animate-spin`} />;
+            return <WaitMark size={20} className={muted} />;
         case 'synced':
             return <CheckCircle size={20} className={cls} />;
         case 'locked':
@@ -278,10 +278,7 @@ function DevicesPart({ info, reload }: { info: AccountInfo | null; reload: () =>
             <p className={`text-sm leading-relaxed ${muted}`}>{'Every device signed in to your account. One signed out stops syncing; its journal stays on it.'}</p>
             <ErrorLine error={error} />
             {!info && !error && (
-                <p className={`flex items-center gap-2 text-sm ${muted}`}>
-                    <Busy size={16} className="animate-spin" />
-                    {'Loading…'}
-                </p>
+                <Waiting />
             )}
             {sessions.length > 0 && (
                 <div className={settingsSection}>

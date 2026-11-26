@@ -18,7 +18,8 @@ import {
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
 import { StackedBars, type Bucket } from '../components/StackedBars';
 import { rowBleed, settingsSection } from '../components/SettingsListItem';
-import { Busy, ChevronDown, Gauge, Lock, Retry, Search, Users } from '../components/icons';
+import { ChevronDown, Gauge, Lock, Retry, Search, Users } from '../components/icons';
+import { WaitMark, Waiting } from '../components/Waiting';
 import { ago } from './Account';
 
 /* The admin's page, after hrt.mahiro.uk's (pages/Admin.tsx there), for the
@@ -232,7 +233,7 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
                                 <button type="submit" className="btn-danger btn-sm" disabled={!!busy || !password}>
                                     {busy ? (
                                         <span className="inline-flex items-center gap-1.5">
-                                            <Busy size={14} className="animate-spin" />
+                                            <WaitMark size={14} />
                                             {confirming === 'delete' ? 'Deleting…' : 'Turning it off…'}
                                         </span>
                                     ) : confirming === 'delete' ? (
@@ -350,10 +351,7 @@ function Accounts({
                 />
             </div>
             {!users && (
-                <p className={`flex items-center gap-2 py-4 text-sm ${muted}`}>
-                    <Busy size={16} className="animate-spin" />
-                    {'Loading…'}
-                </p>
+                <Waiting className="py-4" />
             )}
             {users && users.length === 0 && <p className={`py-4 text-sm ${muted}`}>{query ? `No username has “${query}” in it.` : 'No accounts yet.'}</p>}
             {users && users.length > 0 && (
@@ -465,10 +463,7 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
             stats ? (
                 <Overview stats={stats} buckets={buckets} />
             ) : (
-                <p className={`flex items-center gap-2 text-sm ${muted}`}>
-                    <Busy size={16} className="animate-spin" />
-                    {'Loading…'}
-                </p>
+                <Waiting />
             )
         ) : (
             <Accounts users={users} query={query} setQuery={setQuery} me={me.id} open={open} setOpen={setOpen} reload={() => void load(query)} />

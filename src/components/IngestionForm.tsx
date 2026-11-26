@@ -7,11 +7,13 @@ import { useDetail } from '../lib/useIndex';
 import LevelRail from './LevelRail';
 import { formatWeight, useWeight } from '../lib/store';
 import { absorbedText } from './Absorption';
+import { useNavHeldAway } from './BottomNav';
 import Choice from './Choice';
 import { Molecule } from './Molecule';
 import { SearchField } from './SearchField';
 import { CareNote } from './CareNote';
 import { isCareSearch } from '../lib/care';
+import { WaitMark } from './Waiting';
 import Switch from './Switch';
 import { Alert, Close } from './icons';
 
@@ -79,6 +81,11 @@ export function IngestionForm({
 }) {
     const { data } = useJournal();
     const start = editing ?? initial;
+    // On a phone the form is taller than what's left of the screen, and its
+    // last lines, what the journal warns of and Log it, opened under the
+    // floating bar. The bar steps aside while the form is open; Close, Cancel
+    // or logging the dose brings it back.
+    useNavHeldAway();
 
     const [substance, setSubstance] = useState<string | null>(editing?.substance ?? initial?.id ?? null);
     const [custom, setCustom] = useState<string>(editing && !byId.get(editing.substance) ? editing.name : '');
@@ -92,14 +99,23 @@ export function IngestionForm({
     const searchRef = useRef<HTMLInputElement>(null);
 
     const entry = substance ? byId.get(substance) : undefined;
-    const { detail } = useDetail(entry ? entry.id : null);
+    const { detail, loading } = useDetail(entry ? entry.id : null);
+    // The ways this substance is taken, once its page has arrived: null until
+    // then. The general list is only for what has no routes of its own (a
+    // name logged as written, or a page that didn't load). Offered while the
+    // real ones were still on their way, it showed six chips, shrank to the
+    // one or two that apply and pulled the form up under the finger, and its
+    // first chip was already chosen: a substance that is only insufflated
+    // stayed logged as "Oral".
     const routes = useMemo(() => {
+        if (loading) return null;
         const seen: string[] = [];
         for (const r of detail?.doseRows ?? []) if (!seen.includes(r.roa)) seen.push(r.roa);
         for (const r of detail?.durationRows ?? []) if (!seen.includes(r.roa)) seen.push(r.roa);
         return seen.length ? seen : ROUTES.slice(0, 6);
-    }, [detail]);
+    }, [detail, loading]);
     useEffect(() => {
+        if (!routes) return;
         if (!route || (!routes.includes(route) && !ROUTES.includes(route))) setRoute(routes[0]);
     }, [routes, route]);
     const row = detail?.doseRows.find(r => r.roa === route);
@@ -327,12 +343,25 @@ export function IngestionForm({
                     {/* How */}
                     <div>
                         <span className={label}>{'Route'}</span>
-                        <div className="flex flex-wrap gap-2">
-                            {routes.map(r => (
-                                <button type="button" key={r} className={chip(route === r)} aria-pressed={route === r} onClick={() => setRoute(r)}>
-                                    {r}
+                        {/* A row of chips tall from the start, so the lines
+                            under it stay where they are when the routes come.
+                            Until then: the route already known (an entry being
+                            edited), or the wait mark, which keeps quiet for
+                            the first 300ms. */}
+                        <div className="flex min-h-8 flex-wrap items-center gap-2" aria-busy={!routes}>
+                            {routes ? (
+                                routes.map(r => (
+                                    <button type="button" key={r} className={chip(route === r)} aria-pressed={route === r} onClick={() => setRoute(r)}>
+                                        {r}
+                                    </button>
+                                ))
+                            ) : route ? (
+                                <button type="button" className={chip(true)} aria-pressed>
+                                    {route}
                                 </button>
-                            ))}
+                            ) : (
+                                <WaitMark className="text-[var(--text-muted)]" />
+                            )}
                         </div>
                     </div>
 
