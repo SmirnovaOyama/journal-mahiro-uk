@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { describe, type IndexEntry } from '../lib/data';
+import { describe, nameOf, type IndexEntry } from '../lib/data';
 import { ChevronRight } from './icons';
 import { Link } from './Link';
 import { Molecule } from './Molecule';
@@ -25,7 +25,7 @@ export function SubstanceRow({ entry, sub, active, onPick, id }: Props) {
         <>
             <Molecule id={entry.id} form={entry.form} />
             <span className="flex-1 min-w-0">
-                <span className="block text-sm font-medium">{entry.name}</span>
+                <span className="block text-sm font-medium">{nameOf(entry)}</span>
                 <span className="block text-xs text-[var(--text-muted)] mt-0.5 truncate">
                     {sub ?? describe(entry)}
                 </span>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type DoseRow, type IndexEntry, convertAmount, fmtAmount, isPerKg } from '../lib/data';
+import { loadCombos, loadDetail, search, type ComboMatrix, type Detail, type DoseRow, type IndexEntry, convertAmount, fmtAmount, isPerKg, nameOf } from '../lib/data';
 import { useJournal, type Ingestion, type Prefill } from '../lib/journal';
 import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
 import { courseFor, formatMinutes } from '../lib/time';
@@ -175,9 +175,9 @@ export function IngestionForm({
                 tone: 'warning',
                 text: still
                     ? c!.exact
-                        ? tr('You logged {0}{1} {2} ago, and it usually lasts {3}. A redose adds to what’s still working.', { 0: entry.name, 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
-                        : tr('You logged {0}{1} {2} ago. How long it lasts taken that way isn’t documented; other ways, up to {3}. A redose may add to what’s still working.', { 0: entry.name, 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
-                    : tr('You logged {0}{1} {2} ago.', { 0: entry.name, 1: amount, 2: formatMinutes(ago) }),
+                        ? tr('You logged {0}{1} {2} ago, and it usually lasts {3}. A redose adds to what’s still working.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
+                        : tr('You logged {0}{1} {2} ago. How long it lasts taken that way isn’t documented; other ways, up to {3}. A redose may add to what’s still working.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
+                    : tr('You logged {0}{1} {2} ago.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago) }),
             });
         }
         // Anything else from the last day it mixes badly with.
@@ -197,7 +197,7 @@ export function IngestionForm({
                 out.push({
                     key: p.b.id,
                     tone: v.tone === 'danger' ? 'danger' : 'warning',
-                    text: tr('{0} with {1}, logged in the last day. {2}', { 0: tr(v.label), 1: p.b.name, 2: tr(v.meaning) }),
+                    text: tr('{0} with {1}, logged in the last day. {2}', { 0: tr(v.label), 1: nameOf(p.b), 2: tr(v.meaning) }),
                 });
             });
         return out;
@@ -318,7 +318,7 @@ export function IngestionForm({
                                     >
                                         <Molecule id={h.entry.id} form={h.entry.form} size="xs" />
                                         <span className="flex-1 min-w-0 text-sm text-[var(--text)]">
-                                            {h.entry.name}
+                                            {nameOf(h.entry)}
                                         </span>
                                     </button>
                                 ))}

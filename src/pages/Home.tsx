@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { search, type IndexEntry } from '../lib/data';
+import { search, type IndexEntry, nameOf } from '../lib/data';
 import { go, useOpenedFromLink } from '../lib/router';
 import { isHrtSearch } from '../lib/eggs';
 import { HrtEgg } from '../components/HrtEgg';
@@ -149,7 +149,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                                 <div className="flex flex-wrap gap-2">
                                     {quick.map(e => (
                                         <Link key={e.id} to={{ page: 'substance', id: e.id }} className="btn-secondary btn-sm no-underline">
-                                            {e.name}
+                                            {nameOf(e)}
                                         </Link>
                                     ))}
                                 </div>
