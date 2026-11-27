@@ -926,3 +926,18 @@ input[type='search']::-webkit-search-cancel-button {
 .nav-tab svg [class*="fill-"] {
   fill: none;
 }
+/* The mark on anything an AI wrote (pages/Substance.tsx), ahead of the
+   line that says so. */
+.ai-tag {
+  display: inline-block;
+  margin-inline-end: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+  color: var(--status-info);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--status-info) 35%, transparent);
+}

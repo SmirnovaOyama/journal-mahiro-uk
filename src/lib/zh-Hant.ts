@@ -1027,6 +1027,12 @@ const zh: Record<string, string> = {
     'Log what you take and when. Kept on your device, and synced encrypted if you want.': '記下你用了什麼、什麼時候用的。資料存在你的裝置上，也可以選擇加密同步。',
     // pages/Substance.tsx
     'the Chinese Wikipedia': '中文維基百科',
+    // pages/Substance.tsx: what an AI wrote
+    'Written by AI. It may be wrong.': '由 AI 撰寫，內容可能有誤。',
+    'Written by AI, as no source had this. It may be wrong: check it before you rely on it.': '由 AI 撰寫，因為現有來源沒有這部分。內容可能有誤：依賴之前請先查證。',
+    'Did you know': '你知道嗎',
+    'Mainly ': '主要成分：',
+    'Which compounds, by AI; their formulas from PubChem.': '成分由 AI 列出，化學式來自 PubChem。',
     // worker/index.ts: the installed app's own name and line
     '{0}, for {1} psychoactive substances, and a journal kept on your device.': '{0}，收錄 {1} 種精神活性物質，還有一份只存在你裝置上的日誌。',
 };
