@@ -101,7 +101,7 @@ export function IngestionForm({
     useNavHeldAway();
 
     const [substance, setSubstance] = useState<string | null>(editing?.substance ?? initial?.id ?? null);
-    const [custom, setCustom] = useState<string>(editing && !byId.get(editing.substance) ? editing.name : '');
+    const [custom, setCustom] = useState<string>(editing && !byId.get(editing.substance) ? editing.name : !editing && !initial?.id && initial?.name ? initial.name : '');
     const [q, setQ] = useState('');
     const [route, setRoute] = useState<string>(start?.route ?? '');
     const [doseText, setDoseText] = useState(start?.dose != null ? String(start.dose) : '');

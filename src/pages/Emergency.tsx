@@ -4,6 +4,8 @@ import { rowBleed, settingsSection } from '../components/SettingsListItem';
 import { External } from '../components/icons';
 import { Link } from '../components/Link';
 import { CareLines } from '../components/CareNote';
+import { CrewCard, Metronome, Position, ReadAloud } from '../components/EmergencyTools';
+import type { IndexEntry } from '../lib/data';
 import { currentLang, isZh, tr, type Lang } from '../lib/i18n';
 
 /* What to do when it goes wrong, until help comes: when to call, the number
@@ -15,7 +17,12 @@ import { currentLang, isZh, tr, type Lang } from '../lib/i18n';
    Nothing here is the site's own advice. Each line puts into plain words
    what one of the sources at the foot of the page says, and a line no
    source there carries doesn't belong: check it against them before
-   adding or changing one. They were last read on 2026-11-27. */
+   adding or changing one. They were last read on 2026-11-27.
+
+   Its tools (components/EmergencyTools.tsx) are not advice and say none:
+   what the journal holds of the last day, set out for the crew; a beat at
+   the pace St John Ambulance gives for chest compressions; the steps read
+   aloud; and the device's position, to say on the call. */
 
 /* The number that reaches an ambulance, by place (Wikipedia's list of
    emergency telephone numbers). */
@@ -119,7 +126,7 @@ function Kind({ title, who, lines }: { title: string; who?: string; lines: strin
     );
 }
 
-export function Emergency() {
+export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
     useEffect(() => {
         document.title = tr('In an emergency');
     }, []);
@@ -139,6 +146,23 @@ export function Emergency() {
     };
     const here = placeHere();
     const order = here ? [here, ...ORDER[currentLang()].filter(p => p !== here)] : ORDER[currentLang()];
+    const pressing = tr('If they aren’t breathing, say so on the call and start pressing on their chest: the heel of one hand on the middle of the chest, the other hand on top, arms straight, 5 to 6 cm down, about twice a second. Keep going until help takes over. The person on the line will talk you through it.');
+    const untilHelp = [
+        tr('Stay with them. Don’t leave them alone, even for a moment.'),
+        tr('If they’re awake, keep them calm and sitting up, and keep talking to them. Don’t shout at them or shake them.'),
+        tr('If they can’t be woken but are breathing, lay them on their side, as below.'),
+        pressing,
+        tr('Tell the crew what was taken, how much and when, and hand over whatever is left. If it’s in your journal, show them the session.'),
+    ];
+    const onSide = [
+        tr('Kneel beside them and straighten their legs. Take off their glasses.'),
+        tr('Lay the arm nearest you out at a right angle to their body, elbow bent, palm up.'),
+        tr('Bring their other arm across the chest and hold the back of that hand against the cheek nearest you.'),
+        tr('With your other hand, pull the far knee up until the foot is flat on the floor.'),
+        tr('Keeping their hand against the cheek, pull on the knee to roll them towards you, onto their side. Leave the top leg bent at a right angle.'),
+        tr('Tilt the head back gently and lift the chin, so the airway stays open.'),
+        tr('Keep watching their breathing. After 30 minutes, roll them onto their other side.'),
+    ];
 
     return (
         <div className="relative md:pb-32">
@@ -174,38 +198,41 @@ export function Emergency() {
                         ))}
                     </div>
                     <p className="footnote">{tr('Somewhere else, try 112: many mobile networks pass it on to the local emergency line.')}</p>
+                    <Position />
                 </section>
+
+                <CrewCard byId={byId} />
 
                 <section>
                     <h2 className={h2}>{tr('Until help comes')}</h2>
                     <ul className={`${bullets} mt-2`}>
-                        <li>{tr('Stay with them. Don’t leave them alone, even for a moment.')}</li>
-                        <li>{tr('If they’re awake, keep them calm and sitting up, and keep talking to them. Don’t shout at them or shake them.')}</li>
-                        <li>{tr('If they can’t be woken but are breathing, lay them on their side, as below.')}</li>
-                        <li>
-                            {tr('If they aren’t breathing, say so on the call and start pressing on their chest: the heel of one hand on the middle of the chest, the other hand on top, arms straight, 5 to 6 cm down, about twice a second. Keep going until help takes over. The person on the line will talk you through it.')}
-                        </li>
-                        <li>
-                            {tr('Tell the crew what was taken, how much and when, and hand over whatever is left. If it’s in your journal, show them the session.')}{' '}
-                            <Link to={{ page: 'journal' }} className="underline underline-offset-[3px]">
-                                {tr('Open the journal')}
-                            </Link>
-                        </li>
+                        {untilHelp.map((line, k) => (
+                            <li key={line}>
+                                {line}
+                                {line === pressing && <Metronome />}
+                                {k === untilHelp.length - 1 && (
+                                    <>
+                                        {' '}
+                                        <Link to={{ page: 'journal' }} className="underline underline-offset-[3px]">
+                                            {tr('Open the journal')}
+                                        </Link>
+                                    </>
+                                )}
+                            </li>
+                        ))}
                     </ul>
+                    <ReadAloud lines={untilHelp} />
                 </section>
 
                 <section>
                     <h2 className={h2}>{tr('On their side')}</h2>
                     <p className={`text-sm ${muted} mt-0.5`}>{tr('The recovery position, for someone who can’t be woken but is breathing normally.')}</p>
                     <ol className={`${steps} mt-2`}>
-                        <li>{tr('Kneel beside them and straighten their legs. Take off their glasses.')}</li>
-                        <li>{tr('Lay the arm nearest you out at a right angle to their body, elbow bent, palm up.')}</li>
-                        <li>{tr('Bring their other arm across the chest and hold the back of that hand against the cheek nearest you.')}</li>
-                        <li>{tr('With your other hand, pull the far knee up until the foot is flat on the floor.')}</li>
-                        <li>{tr('Keeping their hand against the cheek, pull on the knee to roll them towards you, onto their side. Leave the top leg bent at a right angle.')}</li>
-                        <li>{tr('Tilt the head back gently and lift the chin, so the airway stays open.')}</li>
-                        <li>{tr('Keep watching their breathing. After 30 minutes, roll them onto their other side.')}</li>
+                        {onSide.map(line => (
+                            <li key={line}>{line}</li>
+                        ))}
                     </ol>
+                    <ReadAloud lines={onSide} />
                 </section>
 
                 <section>

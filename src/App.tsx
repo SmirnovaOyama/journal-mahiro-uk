@@ -19,6 +19,9 @@ import { Substance } from './pages/Substance';
 import { Xunxun } from './pages/Xunxun';
 import { XUNXUN_ID } from './lib/xunxun';
 import { Report } from './pages/Report';
+import { Now } from './pages/Now';
+import { Watch } from './pages/Watch';
+import { LogFromAddress } from './components/DoseLink';
 import { tr } from './lib/i18n';
 
 /* Oyama's app shell, as hrt.mahiro.uk has it: the sidebar on a wide window,
@@ -40,6 +43,8 @@ const TAB_ROUTE: Record<Tab, Route> = {
 function tabOf(r: Route): Tab {
     switch (r.page) {
         case 'journal':
+        case 'now':
+        case 'log':
             return 'journal';
         case 'mix':
             return 'mix';
@@ -127,7 +132,7 @@ function AppContent() {
                     <div className="flex-1">
                         {route.page === 'emergency' ? (
                             // First, and whatever else failed: it needs nothing but itself.
-                            <Emergency />
+                            <Emergency byId={byId} />
                         ) : failed ? (
                             <div className="mx-auto w-full max-w-2xl px-6 md:px-8 py-16">
                                 <p className="text-sm font-semibold">
@@ -149,6 +154,12 @@ function AppContent() {
                             <Kind category={route.category} index={index} />
                         ) : route.page === 'browse' ? (
                             <Browse index={index} />
+                        ) : route.page === 'now' ? (
+                            <Now byId={byId} />
+                        ) : route.page === 'watch' ? (
+                            <Watch id={route.id} byId={byId} />
+                        ) : route.page === 'log' ? (
+                            <LogFromAddress route={route} index={index} byId={byId} />
                         ) : route.page === 'journal' ? (
                             <Journal index={index} byId={byId} session={route.session} view={route.view} substance={route.substance} />
                         ) : route.page === 'saved' ? (
@@ -164,8 +175,9 @@ function AppContent() {
                 <BottomNav tabs={navItems} activeTab={tab} onSelect={select} pageKey={key} />
             </div>
             {/* Never over the emergency page: whoever opens that first has no
-                time for an introduction. It waits for the next page. */}
-            {intro && route.page !== 'emergency' && <Onboarding />}
+                time for an introduction. It waits for the next page. Nor over
+                a night someone shared, opened by a person who came to watch. */}
+            {intro && route.page !== 'emergency' && route.page !== 'watch' && <Onboarding />}
         </div>
     );
 }

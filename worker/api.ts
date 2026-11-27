@@ -64,6 +64,13 @@ const MAX_SESSIONS = 30;
 const MAX_VAULT = 1_500_000;
 const MAX_BODY = MAX_VAULT + 4_096;
 
+/** A shared night (migrations/0004_watch.sql): its sealed copy is small,
+ *  and it lasts a day at most. */
+const MAX_WATCH = 64_000;
+const MAX_WATCH_HOURS = 24;
+const WATCH_ID = /^[A-Za-z0-9_-]{22}$/;
+const WATCH_DATA = /^w1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{22,}$/;
+
 const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 const RESERVED = new Set(['admin', 'administrator', 'root', 'system', 'support', 'help', 'staff', 'owner', 'official', 'api', 'www', 'me', 'user', 'users', 'security', 'null', 'undefined', 'oyama', 'journal', 'mahiro']);
 
@@ -593,6 +600,9 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             return ok({ token, user: publicUser(user, isAdmin(env, user)) });
         }
 
+        // A night shared with a link. Neither side needs an account.
+        if (path === '/api/watch' || path.startsWith('/api/watch/')) return await watchRoute(db, env, request, path, method);
+
         // Everything after this is for a signed-in device.
         if (!path.startsWith('/api/')) return fail('NOT_FOUND', 'Nothing here.', 404);
         const me = await signedIn(db, request);
@@ -801,6 +811,66 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
 }
 
 /** Everything an account keeps, deleted, and a line saying one was, and by whom. */
+/* ── a night shared with a link ─────────────────────────────────────── */
+
+/** The sealed copy of a shared night: made, replaced, read and ended. What
+ *  it holds is encrypted on the sharing device with a key this server is
+ *  never sent, so all it can do is keep the copy and hand it over. Only the
+ *  device with the token can replace or end it; anyone with the id can
+ *  read the sealed copy, which says nothing without the key. */
+async function watchRoute(db: D1Database, env: ApiEnv, request: Request, path: string, method: string): Promise<Response> {
+    const ip = ipOf(request);
+    const t = now();
+    const bearer = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const tokenHash = async () => b64url(await sha256(utf8(bearer)));
+    const GONE = () => fail('NOT_FOUND', 'This link has ended.', 404);
+
+    if (path === '/api/watch' && method === 'POST') {
+        if (!(await allowed(env.RL_AUTH, `watch:${ip}`))) return TOO_MANY();
+        const b = await body(request);
+        if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+        const { id, token, data } = b;
+        const hours = typeof b.hours === 'number' && b.hours > 0 ? Math.min(MAX_WATCH_HOURS, b.hours) : 12;
+        if (typeof id !== 'string' || !WATCH_ID.test(id) || !isKey(token, 32) || typeof data !== 'string' || !WATCH_DATA.test(data)) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+        if (data.length > MAX_WATCH) return fail('TOO_LARGE', 'That is too much to share.', 413);
+        // The ones that have run out go as new ones come.
+        await db.prepare('DELETE FROM watches WHERE expires_at < ?').bind(t).run();
+        const expires = t + Math.round(hours * 3600);
+        const made = await db
+            .prepare('INSERT INTO watches (id, token_hash, data, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING')
+            .bind(id, b64url(await sha256(utf8(token))), data, t, t, expires)
+            .run();
+        if (!made.meta?.changes) return fail('CONFLICT', 'Try again.', 409);
+        return ok({ id, expires: expires * 1000 }, 201);
+    }
+
+    const id = path.slice('/api/watch/'.length);
+    if (!WATCH_ID.test(id)) return GONE();
+
+    if (method === 'GET') {
+        if (!(await allowed(env.RL_SYNC, `watch:${ip}`))) return TOO_MANY();
+        const row = await db.prepare('SELECT data, updated_at, expires_at FROM watches WHERE id = ? AND expires_at >= ?').bind(id, t).first<{ data: string; updated_at: number; expires_at: number }>();
+        if (!row) return GONE();
+        return ok({ data: row.data, updated: row.updated_at * 1000, expires: row.expires_at * 1000 });
+    }
+
+    if (method === 'PUT') {
+        if (!(await allowed(env.RL_SYNC, `watch:${ip}`))) return TOO_MANY();
+        const b = await body(request);
+        const data = b?.data;
+        if (typeof data !== 'string' || !WATCH_DATA.test(data)) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+        if (data.length > MAX_WATCH) return fail('TOO_LARGE', 'That is too much to share.', 413);
+        const wrote = await db.prepare('UPDATE watches SET data = ?, updated_at = ? WHERE id = ? AND token_hash = ? AND expires_at >= ?').bind(data, t, id, await tokenHash(), t).run();
+        return wrote.meta?.changes ? ok({ updated: t * 1000 }) : GONE();
+    }
+
+    if (method === 'DELETE') {
+        await db.prepare('DELETE FROM watches WHERE id = ? AND token_hash = ?').bind(id, await tokenHash()).run();
+        return ok(null, 204);
+    }
+    return fail('NOT_FOUND', 'Nothing here.', 404);
+}
+
 function deleteAccount(db: D1Database, user: UserRow, by: 'self' | 'admin'): D1PreparedStatement[] {
     return [
         db.prepare('DELETE FROM vaults WHERE user_id = ?').bind(user.id),

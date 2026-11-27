@@ -21,6 +21,7 @@ import { courseFor, courseOf, formatMinutes } from '../lib/time';
 import Doodle from '../components/Doodle';
 import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
+import { DoseLink } from '../components/DoseLink';
 import { ProductForm } from '../components/ProductForm';
 import { LimitEditor, ParacetamolLine, PatternNotes } from '../components/JournalNotes';
 import { Link } from '../components/Link';
@@ -50,7 +51,7 @@ import { dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
 const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 
-function clock(t: number) {
+export function clock(t: number) {
     const d = new Date(t);
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
@@ -80,7 +81,7 @@ function ago(t: number, now: number) {
 }
 
 /** The same span without "ago": "3 h", "5 days". */
-function since(t: number, now: number) {
+export function since(t: number, now: number) {
     const m = Math.max(0, Math.round((now - t) / 60000));
     if (m < 1) return tr('just now');
     return m < 60 * 48 ? formatMinutes(m) : tr('{0} days', { 0: Math.round(m / 1440) });
@@ -91,7 +92,7 @@ const amountOf = (i: Ingestion) =>
     i.dose == null ? (tr('amount unknown')) : `${i.estimate ? '~' : ''}${fmtDose(i.dose)} ${i.unit}`;
 
 /** Ticks every minute, so "now" and "2 h ago" stay true while the page is open. */
-function useNow() {
+export function useNow() {
     const [now, setNow] = useState(Date.now());
     useEffect(() => {
         const t = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -101,7 +102,7 @@ function useNow() {
 }
 
 /** The details of every catalogue substance in these doses, as they load. */
-function useDetails(ingestions: Ingestion[], byId: Map<string, IndexEntry>) {
+export function useDetails(ingestions: Ingestion[], byId: Map<string, IndexEntry>) {
     const [details, setDetails] = useState<Record<string, Detail>>({});
     const ids = useMemo(() => [...new Set(ingestions.map(i => i.substance).filter(s => byId.has(s)))], [ingestions, byId]);
     useEffect(() => {
@@ -114,7 +115,7 @@ function useDetails(ingestions: Ingestion[], byId: Map<string, IndexEntry>) {
     return details;
 }
 
-function chartDoses(s: Session, details: Record<string, Detail>, colors: (id: string) => string): ChartDose[] {
+export function chartDoses(s: Session, details: Record<string, Detail>, colors: (id: string) => string): ChartDose[] {
     return s.ingestions.map(i => {
         const d = details[i.substance];
         const course = courseOf(d?.durationRows.find(r => r.roa === i.route) ?? (d?.durationRows.length === 1 ? d.durationRows[0] : undefined));
@@ -128,7 +129,7 @@ function chartDoses(s: Session, details: Record<string, Detail>, colors: (id: st
 }
 
 /** When a session is over: its last dose's effects done (or 6 hours on, if not known). */
-function sessionEnd(s: Session, details: Record<string, Detail>) {
+export function sessionEnd(s: Session, details: Record<string, Detail>) {
     return Math.max(
         ...s.ingestions.map(i => {
             const d = details[i.substance];
@@ -140,7 +141,7 @@ function sessionEnd(s: Session, details: Record<string, Detail>) {
     );
 }
 
-function pairsOf(s: Session, byId: Map<string, IndexEntry>, details: Record<string, Detail>, matrix?: ComboMatrix): PairResult[] {
+export function pairsOf(s: Session, byId: Map<string, IndexEntry>, details: Record<string, Detail>, matrix?: ComboMatrix): PairResult[] {
     const ids = [...new Set(s.ingestions.map(i => i.substance).filter(id => byId.has(id)))];
     const out: PairResult[] = [];
     for (let a = 0; a < ids.length; a++)
@@ -219,6 +220,7 @@ function DoseRow({
                                     <ChevronRight size={15} />
                                 </Link>
                             )}
+                            <DoseLink i={i} />
                         </div>
                     )}
                 </div>
@@ -229,7 +231,7 @@ function DoseRow({
 
 /* ── what a session holds that doesn't mix ──────────────────────────── */
 
-function Interactions({ pairs }: { pairs: PairResult[] }) {
+export function Interactions({ pairs }: { pairs: PairResult[] }) {
     const shown = pairs.filter(p => p.verdict !== 'Unknown' || pairs.length <= 3);
     if (!shown.length) return null;
     return (
@@ -269,7 +271,7 @@ function shortDate(t: number) {
     return d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
 }
 
-const substancesOf = (s: Session) => [...new Set(s.ingestions.map(i => i.substance))];
+export const substancesOf = (s: Session) => [...new Set(s.ingestions.map(i => i.substance))];
 const nameOf = (x: string, s: Session | Ingestion[], byId: Map<string, IndexEntry>) =>
     (byId.get(x) && shownName(byId.get(x)!)) ?? (Array.isArray(s) ? s : s.ingestions).find(i => i.substance === x)?.name ?? x;
 
@@ -304,7 +306,7 @@ function SessionRow({ s, data, byId, now }: { s: Session; data: JournalData; byI
 
 /** Under the chart of the session still going: where each substance is now
  *  and about when it will be over, and what the chart is a picture of. */
-function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }) {
+export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }) {
     // The latest dose of each substance says where it is.
     const latest = new Map<string, ChartDose>();
     for (const d of doses) {
@@ -539,6 +541,13 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         {tr('See the risks of mixing with {0}', { 0: andList(substancesOf(live).map(x => nameOf(x, live, byId))) })}
                                         <ChevronRight size={15} />
                                     </Link>
+                                    {/* The same night on one calm screen, for the hours it lasts. */}
+                                    <p className="mt-1">
+                                        <Link to={{ page: 'now' }} className={`${headerActionAccent} tap-target -ms-2.5 no-underline`}>
+                                            {tr('Keep tonight on one screen')}
+                                            <ChevronRight size={15} />
+                                        </Link>
+                                    </p>
                                     {/* And if it goes wrong tonight, the way there is one tap from here. */}
                                     <p className="footnote">
                                         <Link to={{ page: 'emergency' }}>{tr('If something goes wrong: what to do until help comes')}</Link>

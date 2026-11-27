@@ -177,8 +177,14 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
             return { ...pagePreview('settings', index.length || undefined), path: '/settings', found: true, privatePage: own };
         }
         case 'journal':
+        case 'now':
+        case 'log':
             speakFor(lang);
             return { ...pagePreview('journal', index.length || undefined), path: '/journal', found: true, privatePage: true };
+        // Someone's night, shared with a link whose key never reaches here.
+        case 'watch':
+            speakFor(lang);
+            return { ...site, path: '/', found: true, privatePage: true };
         default:
             return { ...site, path: '/', found: url.pathname === '/' };
     }
@@ -207,6 +213,7 @@ export default {
                     lang: pageTag(lang, request),
                     name: tr('Oyama Journal'),
                     short_name: tr('Journal'),
+                    shortcuts: (manifest.shortcuts as { name: string }[] | undefined)?.map(s => ({ ...s, name: tr(s.name) })),
                     description: tr('{0}, for {1} psychoactive substances, and a journal kept on your device.', { 0: tr(SITE.tagline), 1: '3,000' }),
                 }),
                 { headers },

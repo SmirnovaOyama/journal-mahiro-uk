@@ -473,10 +473,11 @@ export interface Prefill {
 
 let pending: Prefill | null = null;
 
-/** Opens the journal with the add form filled in. */
-export function logFrom(p: Prefill) {
+/** Opens the journal with the add form filled in. `instead`: in place of
+ *  the page showing, which then isn't one to go back to. */
+export function logFrom(p: Prefill, instead = false) {
     pending = p;
-    go({ page: 'journal' });
+    go({ page: 'journal' }, instead ? { replace: true } : {});
 }
 
 /** The prefill waiting for the journal. Read in a state initialiser (which

@@ -27,6 +27,11 @@
       "/settings/*",
       "/journal",
       "/journal/*",
+      // A running night, a dose's own address, and a night someone shared.
+      "/now",
+      "/log",
+      "/log/*",
+      "/watch/*",
       // The app's own name and line, in the visitor's language.
       "/manifest.webmanifest",
       "/api/*"
