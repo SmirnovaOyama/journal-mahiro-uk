@@ -26,6 +26,8 @@ import { keepsOffline } from '../lib/offline';
 import { phraseList, tr } from '../lib/i18n';
 import { cleanPerson, importPerson, medicinesOf, personIsEmpty, usePerson } from '../lib/person';
 import { MedicinesPage } from './Medicines';
+import { PrivacyPage } from './Privacy';
+import { lockState } from '../lib/kv';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
    there): on a phone, the three groups as a list of tiles, each opening its
@@ -284,8 +286,9 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                     value={medCount ? String(medCount) : tr('None')}
                     onClick={() => open('medicines')}
                 />
+                <NavRow label={tr('Lock and privacy')} value={lockState() === 'open' ? tr('Locked') : undefined} onClick={() => open('privacy')} />
             </div>
-            <p className={`text-xs ${muted} mt-2`}>{tr('Counted as already taken in every mix check and in the dose form.')}</p>
+            <p className={`text-xs ${muted} mt-2`}>{tr('Your medicines are counted as already taken in every mix check and in the dose form.')}</p>
         </div>
     );
 
@@ -442,6 +445,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     if (sub === 'two-factor') return <TwoFactorPage />;
     if (sub === 'weight') return <WeightPage />;
     if (sub === 'medicines') return <MedicinesPage />;
+    if (sub === 'privacy') return <PrivacyPage />;
     if (sub === 'essay') return <EssayPage />;
     if (sub === 'credits') return <CreditsPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;

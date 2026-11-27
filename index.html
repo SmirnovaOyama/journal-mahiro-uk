@@ -57,6 +57,22 @@
         }
         if (l === 'zh-Hant') document.documentElement.lang = 'zh-Hant';
       } catch (e) {}
+      // A plain name and icon, if the reader chose one (src/lib/quiet.ts):
+      // put on before anything is drawn, or added to a Home Screen.
+      try {
+        var q = JSON.parse(localStorage.getItem('journal.quiet.v1'));
+        if (q && typeof q.name === 'string' && q.name.trim()) {
+          var n = q.name.trim().slice(0, 30);
+          var at = function (s, a, v) { var e = document.querySelector(s); if (e) e.setAttribute(a, v); };
+          document.title = n;
+          at('link[rel="manifest"]', 'href', '/manifest.webmanifest?plain=' + encodeURIComponent(n));
+          at('link[rel="apple-touch-icon"]', 'href', '/plain-180.png');
+          at('link[rel="icon"][sizes="64x64"]', 'href', '/plain-64.png');
+          at('link[rel="icon"][sizes="32x32"]', 'href', '/plain-64.png');
+          at('meta[name="application-name"]', 'content', n);
+          at('meta[name="apple-mobile-web-app-title"]', 'content', n);
+        }
+      } catch (e) {}
     </script>
   </head>
   <body>

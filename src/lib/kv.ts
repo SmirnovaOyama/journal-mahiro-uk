@@ -34,7 +34,13 @@ export const LOCKED_KEYS = [
     'journal.account.note.v1',
     'journal.person.v1',
     'journal.watch.v1',
+    'journal.patterns.seen.v1',
 ];
+
+/** A line only the journal's own box has, so the site can tell it from the
+ *  empty one once it's open. It is inside the box: nothing outside says
+ *  which is which. */
+const MAIN = 'journal.lock.main';
 
 interface Wrapped {
     iv: string;
@@ -228,11 +234,25 @@ export function lockState(): 'off' | 'locked' | 'open' {
     return readMeta() ? 'locked' : 'off';
 }
 
+/** Whether what's open is the empty box the other code opens. There, the
+ *  lock can't be turned off or changed: either would cost the journal its
+ *  own box. */
+export const inOtherBox = () => !!mem && !mem.has(MAIN);
+
+/** Shuts the open box, as closing the page does. */
+export function forgetOpen() {
+    mem = null;
+    boxKey = null;
+    codeKey = null;
+    slot = -1;
+}
+
 /** Minutes out of sight before the code is asked for again. */
 export const lockAfter = () => readMeta()?.after ?? 0;
 
-/** Whether an other code is set: one that opens an empty journal. */
-export const hasOtherCode = () => (readMeta()?.slots.filter(Boolean).length ?? 0) > 1;
+/** Whether an other code is set: one that opens an empty journal. Never
+ *  said from inside that box. */
+export const hasOtherCode = () => !inOtherBox() && (readMeta()?.slots.filter(Boolean).length ?? 0) > 1;
 
 /** Tries a code. True when it opened a box, the journal's or the empty one's. */
 export async function unlock(code: string): Promise<boolean> {
@@ -268,7 +288,7 @@ export async function lockOn(code: string): Promise<void> {
     const key = await newBoxKey();
     // Which of the two places the journal's box takes is left to chance.
     const n = random(1)[0] & 1;
-    const lines = new Map<string, string>();
+    const lines = new Map<string, string>([[MAIN, '1']]);
     for (const k of LOCKED_KEYS) {
         const v = rawGet(k);
         if (v != null) lines.set(k, v);
@@ -297,9 +317,10 @@ export async function lockOn(code: string): Promise<void> {
  *  both boxes are taken away. */
 export async function lockOff(): Promise<void> {
     if (!mem) return;
+    if (inOtherBox()) throw new Error('Not the journal’s box');
     await settled();
     const lines = mem;
-    for (const [k, v] of lines) if (!rawSet(k, v)) throw new Error('No room');
+    for (const [k, v] of lines) if (k !== MAIN && !rawSet(k, v)) throw new Error('No room');
     mem = null;
     boxKey = null;
     codeKey = null;
@@ -313,6 +334,7 @@ export async function lockOff(): Promise<void> {
 export async function changeCode(code: string): Promise<void> {
     const meta = readMeta();
     if (!meta || !mem || !boxKey) throw new Error('Not open');
+    if (inOtherBox()) throw new Error('Not the journal’s box');
     const other = meta.slots[1 - slot];
     // The other box's key is wrapped by the other code, salted the same:
     // a new salt would shut it. So the salt stays while there is one.
@@ -331,6 +353,7 @@ export async function changeCode(code: string): Promise<void> {
 export async function setOtherCode(code: string | null): Promise<void> {
     const meta = readMeta();
     if (!meta || !mem || !codeKey) throw new Error('Not open');
+    if (inOtherBox()) throw new Error('Not the journal’s box');
     const n = 1 - slot;
     const slots = [...meta.slots];
     if (code == null) {
@@ -368,7 +391,7 @@ export async function wipeDevice(): Promise<void> {
             const keys: string[] = [];
             for (let i = 0; i < store.length; i++) {
                 const k = store.key(i);
-                if (k && (k.startsWith('journal.') || k.startsWith('journal-') || k.startsWith('pixel') || k.startsWith('oyama'))) keys.push(k);
+                if (k && (k.startsWith('journal.') || k.startsWith('journal-') || k.startsWith('app-pixel'))) keys.push(k);
             }
             keys.forEach(k => store.removeItem(k));
         }

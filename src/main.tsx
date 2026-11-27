@@ -1,30 +1,20 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
 import './index.css';
 import './styles/app.css';
-import { watchInputMode } from './utils/inputMode';
-import { startSync } from './lib/account';
-import { initLang } from './lib/lang';
-import { askToKeep } from './lib/installed';
-import { startOffline } from './lib/offline';
-import { startWatchSharing } from './lib/watch';
+import { lockState } from './lib/kv';
+import { askCode, lockWhenAway } from './lib/lockscreen';
+import { applyQuiet, readQuiet } from './lib/quiet';
 
-watchInputMode();
-// Signed in to an account: keep the journal in step with it.
-startSync();
-// Opened from the Home Screen: ask for the journal's storage to be kept.
-askToKeep();
-// Kept on the device, so it opens without a connection (public/sw.js).
-startOffline();
-// A night being shared with someone: keep their copy up to date.
-startWatchSharing();
+/* What runs first. With a lock on the journal (lib/kv.ts) nothing of the
+   app is loaded until the code is typed: the app's own files read the
+   journal as they load, and there's none to read before that. Without a
+   lock this goes straight on. */
 
-// The language is settled first, so the first page is drawn in it.
-void initLang().finally(() =>
-    ReactDOM.createRoot(document.getElementById('root')!).render(
-        <React.StrictMode>
-            <App />
-        </React.StrictMode>,
-    ),
-);
+// A plain name and icon, if the reader chose one (index.html has already
+// put them on; this keeps the title that way as pages change).
+applyQuiet(readQuiet());
+
+void (async () => {
+    if (lockState() === 'locked') await askCode(document.getElementById('root')!);
+    lockWhenAway();
+    await import('./boot');
+})();

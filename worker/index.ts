@@ -201,6 +201,27 @@ export default {
            visitor's language, so an installed app is named in it. */
         if (url.pathname === '/manifest.webmanifest') {
             const res = await env.ASSETS.fetch(new Request(url.origin + url.pathname));
+            /* The plain one (src/lib/quiet.ts): the name the reader chose
+               and a grey page for an icon, with nothing of the site's own
+               name, line or shortcuts in it. */
+            const plain = url.searchParams.get('plain')?.trim().slice(0, 30);
+            if (plain && res.ok) {
+                const icon = (size: number, purpose: string) => ({ src: `/plain-${size}.png`, sizes: `${size}x${size}`, type: 'image/png', purpose });
+                return new Response(
+                    JSON.stringify({
+                        name: plain,
+                        short_name: plain,
+                        start_url: '/',
+                        scope: '/',
+                        display: 'standalone',
+                        orientation: 'portrait',
+                        background_color: '#ffffff',
+                        theme_color: '#ffffff',
+                        icons: [icon(192, 'any'), icon(512, 'any'), icon(512, 'maskable')],
+                    }),
+                    { headers: { 'content-type': 'application/manifest+json; charset=utf-8', 'cache-control': 'no-store' } },
+                );
+            }
             const lang = langOf(request);
             if (lang === 'en' || !res.ok) return res;
             const manifest = (await res.json()) as Record<string, unknown>;

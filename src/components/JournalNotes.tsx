@@ -12,6 +12,7 @@ import {
 import { fmtAmount, nameOf, type IndexEntry } from '../lib/data';
 import { dateLocale, tr } from '../lib/i18n';
 import { useJournal, type Ingestion } from '../lib/journal';
+import { kv } from '../lib/kv';
 import { usePerson } from '../lib/person';
 import Choice from './Choice';
 import { Link } from './Link';
@@ -101,7 +102,7 @@ export function PatternNotes({ byId, now }: { byId: Map<string, IndexEntry>; now
     const found = useMemo(() => runs(data.ingestions, byId, now), [data.ingestions, byId, now]);
     const [seen, setSeen] = useState<Record<string, number>>(() => {
         try {
-            return JSON.parse(localStorage.getItem(SEEN) ?? '{}') as Record<string, number>;
+            return JSON.parse(kv.get(SEEN) ?? '{}') as Record<string, number>;
         } catch {
             return {};
         }
@@ -115,11 +116,8 @@ export function PatternNotes({ byId, now }: { byId: Map<string, IndexEntry>; now
     const dismiss = (id: string, days: number) => {
         const next = { ...seen, [id]: days };
         setSeen(next);
-        try {
-            localStorage.setItem(SEEN, JSON.stringify(next));
-        } catch {
-            /* it shows again next time */
-        }
+        // It names what's taken every day, so it's kept with the journal (lib/kv.ts).
+        kv.set(SEEN, JSON.stringify(next));
     };
     return (
         <>
