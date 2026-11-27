@@ -233,7 +233,19 @@ export default {
                     el.setAttribute('lang', pageTag(lang, request));
                 },
             })
-            .on('meta[property="og:locale"]', content(lang === 'zh-Hant' ? 'zh_TW' : lang === 'zh-Hans' ? 'zh_CN' : 'en_US'))
+            // Hong Kong and Macau get zh_HK, as their page gets their typeface.
+            .on(
+                'meta[property="og:locale"]',
+                content(
+                    lang === 'zh-Hans'
+                        ? 'zh_CN'
+                        : lang === 'zh-Hant'
+                          ? pageTag(lang, request) === 'zh-Hant-HK'
+                              ? 'zh_HK'
+                              : 'zh_TW'
+                          : 'en_US',
+                ),
+            )
             .on('title', {
                 element(el) {
                     el.setInnerContent(page.title);
