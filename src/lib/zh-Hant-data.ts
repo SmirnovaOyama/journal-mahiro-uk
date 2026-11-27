@@ -587,6 +587,16 @@ const combos: Record<string, string> = {
 
 /** Families of compounds ("Substituted tryptamines"), groups and kinds. */
 const families: Record<string, string> = {
+    'Lithium': '鋰鹽',
+    'Serotonin releasers': '血清素釋放劑',
+    'Serotonin releaser': '血清素釋放劑',
+    'Protease inhibitors': '蛋白酶抑制劑',
+    'SNRIs': '血清素正腎上腺素再回收抑制劑',
+    'Snris': '血清素正腎上腺素再回收抑制劑',
+    'NDRIs': '正腎上腺素多巴胺再回收抑制劑',
+    'Antipsychotics': '抗精神病藥',
+    'Antihistamines': '抗組織胺',
+    'Anticholinergics': '抗膽鹼藥',
     'Substituted phenethylamines': '取代苯乙胺',
     'Substituted methylenedioxyphenethylamines': '取代亞甲二氧基苯乙胺',
     'Substituted tryptamines': '取代色胺',

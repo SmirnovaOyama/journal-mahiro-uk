@@ -1,5 +1,5 @@
 import type { DosageForm } from '../components/doodles';
-import { dataText, dateLocale, isZh, tr } from './i18n';
+import { currentLang, dataText, dateLocale, isZh, tr } from './i18n';
 
 /* What public/data holds: written by scripts/sync-substances.mjs from
    PsychonautWiki and TripSit, then by scripts/sync-wikidata.mjs, which adds
@@ -48,9 +48,10 @@ export interface IndexEntry {
   id: string;
   name: string;
   aliases: string;
-  /** Its name in 正體中文, where Wikidata or zh.wikipedia has a short one
-   *  (scripts/zh-data.mjs). */
+  /** Its name in 正體中文 and in 简体中文, where Wikidata or zh.wikipedia
+   *  has a short one (scripts/zh-data.mjs). */
   zh?: string;
+  zhHans?: string;
   /** Other Chinese names, in traditional and simplified writing, to search by. */
   zhAliases?: string;
   category: Category;
@@ -173,13 +174,17 @@ export interface Detail {
   molarMass?: number;
   summarySources?: string;
   summary: string;
-  /** Its name in 正體中文, and the opening of its zh.wikipedia article as
-   *  Wikipedia writes it for Taiwan (scripts/zh-data.mjs). */
+  /** Its name in each Chinese writing, and the opening of its zh.wikipedia
+   *  article as Wikipedia writes it for Taiwan and for the mainland
+   *  (scripts/zh-data.mjs). */
   zh?: string;
+  zhHans?: string;
   summaryZh?: string;
-  /** The other names it goes by in Chinese, in Taiwan's writing, for the
-   *  page to name under the one it leads with ("氯胺酮, K他命"). */
+  summaryZhHans?: string;
+  /** The other names it goes by in Chinese, in each writing, for the page
+   *  to name under the one it leads with ("氯胺酮, K他命"). */
   zhOther?: string;
+  zhHansOther?: string;
   /** How it works (scripts/pharmacology.mjs): the opening of what its article
    *  says of its mechanism; the receptors, transporters and channels the
    *  IUPHAR/BPS Guide to Pharmacology records it binding to, by what it does
@@ -276,15 +281,17 @@ export function squash(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9À-￿]+/g, '');
 }
 
-/** A substance's name as the reader's language has it: its Chinese name
- *  when the site speaks 正體中文 and it has one, else the catalogue's. */
-export function nameOf(e: Pick<IndexEntry, 'name' | 'zh'>): string {
-  return (isZh() && e.zh) || e.name;
+/** A substance's name as the reader's language has it: its Chinese name in
+ *  the writing being read, where it has one, else the catalogue's. */
+export function nameOf(e: Pick<IndexEntry, 'name' | 'zh' | 'zhHans'>): string {
+  if (!isZh()) return e.name;
+  return (currentLang() === 'zh-Hans' ? e.zhHans ?? e.zh : e.zh) || e.name;
 }
 
-/** Every Chinese name an entry goes by. */
+/** Every Chinese name an entry goes by, in either writing: a search finds
+ *  the substance whichever one the reader types. */
 function zhNames(e: IndexEntry): string[] {
-  return [e.zh, ...(e.zhAliases ? e.zhAliases.split(',') : [])].map((a) => (a ?? '').trim()).filter(Boolean);
+  return [e.zh, e.zhHans, ...(e.zhAliases ? e.zhAliases.split(',') : [])].map((a) => (a ?? '').trim()).filter(Boolean);
 }
 
 function aliasList(e: IndexEntry): string[] {

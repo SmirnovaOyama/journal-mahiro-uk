@@ -3,7 +3,8 @@ import { speak, type Lang } from './i18n';
 
 /* Which language the site speaks on this device: the one chosen in
    Settings, or else the browser's. The choice is kept in this browser, like
-   the theme. 正體中文's words are fetched only when it's the one in use. */
+   the theme. A Chinese writing's words are fetched only when it's the one
+   in use, and only that one of the two. */
 
 /** What the visitor picked in Settings: a language, or to follow the browser. */
 export type LangChoice = Lang | 'system';
@@ -11,32 +12,36 @@ export type LangChoice = Lang | 'system';
 const KEY = 'journal.lang.v1';
 
 /** Each language under its own name, whichever one the page is in. */
-export const LANG_NAMES: Record<Lang, string> = { en: 'English', 'zh-Hant': '正體中文' };
+export const LANG_NAMES: Record<Lang, string> = { en: 'English', 'zh-Hant': '正體中文', 'zh-Hans': '简体中文' };
 
 function readChoice(): LangChoice {
     try {
         const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null');
-        return raw === 'en' || raw === 'zh-Hant' ? raw : 'system';
+        return raw === 'en' || raw === 'zh-Hant' || raw === 'zh-Hans' ? raw : 'system';
     } catch {
         return 'system';
     }
 }
 
-/** The first of the browser's languages the site has. Any Chinese gets
- *  正體中文: it is the only Chinese here, and nearer than English. */
+/** The first of the browser's languages the site has. Taiwan, Hong Kong
+ *  and Macau read 正體中文; the mainland and Singapore 简体中文. Chinese
+ *  that says nothing of where gets 简体中文, which more readers of it use,
+ *  and either is nearer than English. */
 function systemLang(): Lang {
     const prefs = navigator.languages?.length ? navigator.languages : [navigator.language];
     for (const p of prefs) {
-        if (/^zh\b/i.test(p)) return 'zh-Hant';
+        if (/^zh\b/i.test(p)) return /\b(Hant|TW|HK|MO)\b/i.test(p) ? 'zh-Hant' : 'zh-Hans';
         if (/^en\b/i.test(p)) return 'en';
     }
     return 'en';
 }
 
 /** The page's language tag, which picks the Chinese typeface (index.css):
- *  Hong Kong's and Macau's forms for readers there, Taiwan's otherwise. */
+ *  Hong Kong's and Macau's forms for readers there, Taiwan's otherwise,
+ *  and the mainland's for 简体中文. */
 function pageTag(l: Lang): string {
     if (l === 'en') return 'en';
+    if (l === 'zh-Hans') return 'zh-Hans';
     const prefs = navigator.languages?.length ? navigator.languages : [navigator.language];
     return prefs.some(p => /^zh\b.*-(HK|MO)\b/i.test(p)) ? 'zh-Hant-HK' : 'zh-Hant';
 }
@@ -46,18 +51,25 @@ let lang: Lang = 'en';
 let snap = `${choice}|${lang}`;
 const subs = new Set<() => void>();
 
-let words: Record<string, string> | null = null;
-let catalogue: Record<string, string> | null = null;
-let vocabulary: [string, string][] | null = null;
+/** Each writing's words, once they've been fetched. */
+type Words = { words: Record<string, string>; catalogue: Record<string, string>; vocabulary: [string, string][] };
+const fetched: Partial<Record<'zh-Hant' | 'zh-Hans', Words>> = {};
+let spoken: Words | null = null;
+
 async function wordsFor(l: Lang): Promise<Record<string, string> | null> {
-    if (l === 'en') return null;
-    if (!words) {
-        const [w, c] = await Promise.all([import('./zh-Hant'), import('./zh-Hant-data')]);
-        words = w.default;
-        catalogue = c.default;
-        vocabulary = c.terms;
+    if (l === 'en') {
+        spoken = null;
+        return null;
     }
-    return words;
+    if (!fetched[l]) {
+        const [w, c] =
+            l === 'zh-Hant'
+                ? await Promise.all([import('./zh-Hant'), import('./zh-Hant-data')])
+                : await Promise.all([import('./zh-Hans'), import('./zh-Hans-data')]);
+        fetched[l] = { words: w.default, catalogue: c.default, vocabulary: c.terms };
+    }
+    spoken = fetched[l]!;
+    return spoken.words;
 }
 
 async function apply() {
@@ -70,7 +82,7 @@ async function apply() {
         if (next !== 'en') return;
     }
     lang = next;
-    speak(lang, w, w ? catalogue : null, w ? vocabulary : null);
+    speak(lang, w, spoken?.catalogue ?? null, spoken?.vocabulary ?? null);
     document.documentElement.lang = pageTag(lang);
     snap = `${choice}|${lang}`;
     subs.forEach(f => f());

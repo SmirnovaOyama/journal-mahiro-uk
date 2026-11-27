@@ -13,6 +13,8 @@ import { categoryInfo, nameOf, type ComboMatrix, type Detail, type IndexEntry } 
 import { speak, tr, type Lang } from '../src/lib/i18n';
 import zhWords from '../src/lib/zh-Hant';
 import zhData, { terms as zhTerms } from '../src/lib/zh-Hant-data';
+import hansWords from '../src/lib/zh-Hans';
+import hansData, { terms as hansTerms } from '../src/lib/zh-Hans-data';
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
 import { SITE, essayPreview, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, type Preview } from '../src/lib/preview';
 import { parse } from '../src/lib/routes';
@@ -53,14 +55,15 @@ interface Page extends Preview {
     shareDescription?: string;
 }
 
-/** The language a link previewer or a search engine asked for: 正體中文 for
- *  any Chinese, since it's the only Chinese here. The app itself settles
- *  this again on the device (src/lib/lang.ts). */
+/** The language a link previewer or a search engine asked for. Taiwan, Hong
+ *  Kong and Macau read 正體中文, the mainland and Singapore 简体中文, and
+ *  Chinese that says nothing of where gets 简体中文, as on the device. The
+ *  app itself settles this again there (src/lib/lang.ts). */
 function langOf(request: Request): Lang {
     const header = request.headers.get('accept-language') ?? '';
     for (const part of header.split(',')) {
         const tag = part.split(';')[0].trim();
-        if (/^zh\b/i.test(tag)) return 'zh-Hant';
+        if (/^zh\b/i.test(tag)) return /\b(Hant|TW|HK|MO)\b/i.test(tag) ? 'zh-Hant' : 'zh-Hans';
         if (/^en\b/i.test(tag)) return 'en';
     }
     return 'en';
@@ -68,12 +71,20 @@ function langOf(request: Request): Lang {
 
 /** The tag the page is served with, which picks its typeface (index.css). */
 const pageTag = (lang: Lang, request: Request) =>
-    lang === 'en' ? 'en' : /\bzh[\w-]*-(HK|MO)\b/i.test(request.headers.get('accept-language') ?? '') ? 'zh-Hant-HK' : 'zh-Hant';
+    lang === 'en'
+        ? 'en'
+        : lang === 'zh-Hans'
+          ? 'zh-Hans'
+          : /\bzh[\w-]*-(HK|MO)\b/i.test(request.headers.get('accept-language') ?? '')
+            ? 'zh-Hant-HK'
+            : 'zh-Hant';
 
 /** Every line this Worker words is settled here, with nothing awaited
  *  after it: one request's language can't reach another's. */
 function speakFor(lang: Lang) {
-    speak(lang, lang === 'en' ? null : zhWords, lang === 'en' ? null : zhData, lang === 'en' ? null : zhTerms);
+    if (lang === 'en') return speak(lang, null, null, null);
+    if (lang === 'zh-Hans') return speak(lang, hansWords, hansData, hansTerms);
+    speak(lang, zhWords, zhData, zhTerms);
 }
 
 async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
@@ -97,7 +108,7 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
             // The report's own telling in that language, where there is one.
             type Shared = { id: string; title: string; summary: string; closing?: string[][]; picture?: { alt: string }; closingPicture?: { alt: string } };
             const report =
-                (lang === 'zh-Hant' ? await json<Shared>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.zh-Hant.json`) : undefined) ??
+                (lang === 'en' ? undefined : await json<Shared>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.${lang}.json`)) ??
                 (await json<Shared>(env, origin, `/data/reports/${encodeURIComponent(route.id)}.json`));
             if (!report) return { ...site, path: url.pathname, found: false };
             const page = { ...site, title: report.title, description: report.summary, path: `/report/${report.id}`, found: true };
@@ -222,7 +233,19 @@ export default {
                     el.setAttribute('lang', pageTag(lang, request));
                 },
             })
-            .on('meta[property="og:locale"]', content(lang === 'zh-Hant' ? 'zh_TW' : 'en_US'))
+            // Hong Kong and Macau get zh_HK, as their page gets their typeface.
+            .on(
+                'meta[property="og:locale"]',
+                content(
+                    lang === 'zh-Hans'
+                        ? 'zh_CN'
+                        : lang === 'zh-Hant'
+                          ? pageTag(lang, request) === 'zh-Hant-HK'
+                              ? 'zh_HK'
+                              : 'zh_TW'
+                          : 'en_US',
+                ),
+            )
             .on('title', {
                 element(el) {
                     el.setInnerContent(page.title);
