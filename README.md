@@ -110,6 +110,18 @@ a plain name and icon, and erasing the device at once. See
 **Ask it from Telegram.** `/mix mdma tramadol`, `/dose ketamine`, or the
 bot's name and a question in any chat. See [Telegram](#telegram).
 
+**Turn any of it off.** Settings, Features has a switch for each of these:
+the notes from last time, limits, the daily medicines, drugs still at work,
+products, paracetamol's total, the Now screen, days in a row, a dose's
+address, watching over a night, the card for the crew, the emergency
+page's beat, reading aloud and position, and the link to report a mistake.
+All are on to begin with. Off, a feature is hidden and does nothing, and
+what it kept stays for when it's turned back on (`src/lib/features.ts`).
+The lock, the other code and the plain name have their own switches under
+Lock and privacy. The warnings about a redose too soon and about what
+doesn't mix are always on, and the Telegram bot is the site's, on for
+everyone once its secret is set.
+
 **Sync it, if you want.** Make an account with a username and a password, and
 the journal and the saved list are kept the same on each device signed in to
 it. They're encrypted in the browser before they're sent, so the server keeps
@@ -156,6 +168,7 @@ for chat apps and search engines.
 | `/log/<substance>/<amount>/<route>` | The dose form, filled in from the address |
 | `/settings/medicines` | The medicines taken every day |
 | `/settings/privacy` | The lock, the other code, a plain name and icon, erasing the device |
+| `/settings/features` | A switch for each feature |
 | `/settings/account` | The account: sign in or make one; on a phone, its parts as tiles (`/settings/sync`, `/settings/security`, `/settings/devices`), on a wide window as tabs |
 | `/settings/two-factor` | Two-step sign-in |
 | `/settings/weight` | Body weight |
@@ -477,6 +490,7 @@ and the files of the build before it are let go.
     `lockscreen.ts`: the screen that asks for the code; `quiet.ts`: the
     plain name and icon.
   - `watch.ts`: a night shared with someone, sealed on the device.
+  - `features.ts`: which features are on, by the switches in Settings.
   - `account.ts`: signing in and out, two-step sign-in, and syncing.
   - `eggs.ts`: a few things for whoever looks up estradiol.
   - `alcohol.ts`: blood alcohol, roughly, from the body weight.

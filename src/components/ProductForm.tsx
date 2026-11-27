@@ -8,6 +8,7 @@ import { useNavHeldAway } from './BottomNav';
 import Choice from './Choice';
 import { Alert, Close } from './icons';
 import { gramsText } from './JournalNotes';
+import { useFeature } from '../lib/features';
 import { Link } from './Link';
 import { Molecule } from './Molecule';
 import { SearchField } from './SearchField';
@@ -56,6 +57,7 @@ export function ProductForm({
     const { person, saveProduct, removeProduct } = usePerson();
     const products = useMemo(() => productsOf(person), [person]);
     useNavHeldAway();
+    const paracetamolOn = useFeature('paracetamol');
 
     const [chosen, setChosen] = useState<string | null>(products.length === 1 ? products[0].id : null);
     const [draft, setDraft] = useState<Draft | null>(products.length ? null : { id: newId(), name: '', per: 'tablet', parts: [] });
@@ -318,7 +320,7 @@ export function ProductForm({
                         </div>
                     </div>
 
-                    {apapTotal != null && (
+                    {apapTotal != null && paracetamolOn && (
                         <p className={`flex gap-2 text-sm leading-relaxed ${apapTotal > PARACETAMOL_DAY_MG ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'}`} role="status">
                             {apapTotal > PARACETAMOL_DAY_MG && <Alert size={16} className="mt-0.5 shrink-0" />}
                             <span>

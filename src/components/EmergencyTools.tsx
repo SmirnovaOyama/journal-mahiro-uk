@@ -8,6 +8,7 @@ import { formatWeight, useWeight } from '../lib/store';
 import { Close } from './icons';
 import { gramsText } from './JournalNotes';
 import { Molecule } from './Molecule';
+import { useFeature } from '../lib/features';
 
 /* The emergency page's tools: what was taken, set out for whoever comes to
    help; a beat to press a chest to; the steps read aloud, for hands that
@@ -67,7 +68,8 @@ export function CrewCard({ byId }: { byId?: Map<string, IndexEntry> }) {
 
     const doses = useMemo(() => data.ingestions.filter(i => now - i.time < DAY && i.time <= now + 3600_000).sort((a, b) => b.time - a.time), [data.ingestions, now]);
     const meds = medicinesOf(person);
-    if (!doses.length && !meds.length) return null;
+    const wanted = useFeature('crewCard');
+    if (!wanted || (!doses.length && !meds.length)) return null;
     const apap = doses.some(i => i.substance === PARACETAMOL) ? paracetamolMg(data.ingestions, now).mg : 0;
 
     const body = (big: boolean) => (
@@ -181,6 +183,8 @@ export function Metronome() {
             audio.current = null;
         };
     }, [on]);
+    const wanted = useFeature('emergencyTools');
+    if (!wanted) return null;
     return (
         <span className="mt-2 flex items-center gap-3">
             <button type="button" className={toolButton} aria-pressed={on} onClick={() => setOn(o => !o)}>
@@ -203,7 +207,8 @@ export function ReadAloud({ lines }: { lines: string[] }) {
     const [on, setOn] = useState(false);
     const can = typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
     useEffect(() => () => (can ? window.speechSynthesis.cancel() : undefined), [can]);
-    if (!can) return null;
+    const wanted = useFeature('emergencyTools');
+    if (!can || !wanted) return null;
     const start = () => {
         window.speechSynthesis.cancel();
         lines.forEach((line, k) => {
@@ -233,7 +238,8 @@ export function ReadAloud({ lines }: { lines: string[] }) {
 export function Position() {
     const [state, setState] = useState<'idle' | 'asking' | 'failed'>('idle');
     const [at, setAt] = useState<{ lat: number; lon: number; within: number } | null>(null);
-    if (!('geolocation' in navigator)) return null;
+    const wanted = useFeature('emergencyTools');
+    if (!wanted || !('geolocation' in navigator)) return null;
     const ask = () => {
         setState('asking');
         navigator.geolocation.getCurrentPosition(

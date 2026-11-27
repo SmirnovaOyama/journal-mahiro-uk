@@ -21,6 +21,7 @@ import { LINGER_DAYS, PARACETAMOL, PARACETAMOL_DAY_MG, PARACETAMOL_SOURCE, lastN
 import { medicinesOf, usePerson } from '../lib/person';
 import { LastTimeNote, gramsText } from './JournalNotes';
 import { Link } from './Link';
+import { useFeatures } from '../lib/features';
 
 /* Logging one dose: what, how, how much, when. Laid out as hrt.mahiro.uk's
    dose form is, labelled lines one under another, and as it's filled in it
@@ -166,10 +167,12 @@ export function IngestionForm({
     // And what reaches further back than a day: the medicines taken every
     // day, and whatever was logged in the last weeks that may still be at work.
     const { person } = usePerson();
-    const meds = useMemo(() => medicinesOf(person).filter(m => byId.has(m.id)), [person, byId]);
+    // Each of these can be turned off in Settings, Features (lib/features.ts).
+    const feat = useFeatures();
+    const meds = useMemo(() => (feat.on('medicines') ? medicinesOf(person).filter(m => byId.has(m.id)) : []), [person, byId, feat.on]);
     const older = useMemo(
-        () => [...new Set(data.ingestions.filter(i => i.id !== editing?.id && time - i.time > DAY && time - i.time <= LINGER_DAYS * DAY).map(i => i.substance))],
-        [data.ingestions, editing?.id, time],
+        () => (!feat.on('lingering') ? [] : [...new Set(data.ingestions.filter(i => i.id !== editing?.id && time - i.time > DAY && time - i.time <= LINGER_DAYS * DAY).map(i => i.substance))]),
+        [data.ingestions, editing?.id, time, feat.on],
     );
     useEffect(() => {
         for (const id of new Set([...recent.map(i => i.substance), ...older, ...meds.map(m => m.id)]))
@@ -178,17 +181,17 @@ export function IngestionForm({
                     .then(d => setOthers(p => ({ ...p, [d.id]: d })))
                     .catch(() => {});
     }, [recent, older, meds, byId, others]);
-    const still = useMemo(() => lingering(data.ingestions, others, time, editing?.id), [data.ingestions, others, time, editing?.id]);
+    const still = useMemo(() => (feat.on('lingering') ? lingering(data.ingestions, others, time, editing?.id) : []), [data.ingestions, others, time, editing?.id, feat.on]);
 
     // What this dose is logged under: the catalogue's id, or the name as typed.
     const key = substance && byId.get(substance) ? substance : custom.trim();
-    const limit = key ? person.limits[key] : undefined;
+    const limit = key && feat.on('limits') ? person.limits[key] : undefined;
     const paracetamol = useMemo(() => {
-        if (key !== PARACETAMOL) return null;
+        if (key !== PARACETAMOL || !feat.on('paracetamol')) return null;
         const before = paracetamolMg(data.ingestions, time, editing?.id);
         const mine = dose != null && doseOk ? convertAmount(dose, unit || 'mg', 'mg') : null;
         return { mg: before.mg + (mine ?? 0), before: before.mg };
-    }, [key, data.ingestions, time, editing?.id, dose, doseOk, unit]);
+    }, [key, data.ingestions, time, editing?.id, dose, doseOk, unit, feat.on]);
 
     const warnings = useMemo(() => {
         const out: { key: string; tone: 'danger' | 'warning'; text: string; link?: { label: string; href: string } }[] = [];
@@ -293,7 +296,7 @@ export function IngestionForm({
     }, [entry, recent, time, detail, byId, others, matrix, meds, still, key, limit, paracetamol, data.ingestions, editing?.id, dose, doseOk, unit, name]);
 
     // What was written the last night this was taken, shown before it's taken again.
-    const last = useMemo(() => (key && !editing ? lastTime(data, key, time) : null), [key, editing, data, time]);
+    const last = useMemo(() => (key && !editing && feat.on('lastTime') ? lastTime(data, key, time) : null), [key, editing, data, time, feat.on]);
 
     const hits = useMemo(() => (index && q.trim() ? search(index, q, 6) : []), [index, q]);
     // What's been logged lately, to pick again in one tap.
@@ -392,7 +395,7 @@ export function IngestionForm({
                                 ))}
                             </div>
                         )}
-                        {!q.trim() && onProduct && (
+                        {!q.trim() && onProduct && feat.on('products') && (
                             <button type="button" className="link-button mt-3 block text-sm" onClick={onProduct}>
                                 {tr('A product with several ingredients')}
                             </button>
@@ -560,7 +563,7 @@ export function IngestionForm({
                         />
                     </div>
 
-                    {key && !editing && !limit?.max && !limit?.gap && (
+                    {key && !editing && feat.on('limits') && !limit?.max && !limit?.gap && (
                         <p className="-mt-2 text-xs text-[var(--text-muted)]">
                             <Link to={{ page: 'journal', substance: key }} className="underline underline-offset-[3px]">
                                 {tr('Set a limit for {0}', { 0: name })}

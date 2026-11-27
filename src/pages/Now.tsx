@@ -10,6 +10,8 @@ import { loadCombos, type ComboMatrix, type IndexEntry } from '../lib/data';
 import { tr } from '../lib/i18n';
 import { colorOf, logFrom, sessionsOf, useJournal } from '../lib/journal';
 import { RANK } from '../lib/mix';
+import { useFeature } from '../lib/features';
+import { go } from '../lib/router';
 import { Interactions, chartDoses, clock, pairsOf, sessionEnd, since, useDetails, useNow } from './Journal';
 
 /* The night that's going on, on one screen, for someone who isn't at their
@@ -131,7 +133,13 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
     const latest = useMemo(() => sessionsOf(data.ingestions)[0], [data.ingestions]);
     const details = useDetails(latest ? latest.ingestions : [], byId);
     const live = latest && now < sessionEnd(latest, details) + 60 * 60_000 ? latest : null;
-    useScreenOn(!!live);
+    // Turned off in Settings: the journal's own page is where the night is.
+    const wanted = useFeature('now');
+    useEffect(() => {
+        if (!wanted) go({ page: 'journal' }, { replace: true });
+    }, [wanted]);
+    useScreenOn(!!live && wanted);
+    if (!wanted) return null;
 
     const doses: ChartDose[] = live ? chartDoses(live, details, s => colorOf(data, s)) : [];
     // The latest dose of each thing taken says where it is.

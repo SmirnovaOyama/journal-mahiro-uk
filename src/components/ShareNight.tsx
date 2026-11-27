@@ -4,6 +4,7 @@ import type { IndexEntry } from '../lib/data';
 import { tr } from '../lib/i18n';
 import { WatchError, checkIn, dueAt, shareLink, startShare, stopShare, useShare } from '../lib/watch';
 import Segmented from './Segmented';
+import { useFeature } from '../lib/features';
 
 /* On the Now screen: sharing tonight with someone trusted (lib/watch.ts),
    and answering their check-ins. */
@@ -26,9 +27,10 @@ function useTick(ms: number) {
  *  answers them, and when the next is due. Late, it says so. */
 export function CheckIn() {
     const share = useShare();
+    const wanted = useFeature('watch');
     useTick(20_000);
     const due = share && dueAt(share);
-    if (!share || due == null) return null;
+    if (!wanted || !share || due == null) return null;
     const late = Date.now() > due;
     return (
         <div className="mt-5">
@@ -61,6 +63,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const wanted = useFeature('watch');
     useTick(60_000);
 
     const begin = async () => {
@@ -79,6 +82,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
         }
     };
 
+    if (!wanted) return null;
     if (!share)
         return (
             <section className="mt-10" aria-labelledby="share-night">

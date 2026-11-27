@@ -148,6 +148,7 @@ test('every page’s path reads back as the same page', () => {
         { page: 'journal', substance: '2c-b' },
         { page: 'settings', sub: 'medicines' },
         { page: 'settings', sub: 'privacy' },
+        { page: 'settings', sub: 'features' },
         { page: 'emergency' },
         { page: 'now' },
         { page: 'watch', id: 'AbC_-123' },

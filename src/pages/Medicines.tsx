@@ -14,6 +14,7 @@ import { tr } from '../lib/i18n';
 import { RANK, VERDICT, checkPair, type PairResult } from '../lib/mix';
 import { medicinesOf, usePerson } from '../lib/person';
 import { useDetails, useIndex } from '../lib/useIndex';
+import { useFeature } from '../lib/features';
 
 /* The medicines taken every day: an antidepressant, lithium, a hormone.
    Once they're here, every mix check, every substance's page and the dose
@@ -161,7 +162,8 @@ export function WithMedicines({ entry, byId }: { entry: IndexEntry; byId: Map<st
         [person, byId, entry.id],
     );
     const pairs = useMedicinePairs(entries, entry);
-    if (!pairs.length) return null;
+    const wanted = useFeature('medicines');
+    if (!wanted || !pairs.length) return null;
     return (
         <div className="mt-4 space-y-2">
             {pairs.map(p => {

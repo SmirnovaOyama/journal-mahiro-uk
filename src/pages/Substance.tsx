@@ -29,6 +29,7 @@ import { Fold } from '../components/Fold';
 import { WithMedicines } from './Medicines';
 import { REPO } from './Credits';
 import { SITE } from '../lib/preview';
+import { useFeature } from '../lib/features';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
@@ -274,6 +275,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     const { detail, failed, loading } = useDetail(id);
     const saved = useSaved();
     const entry = byId.get(id);
+    const reportOn = useFeature('report');
 
     useEffect(() => {
         if (detail) {
@@ -1038,7 +1040,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
                 {/* 3,000 pages put together by scripts: some of it will be
                     wrong, and the reader who notices is the one who can say. */}
-                <p className="footnote">
+                {reportOn && <p className="footnote">
                     <a
                         href={`${REPO}/issues/new?title=${encodeURIComponent(`${detail.name}: `)}&body=${encodeURIComponent(`Page: ${SITE.origin}/s/${detail.id}\n\nWhat is wrong:\n\nWhere it says otherwise (a link, if you have one):\n`)}`}
                         target="_blank"
@@ -1046,7 +1048,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                     >
                         {tr('A mistake on this page can be reported on GitHub')}
                     </a>
-                </p>
+                </p>}
             </main>
         </>
     );

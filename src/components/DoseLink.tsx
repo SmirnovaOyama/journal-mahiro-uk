@@ -4,6 +4,8 @@ import type { IndexEntry } from '../lib/data';
 import { tr } from '../lib/i18n';
 import { logFrom, type Ingestion } from '../lib/journal';
 import { href, type Route } from '../lib/routes';
+import { go } from '../lib/router';
+import { featureOn, useFeature } from '../lib/features';
 
 /* A dose as an address: /log/caffeine/100mg/oral opens the dose form with
    that filled in, the time set to now. Put on an NFC sticker on the box,
@@ -22,7 +24,9 @@ export function doseRoute(i: Pick<Ingestion, 'substance' | 'dose' | 'unit' | 'ro
 export function DoseLink({ i }: { i: Ingestion }) {
     const [open, setOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const wanted = useFeature('doseLink');
     const link = `${window.location.origin}${href(doseRoute(i))}`;
+    if (!wanted) return null;
     return (
         <div className="mt-4">
             <button type="button" className={`link-button text-sm !text-[var(--text-muted)]`} aria-expanded={open} onClick={() => setOpen(o => !o)}>
@@ -68,6 +72,11 @@ export function DoseLink({ i }: { i: Ingestion }) {
  *  journal's dose form and gets out of the way, so Back doesn't land here. */
 export function LogFromAddress({ route, index, byId }: { route: Extract<Route, { page: 'log' }>; index: IndexEntry[] | null; byId: Map<string, IndexEntry> }) {
     useEffect(() => {
+        // Turned off in Settings: such an address opens the journal, and fills nothing in.
+        if (!featureOn('doseLink')) {
+            go({ page: 'journal' }, { replace: true });
+            return;
+        }
         // The catalogue says whether the name is one of its own.
         if (route.id && !index) return;
         const known = route.id ? byId.get(route.id) : undefined;

@@ -13,6 +13,7 @@ import { fmtAmount, nameOf, type IndexEntry } from '../lib/data';
 import { dateLocale, tr } from '../lib/i18n';
 import { useJournal, type Ingestion } from '../lib/journal';
 import { kv } from '../lib/kv';
+import { useFeature } from '../lib/features';
 import { usePerson } from '../lib/person';
 import Choice from './Choice';
 import { Link } from './Link';
@@ -65,7 +66,8 @@ export function LastTimeNote({ last }: { last: LastTime }) {
 /** Under a session with paracetamol in it: how much in the last 24 hours. */
 export function ParacetamolLine({ doses, now }: { doses: Ingestion[]; now: number }) {
     const { data } = useJournal();
-    if (!doses.some(i => i.substance === PARACETAMOL)) return null;
+    const on = useFeature('paracetamol');
+    if (!on || !doses.some(i => i.substance === PARACETAMOL)) return null;
     const at = Math.min(now, Math.max(...doses.map(i => i.time)) + 24 * 3600_000);
     const { mg, unknown } = paracetamolMg(data.ingestions, at);
     if (!mg && !unknown) return null;
@@ -99,6 +101,7 @@ const STOP_WORDS: Record<StopKind, string> = {
  *  it" puts it away until the run has grown by another week. */
 export function PatternNotes({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
     const { data } = useJournal();
+    const wanted = useFeature('patterns');
     const found = useMemo(() => runs(data.ingestions, byId, now), [data.ingestions, byId, now]);
     const [seen, setSeen] = useState<Record<string, number>>(() => {
         try {
@@ -112,7 +115,7 @@ export function PatternNotes({ byId, now }: { byId: Map<string, IndexEntry>; now
         const s = seen[r.id];
         return s == null || r.days >= s + 7 || r.days < s;
     });
-    if (!shown.length) return null;
+    if (!wanted || !shown.length) return null;
     const dismiss = (id: string, days: number) => {
         const next = { ...seen, [id]: days };
         setSeen(next);
@@ -152,6 +155,7 @@ const LIMIT_UNITS = ['mg', 'μg', 'g', 'mL', 'tabs', 'drinks', 'puffs'];
  *  back when a dose would cross one. */
 export function LimitEditor({ id, unit: usual }: { id: string; unit?: string }) {
     const { person, setLimit } = usePerson();
+    const wanted = useFeature('limits');
     const limit = person.limits[id];
     const [max, setMax] = useState(limit?.max != null ? String(limit.max) : '');
     const [unit, setUnit] = useState(limit?.unit ?? usual ?? 'mg');
@@ -174,6 +178,7 @@ export function LimitEditor({ id, unit: usual }: { id: string; unit?: string }) 
         if (!same) setLimit(id, next);
     };
     const label = `block text-xs font-medium ${muted} mb-1.5`;
+    if (!wanted) return null;
     return (
         <section className="mb-9">
             <h2 className="group-heading mb-1">{tr('Limits')}</h2>

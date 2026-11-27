@@ -16,6 +16,7 @@ import { dataText, phraseList, tr } from '../lib/i18n';
 import { sessionsOf, useJournal } from '../lib/journal';
 import { courseFor } from '../lib/time';
 import { medicinesOf, usePerson } from '../lib/person';
+import { useFeature } from '../lib/features';
 
 const EXAMPLES: [string, string][] = [
     ['alcohol', 'ketamine'],
@@ -88,12 +89,15 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
     // The medicines taken every day (pages/Medicines.tsx) are on the table
     // without being put there: each is checked against everything chosen.
     const { person } = usePerson();
+    const medicinesOn = useFeature('medicines');
     const daily = useMemo(
         () =>
-            medicinesOf(person)
-                .map(m => byId.get(m.id))
-                .filter((e): e is IndexEntry => !!e && !ids.includes(e.id)),
-        [person, byId, ids],
+            !medicinesOn
+                ? []
+                : medicinesOf(person)
+                      .map(m => byId.get(m.id))
+                      .filter((e): e is IndexEntry => !!e && !ids.includes(e.id)),
+        [person, byId, ids, medicinesOn],
     );
 
     // What's still working from the journal, offered at the top to add.
@@ -188,7 +192,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                             </li>
                         </ul>
                     </section>
-                ) : (
+                ) : !medicinesOn ? null : (
                     <p className="-mt-2 mb-4 text-xs text-[var(--text-muted)]">
                         <Link to={{ page: 'settings', sub: 'medicines' }} className="underline underline-offset-[3px]">
                             {tr('Add the medicines you take every day')}

@@ -27,6 +27,8 @@ import { phraseList, tr } from '../lib/i18n';
 import { cleanPerson, importPerson, medicinesOf, personIsEmpty, usePerson } from '../lib/person';
 import { MedicinesPage } from './Medicines';
 import { PrivacyPage } from './Privacy';
+import { FeaturesPage } from './Features';
+import { useFeatures } from '../lib/features';
 import { lockState } from '../lib/kv';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
@@ -154,6 +156,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     const language = useLang();
     const { person } = usePerson();
     const medCount = medicinesOf(person).length;
+    const features = useFeatures();
 
     const doExport = () => {
         const url = URL.createObjectURL(exportFile(journal.data, personIsEmpty(person) ? undefined : person));
@@ -281,14 +284,17 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
         <div>
             <SectionHeading title={tr('About you')} />
             <div className={section}>
-                <NavRow
-                    label={tr('Medicines I take every day')}
-                    value={medCount ? String(medCount) : tr('None')}
-                    onClick={() => open('medicines')}
-                />
+                {features.on('medicines') && (
+                    <NavRow
+                        label={tr('Medicines I take every day')}
+                        value={medCount ? String(medCount) : tr('None')}
+                        onClick={() => open('medicines')}
+                    />
+                )}
+                <NavRow label={tr('Features')} value={features.off ? tr('{0} off', { 0: features.off }) : tr('All on')} onClick={() => open('features')} />
                 <NavRow label={tr('Lock and privacy')} value={lockState() === 'open' ? tr('Locked') : undefined} onClick={() => open('privacy')} />
             </div>
-            <p className={`text-xs ${muted} mt-2`}>{tr('Your medicines are counted as already taken in every mix check and in the dose form.')}</p>
+            {features.on('medicines') && <p className={`text-xs ${muted} mt-2`}>{tr('Your medicines are counted as already taken in every mix check and in the dose form.')}</p>}
         </div>
     );
 
@@ -446,6 +452,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     if (sub === 'weight') return <WeightPage />;
     if (sub === 'medicines') return <MedicinesPage />;
     if (sub === 'privacy') return <PrivacyPage />;
+    if (sub === 'features') return <FeaturesPage />;
     if (sub === 'essay') return <EssayPage />;
     if (sub === 'credits') return <CreditsPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;

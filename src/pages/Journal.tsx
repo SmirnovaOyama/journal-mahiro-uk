@@ -22,6 +22,7 @@ import Doodle from '../components/Doodle';
 import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
 import { DoseLink } from '../components/DoseLink';
+import { useFeature } from '../lib/features';
 import { ProductForm } from '../components/ProductForm';
 import { LimitEditor, ParacetamolLine, PatternNotes } from '../components/JournalNotes';
 import { Link } from '../components/Link';
@@ -384,6 +385,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     // The form for a product with several ingredients, in the dose form's place.
     const [product, setProduct] = useState(false);
     const [onlyStarred, setOnlyStarred] = useState(false);
+    const nowOn = useFeature('now');
     const [matrix, setMatrix] = useState<ComboMatrix>();
     useEffect(() => {
         document.title = tr('Journal');
@@ -542,12 +544,14 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         <ChevronRight size={15} />
                                     </Link>
                                     {/* The same night on one calm screen, for the hours it lasts. */}
-                                    <p className="mt-1">
-                                        <Link to={{ page: 'now' }} className={`${headerActionAccent} tap-target -ms-2.5 no-underline`}>
-                                            {tr('Keep tonight on one screen')}
-                                            <ChevronRight size={15} />
-                                        </Link>
-                                    </p>
+                                    {nowOn && (
+                                        <p className="mt-1">
+                                            <Link to={{ page: 'now' }} className={`${headerActionAccent} tap-target -ms-2.5 no-underline`}>
+                                                {tr('Keep tonight on one screen')}
+                                                <ChevronRight size={15} />
+                                            </Link>
+                                        </p>
+                                    )}
                                     {/* And if it goes wrong tonight, the way there is one tap from here. */}
                                     <p className="footnote">
                                         <Link to={{ page: 'emergency' }}>{tr('If something goes wrong: what to do until help comes')}</Link>
