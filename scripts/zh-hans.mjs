@@ -1,5 +1,6 @@
 // Writes the site's 简体中文 from its 正體中文: src/lib/zh-Hans.ts and
-// src/lib/zh-Hans-data.ts from src/lib/zh-Hant.ts and zh-Hant-data.ts.
+// src/lib/zh-Hans-data.ts from src/lib/zh-Hant.ts and zh-Hant-data.ts, and
+// each case report's 简体 telling from its 正體 one.
 //
 //   node scripts/zh-hans.mjs
 //
@@ -20,10 +21,14 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LIB = path.join(ROOT, 'src/lib');
+const REPORTS = path.join(ROOT, 'public/data/reports');
 const PAIRS = [
-    ['zh-Hant.ts', 'zh-Hans.ts'],
-    ['zh-Hant-data.ts', 'zh-Hans-data.ts'],
+    [path.join(LIB, 'zh-Hant.ts'), path.join(LIB, 'zh-Hans.ts')],
+    [path.join(LIB, 'zh-Hant-data.ts'), path.join(LIB, 'zh-Hans-data.ts')],
 ];
+// Every report that has a 正體中文 telling gets a 简体 one beside it.
+for (const f of (await fs.readdir(REPORTS).catch(() => [])).filter(f => f.endsWith('.zh-Hant.json')))
+    PAIRS.push([path.join(REPORTS, f), path.join(REPORTS, f.replace('.zh-Hant.json', '.zh-Hans.json'))]);
 const UA = 'substance-reference-sync/1.0 (harm-reduction reference; contact via site)';
 const API = 'https://zh.wikipedia.org/w/api.php';
 
@@ -106,9 +111,9 @@ async function convert(lines) {
     return out;
 }
 
-/* Every run of Chinese in both files, each one asked for once. */
+/* Every run of Chinese in all of them, each one asked for once. */
 const sources = [];
-for (const [from] of PAIRS) sources.push(await fs.readFile(path.join(LIB, from), 'utf8'));
+for (const [from] of PAIRS) sources.push(await fs.readFile(from, 'utf8'));
 const runs = [...new Set(sources.join('\n').match(RUN) ?? [])].filter(r => HAN.test(r));
 console.log(`${runs.length} runs of Chinese to convert`);
 
@@ -138,9 +143,12 @@ for (const [i, [from, to]] of PAIRS.entries()) {
         if (s !== r) changed++;
         return s;
     });
-    // The file says which it is and where it came from.
-    const header = `/* 简体中文, written from ${from} by scripts/zh-hans.mjs. Edit the\n   正體中文 and run that script again; don't edit this file by hand. */\n\n`;
-    await fs.writeFile(path.join(LIB, to), header + out);
-    console.log(`wrote src/lib/${to}`);
+    // A source file says which it is and where it came from; a report is
+    // read as data, so nothing is added to it.
+    const header = to.endsWith('.ts')
+        ? `/* 简体中文, written from ${path.basename(from)} by scripts/zh-hans.mjs. Edit\n   the 正體中文 and run that script again; don't edit this file by hand. */\n\n`
+        : '';
+    await fs.writeFile(to, header + out);
+    console.log(`wrote ${path.relative(ROOT, to)}`);
 }
 console.log(`${changed} runs differ in 简体中文`);
