@@ -3,7 +3,7 @@ import { search, type IndexEntry, nameOf } from '../lib/data';
 import { go, useOpenedFromLink } from '../lib/router';
 import { isHrtSearch } from '../lib/eggs';
 import { HrtEgg } from '../components/HrtEgg';
-import { isCareSearch } from '../lib/care';
+import { isCareSearch, isHelpSearch } from '../lib/care';
 import { CareNote } from '../components/CareNote';
 import { N55Egg, isN55Search } from '../components/N55Egg';
 import { xunxunEntry } from '../lib/xunxun';
@@ -13,10 +13,28 @@ import PixelCat from '../components/PixelCat';
 import PageHeader, { PAGE_COLUMN, headerAction } from '../components/PageHeader';
 import { SearchField, listKeys } from '../components/SearchField';
 import { SubstanceRow } from '../components/SubstanceRow';
+import { rowBleed } from '../components/SettingsListItem';
+import { ChevronRight } from '../components/icons';
 import { KindList } from './Browse';
 import { tr } from '../lib/i18n';
 
 const QUICK = ['alcohol', 'cannabis', 'mdma', 'lsd', 'ketamine', 'cocaine', 'caffeine', 'mushrooms'];
+
+/** The way to the emergency page: under a search for help, and under the
+ *  kinds for anyone who came looking for it. */
+function EmergencyRow() {
+    return (
+        <div className="settings-section">
+            <Link to={{ page: 'emergency' }} className={`w-full min-h-14 flex items-center gap-3 py-2.5 text-start no-underline ${rowBleed}`}>
+                <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-medium text-[var(--text)]">{tr('In an emergency')}</span>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{tr('When to call, the number, and what to do until help comes')}</span>
+                </span>
+                <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)] opacity-70" />
+            </Link>
+        </div>
+    );
+}
 
 /** Search: a field, and under it what was looked at lately. Typing replaces
  *  that with answers. */
@@ -34,6 +52,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
     const hits = useMemo(() => (searched ? search(searched, q, 200) : []), [searched, q]);
     const care = isCareSearch(q);
     const n55 = isN55Search(q);
+    const help = isHelpSearch(q);
     useEffect(() => {
         setActive(0);
         setLimit(20);
@@ -88,12 +107,17 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                     autoFocus={!('ontouchstart' in window)}
                 />
 
+                {help && (
+                    <div className="m-appear mt-4">
+                        <EmergencyRow />
+                    </div>
+                )}
                 {care ? <CareNote q={q} /> : n55 ? <N55Egg /> : isHrtSearch(q) && <HrtEgg q={q} />}
                 {q.trim() ? (
                     <section className="m-appear mt-6" aria-live="polite">
                         {hits.length === 0 ? (
                             // After the check-in, "nothing called that" would only be cold.
-                            !care && !n55 && <div className="py-8">
+                            !care && !n55 && !help && <div className="py-8">
                                 <p className="text-sm font-semibold">
                                     {tr('Nothing called “{0}”', { 0: q.trim() })}
                                 </p>
@@ -163,6 +187,10 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                         <section className="mt-10">
                             <h2 className="group-heading mb-1">{tr('By kind')}</h2>
                             <KindList index={index} />
+                        </section>
+                        <section className="mt-10">
+                            <h2 className="group-heading mb-1">{tr('If something goes wrong')}</h2>
+                            <EmergencyRow />
                         </section>
                     </>
                 )}

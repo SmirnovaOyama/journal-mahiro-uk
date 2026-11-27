@@ -277,7 +277,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
             pushRecent(detail.id);
             document.title = nameOf(detail);
         }
-    }, [detail]);
+        // Not loaded: without this the title is whatever page was kept last.
+        else if (entry) document.title = nameOf(entry);
+    }, [detail, entry]);
 
     const routes = useMemo(() => (detail ? routesOf(detail) : []), [detail]);
     const [route, setRoute] = useState<string | null>(null);
@@ -317,6 +319,21 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                 <PageHeader title={entry?.name ?? ''} backTo />
                 <div className={`${PAGE_COLUMN} py-8`}>
                     <Waiting wide />
+                </div>
+            </>
+        );
+    // In the list, but its own page didn't come: that's the connection, not
+    // the name. Without one, a substance opens only if it's kept on this
+    // device (lib/offline.ts).
+    if (!detail && entry)
+        return (
+            <>
+                <PageHeader title={nameOf(entry)} backTo />
+                <div className={`${PAGE_COLUMN} py-8`}>
+                    <p className="text-sm font-semibold">{tr('Couldn’t load this page')}</p>
+                    <p className="text-sm text-[var(--text-muted)] mt-1">
+                        {tr('Without a connection, a substance opens if it was opened, saved or logged on this device before. Check your connection and try again.')}
+                    </p>
                 </div>
             </>
         );

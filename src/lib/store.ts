@@ -123,6 +123,9 @@ export function useRecent() {
   return { ids, clear };
 }
 
+/** The ones looked at lately, newest first. */
+export const getRecent = () => recent.get();
+
 export function pushRecent(id: string) {
   recent.set([id, ...recent.get().filter((x) => x !== id)].slice(0, 8));
 }

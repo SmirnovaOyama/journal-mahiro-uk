@@ -168,7 +168,7 @@ export function essayPreview(count?: number): Preview {
     };
 }
 
-export function pagePreview(page: 'browse' | 'saved' | 'settings' | 'journal', count?: number): Preview {
+export function pagePreview(page: 'browse' | 'saved' | 'settings' | 'journal' | 'emergency', count?: number): Preview {
     const base = sitePreview(count);
     if (page === 'browse')
         return {
@@ -183,6 +183,12 @@ export function pagePreview(page: 'browse' | 'saved' | 'settings' | 'journal', c
             ...base,
             title: tr('Journal'),
             description: tr('Log what you take and when. Kept on your device, and synced encrypted if you want.'),
+        };
+    if (page === 'emergency')
+        return {
+            ...base,
+            title: tr('In an emergency'),
+            description: tr('What to do until help comes: when to call, the number to call, the recovery position, and the signs by kind of drug.'),
         };
     if (page === 'saved') return { ...base, title: tr('Saved') };
     return { ...base, title: tr('Settings') };

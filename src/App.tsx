@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import Doodle, { NAV_DOODLES } from './components/Doodle';
 import { Browse } from './pages/Browse';
+import { Emergency } from './pages/Emergency';
 import { Home } from './pages/Home';
 import { Journal } from './pages/Journal';
 import { Kind } from './pages/Kind';
@@ -124,7 +125,10 @@ function AppContent() {
                     className="main-view flex-1 flex flex-col overflow-y-auto scrollbar-hide scroll-pb-nav bg-[var(--bg)]"
                 >
                     <div className="flex-1">
-                        {failed ? (
+                        {route.page === 'emergency' ? (
+                            // First, and whatever else failed: it needs nothing but itself.
+                            <Emergency />
+                        ) : failed ? (
                             <div className="mx-auto w-full max-w-2xl px-6 md:px-8 py-16">
                                 <p className="text-sm font-semibold">
                                     {tr('Couldn’t load the substance list')}
@@ -159,7 +163,9 @@ function AppContent() {
 
                 <BottomNav tabs={navItems} activeTab={tab} onSelect={select} pageKey={key} />
             </div>
-            {intro && <Onboarding />}
+            {/* Never over the emergency page: whoever opens that first has no
+                time for an introduction. It waits for the next page. */}
+            {intro && route.page !== 'emergency' && <Onboarding />}
         </div>
     );
 }

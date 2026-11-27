@@ -94,6 +94,35 @@ const COPY = {
     },
 };
 
+/** People to talk to, each a tap away: the nearest to the reader first. The
+ *  check-in below shows them, and so does the emergency page. */
+export function CareLines({ zh, hant }: { zh: boolean; hant: boolean }) {
+    return (
+        <ul className="care-lines">
+            {LINES.filter(l => zh || !l.zhOnly)
+                .sort((a, b) => (hant ? NEAR_HANT.indexOf(b.name) - NEAR_HANT.indexOf(a.name) : 0))
+                .map(l => (
+                    <li key={l.name}>
+                        <a
+                            href={l.href ?? `tel:${l.tel}`}
+                            {...(l.href ? { target: '_blank', rel: 'noreferrer' } : {})}
+                            className="care-line no-underline"
+                        >
+                            <span className="min-w-0">
+                                <span className="block text-sm font-semibold text-[var(--text)]">{(hant && l.hant?.name) || l.name}</span>
+                                <span className="block text-xs text-[var(--text-muted)]">{(hant && l.hant?.where) || l.where}</span>
+                            </span>
+                            <span className="care-number">
+                                {(hant && l.hant?.number) || l.number}
+                                {l.href ? <External size={13} /> : <Phone size={14} />}
+                            </span>
+                        </a>
+                    </li>
+                ))}
+        </ul>
+    );
+}
+
 export function CareNote({ q }: { q: string }) {
     // In Chinese when the search is, or the site is: the site's own writing
     // for its reader, and 简体中文, which more readers of it use, for
@@ -120,28 +149,7 @@ export function CareNote({ q }: { q: string }) {
                 </div>
             </div>
             <h3 className="group-heading mt-5 mb-1">{t.heading}</h3>
-            <ul className="care-lines">
-                {LINES.filter(l => zh || !l.zhOnly)
-                    .sort((a, b) => (hant ? NEAR_HANT.indexOf(b.name) - NEAR_HANT.indexOf(a.name) : 0))
-                    .map(l => (
-                    <li key={l.name}>
-                        <a
-                            href={l.href ?? `tel:${l.tel}`}
-                            {...(l.href ? { target: '_blank', rel: 'noreferrer' } : {})}
-                            className="care-line no-underline"
-                        >
-                            <span className="min-w-0">
-                                <span className="block text-sm font-semibold text-[var(--text)]">{(hant && l.hant?.name) || l.name}</span>
-                                <span className="block text-xs text-[var(--text-muted)]">{(hant && l.hant?.where) || l.where}</span>
-                            </span>
-                            <span className="care-number">
-                                {(hant && l.hant?.number) || l.number}
-                                {l.href ? <External size={13} /> : <Phone size={14} />}
-                            </span>
-                        </a>
-                    </li>
-                ))}
-            </ul>
+            <CareLines zh={zh} hant={hant} />
         </section>
     );
 }

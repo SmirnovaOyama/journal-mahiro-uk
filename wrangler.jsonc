@@ -22,6 +22,7 @@
       "/report/*",
       "/browse",
       "/saved",
+      "/emergency",
       "/settings",
       "/settings/*",
       "/journal",

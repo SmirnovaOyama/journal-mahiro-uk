@@ -7,12 +7,15 @@ import { watchInputMode } from './utils/inputMode';
 import { startSync } from './lib/account';
 import { initLang } from './lib/lang';
 import { askToKeep } from './lib/installed';
+import { startOffline } from './lib/offline';
 
 watchInputMode();
 // Signed in to an account: keep the journal in step with it.
 startSync();
 // Opened from the Home Screen: ask for the journal's storage to be kept.
 askToKeep();
+// Kept on the device, so it opens without a connection (public/sw.js).
+startOffline();
 
 // The language is settled first, so the first page is drawn in it.
 void initLang().finally(() =>

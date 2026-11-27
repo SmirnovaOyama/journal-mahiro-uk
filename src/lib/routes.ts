@@ -9,6 +9,7 @@ export type Route =
     | { page: 'kind'; category: string }
     | { page: 'browse' }
     | { page: 'saved' }
+    | { page: 'emergency' }
     | { page: 'journal'; session?: string; view?: 'stats' | 'weight'; substance?: string }
     | { page: 'settings'; sub?: SettingsSub };
 
@@ -68,6 +69,7 @@ export function parse(path: string): Route {
     if (parts[0] === 'kind' && parts[1]) return { page: 'kind', category: parts[1] };
     if (parts[0] === 'browse') return { page: 'browse' };
     if (parts[0] === 'saved') return { page: 'saved' };
+    if (parts[0] === 'emergency') return { page: 'emergency' };
     if (parts[0] === 'journal') {
         if (parts[1] === 'stats') return { page: 'journal', view: 'stats' };
         if (parts[1] === 'weight') return { page: 'journal', view: 'weight' };
@@ -103,6 +105,7 @@ export function href(r: Route): string {
                     : '/journal';
         case 'browse':
         case 'saved':
+        case 'emergency':
             return `/${r.page}`;
         default:
             return '/';

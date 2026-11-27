@@ -511,6 +511,10 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         {tr('See the risks of mixing with {0}', { 0: andList(substancesOf(live).map(x => nameOf(x, live, byId))) })}
                                         <ChevronRight size={15} />
                                     </Link>
+                                    {/* And if it goes wrong tonight, the way there is one tap from here. */}
+                                    <p className="footnote">
+                                        <Link to={{ page: 'emergency' }}>{tr('If something goes wrong: what to do until help comes')}</Link>
+                                    </p>
                                 </section>
                             )}
 

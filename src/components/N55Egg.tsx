@@ -31,7 +31,10 @@ export function N55Egg() {
                 ))}
             </ul>
             <p className="mt-3 text-sm leading-relaxed font-medium text-[var(--text)]">
-                {tr('If someone can’t be woken, is breathing slowly or is having a seizure, call emergency services now (120, 112, 911 or 999), lay them on their side, and stay with them.')}
+                {tr('If someone can’t be woken, is breathing slowly or is having a seizure, call emergency services now (120, 112, 911 or 999), lay them on their side, and stay with them.')}{' '}
+                <Link to={{ page: 'emergency' }} className="underline underline-offset-[3px]">
+                    {tr('What to do until help comes')}
+                </Link>
             </p>
             <Link to={{ page: 'substance', id: 'pregabalin' }} className="btn-secondary btn-sm no-underline mt-4">
                 {tr('Read about pregabalin')}

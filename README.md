@@ -3,9 +3,9 @@
 A harm-reduction reference and dose journal for psychoactive substances, at
 [journal.mahiro.uk](https://journal.mahiro.uk). It is built on the shell and
 design system of [Oyama's HRT Tracker](https://github.com/xunxunProjects/Oyama-s-HRT-Tracker)
-(hrt.mahiro.uk), in English and 正體中文 (the catalogue itself is in
+(hrt.mahiro.uk), in English, 正體中文 and 简体中文 (the catalogue itself is in
 English). No account needed: what you do on it stays on
-your device. An account is optional, and keeps your journal the same on every
+your device, and once opened it works without a connection. An account is optional, and keeps your journal the same on every
 device you sign in on, encrypted on each before it's sent.
 
 The same site answers on journal.mahiro.uk, n55.mahiro.uk, od.mahiro.uk and
@@ -41,6 +41,17 @@ mass (2,949: a plant or a family of drugs has none of its own).
 **Check a mix.** Put two or more substances together, alcohol and medicines
 included, and get one answer: the most serious risk first, with the reason.
 
+**Know what to do when it goes wrong.** One page, at `/emergency`: when to
+call an ambulance, the number to call by place (the one where the device's
+clock is set comes first), what to do until help comes, the recovery
+position step by step, what not to do, the signs by kind of drug, and what
+to do when someone may harm themselves, with crisis lines to call. Each
+line puts into plain words what FRANK, the WHO, St John Ambulance, the NHS,
+988 Lifeline, Samaritans or PsychonautWiki says, and they are listed at its
+foot. It is one tap from
+a running session, a mix's answer, Search and Settings, and a search for
+"overdose" or 急救 finds it.
+
 **Keep a journal.** Log what you take, how, how much and when.
 
 - Doses taken within 12 hours of each other form a session, drawn on one
@@ -61,6 +72,14 @@ the journal and the saved list are kept the same on each device signed in to
 it. They're encrypted in the browser before they're sent, so the server keeps
 a copy it can't read. Two-step sign-in, with an authenticator app and backup
 codes, is there to turn on. See [Accounts](#accounts).
+
+**Use it without a connection.** After the first visit the site opens with
+no signal: search, the mix checker, the journal and the emergency page, and
+every substance that was opened, saved or logged, whether or not it was
+opened on this device. A substance that isn't kept says so. A mix read
+without one of its substances' pages still shows a warning it finds, and
+says "Not checked" rather than call anything milder safe. See
+[Offline](#offline).
 
 **Body weight.** Set once in Settings (kg or lb, 20 to 400 kg), as hrt.mahiro.uk
 keeps it, or log each weighing under the journal's Weight tab, which keeps
@@ -88,6 +107,7 @@ for chat apps and search engines.
 | `/journal/<session>` | One session |
 | `/journal/substance/<id>` | One substance's history in the journal |
 | `/saved`, `/settings` | Saved substances; settings |
+| `/emergency` | What to do in an emergency, until help comes |
 | `/settings/account` | The account: sign in or make one; on a phone, its parts as tiles (`/settings/sync`, `/settings/security`, `/settings/devices`), on a wide window as tabs |
 | `/settings/two-factor` | Two-step sign-in |
 | `/settings/weight` | Body weight |
@@ -255,12 +275,30 @@ database (`oyama-journal`) and two Workers rate limiters. A change to the
 tables is a new file in `migrations/`, applied with
 `npx wrangler d1 migrations apply oyama-journal --remote` before deploying.
 
+## Offline
+
+A service worker (`public/sw.js`), registered on the built site only
+(`src/lib/offline.ts`). With a connection nothing changes: every request is
+answered by the network, and what's kept is only what the network last said.
+A kept copy answers when the network doesn't, or takes more than four
+seconds to. The build's own scripts and stylesheets are the exception: their
+names change when they do, so a kept one is served straight away.
+
+It keeps the page, every file the build made (Vite lists them in
+`build.json`, so the languages' words are kept too), the search index and
+the mix table, each substance as it's opened, and pictures as they're shown.
+`src/lib/offline.ts` adds the substances that were saved, logged or looked
+at lately, one file at a time once the page is idle. Accounts (`/api/`) are
+never kept. A new deploy is picked up on the next visit with a connection,
+and the files of the build before it are let go.
+
 ## Code
 
 - `src/App.tsx`: the shell, with the sidebar on a wide window and the tab bar
   on a phone.
 - `src/pages/`: Search, Substance, Kind, Mix, Journal, Saved, Settings, the
-  account (Account), the admin's page (Admin), and the intro (Onboarding).
+  emergency page (Emergency), the account (Account), the admin's page
+  (Admin), and the intro (Onboarding).
 - `src/components/`, among them:
   - `Odometer`: the rolling number.
   - `LevelRail` and `DoseRuler`: the dose rail.
@@ -282,6 +320,10 @@ tables is a new file in `migrations/`, applied with
   - `molsvg.ts`: skeletal formulas from 2D coordinates.
   - `preview.ts`: link previews.
   - `routes.ts`, `router.ts`: the pages.
+  - `offline.ts`: starts the service worker, and keeps the reader's own
+    substances for when there's no connection.
+  - `care.ts`: the searches that are answered with a check-in, or with the
+    way to the emergency page.
 - `worker/`: the Worker; `api.ts` is the accounts.
 - `migrations/`: the account tables.
 - `scripts/`: the data sync, structures, cards, sitemap, icons, and the
@@ -292,4 +334,5 @@ tables is a new file in `migrations/`, applied with
 Doses are typical ranges. Your body, your tolerance, the medicines you take
 and what is really in a pill or powder can all change them. Start low, test
 what you have, and don't use alone. If someone is unresponsive or breathing
-slowly, call emergency services.
+slowly, call emergency services; the site's [emergency page](https://journal.mahiro.uk/emergency)
+says what to do until they come.

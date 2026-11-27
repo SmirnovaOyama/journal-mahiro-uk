@@ -33,11 +33,14 @@ export interface StructureInfo {
    (scripts/lib/structures.mjs), so a page loads only the letters it shows. */
 const shards = new Map<string, Promise<Structures>>();
 const shardOf = (id: string) => (/^[a-z0-9]/.test(id) ? id[0] : '_');
+/** The file a substance's drawing is in (lib/offline.ts keeps it with the
+ *  substance, so its page is drawn whole without a connection). */
+export const structureUrl = (id: string) => `/data/structures/${shardOf(id)}.json`;
 function loadStructure(id: string): Promise<Structure | null> {
     const k = shardOf(id);
     let p = shards.get(k);
     if (!p) {
-        p = fetch(`/data/structures/${k}.json`)
+        p = fetch(structureUrl(id))
             .then(r => (r.ok ? (r.json() as Promise<Structures>) : {}))
             .catch(() => ({}));
         shards.set(k, p);

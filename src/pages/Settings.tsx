@@ -21,6 +21,8 @@ import { AuthorRow, CreditsPage, REPO } from './Credits';
 import { useWide } from '../hooks/useWide';
 import { LANG_NAMES, useLang, type LangChoice } from '../lib/lang';
 import { SettingsTile } from '../components/SettingsTile';
+import { Link } from '../components/Link';
+import { keepsOffline } from '../lib/offline';
 import { phraseList, tr } from '../lib/i18n';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
@@ -343,6 +345,11 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         ? tr('Saved substances sync with your account. What you looked at stays in this browser.')
                         : tr('Everything stays in this browser. Nothing is ever sent anywhere.')}
                 </p>
+                {keepsOffline() && (
+                    <p className={`text-xs ${muted} mt-2`}>
+                        {tr('Without a connection, search, the mix checker, the journal and the emergency page still open, and so does every substance you’ve opened, saved or logged on this device.')}
+                    </p>
+                )}
             </div>
         </div>
     );
@@ -358,6 +365,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                 <div className={section}>
                     <LinkRow label="GitHub" value={tr('Source code')} href={REPO} />
                     <NavRow label={tr('Credits')} onClick={() => open('credits')} />
+                    <NavRow label={tr('In an emergency')} onClick={() => go({ page: 'emergency' })} />
                     <NavRow label={tr('Disclaimer')} onClick={() => open('disclaimer')} />
                     <NavRow label={tr('Show the intro again')} onClick={showOnboardingAgain} />
                     <NavRow label={tr('A Borrowed Spring')} value={tr('Essay')} onClick={() => open('essay')} />
@@ -480,7 +488,10 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         {tr('This site is for harm reduction only. Nothing on it encourages, teaches or helps anyone to get or use a controlled substance, and it is not legal advice. Follow the law where you are.')}
                     </p>
                     <p className="text-[var(--danger)]">
-                        {tr('If someone is unresponsive, breathing slowly or not at all, or having a seizure, call emergency services now.')}
+                        {tr('If someone is unresponsive, breathing slowly or not at all, or having a seizure, call emergency services now.')}{' '}
+                        <Link to={{ page: 'emergency' }} className="underline underline-offset-[3px]">
+                            {tr('What to do until help comes')}
+                        </Link>
                     </p>
                 </div>
             </div>

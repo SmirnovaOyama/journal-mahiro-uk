@@ -38,6 +38,7 @@ const ANYWHERE = [
     'carbonmonoxide', 'charcoalburning', '一氧化碳', '烧炭', '燒炭',
     'hydrogensulfide', 'detergentsuicide', '硫化氢', '硫化氫',
     // the search says it outright
+    'selfharm', 'hurtmyself', 'cutmyself', '自残', '自殘', '自伤', '自傷', '割腕',
     'suicide', 'killmyself', 'endmylife', 'wanttodie', 'howtodie', 'painlessdeath', 'lethaldose', 'fataldose', 'dosetodie',
     '自杀', '自殺', '想死', '轻生', '輕生', '不想活', '致死量', '致死剂量', '致死劑量', '怎么死', '怎麼死', '结束生命', '結束生命',
 ];
@@ -52,6 +53,28 @@ export function isCareSearch(q: string): boolean {
     if (!t) return false;
     if (WHOLE.has(t)) return true;
     return ANYWHERE.some(w => t.includes(w));
+}
+
+/* And some searches are for help, now: "overdose", "急救", an ambulance's
+   number. Those find the emergency page (pages/Emergency.tsx) above
+   whatever else they find. */
+
+/** Found anywhere in the search. */
+const HELP_ANYWHERE = [
+    'selfharm', 'hurtmyself', 'cutmyself', 'suicid', '自残', '自殘', '自伤', '自傷', '割腕', '自杀', '自殺', '轻生', '輕生',
+    'overdose', 'emergency', 'ambulance', 'firstaid', 'recoveryposition', 'naloxone', 'narcan', 'notbreathing', 'wontwakeup', 'cantwake', 'seizure', 'serotoninsyndrome',
+    '急救', '救护车', '救護車', '过量', '過量', '中毒', '救命', '叫不醒', '昏迷', '抽搐', '癫痫', '癲癇', '没有呼吸', '沒有呼吸', '呼吸困难', '呼吸困難', '纳洛酮', '納洛酮', '血清素综合征', '血清素症候群',
+];
+
+/** Short or ambiguous: only when it is the whole search. */
+const HELP_WHOLE = new Set(['od', 'sos', 'help', 'cpr', '120', '119', '112', '911', '999', '995', '000', '111']);
+
+/** Whether a search is someone looking for what to do in an emergency. */
+export function isHelpSearch(q: string): boolean {
+    const t = squash(q);
+    if (!t) return false;
+    if (HELP_WHOLE.has(t)) return true;
+    return HELP_ANYWHERE.some(w => t.includes(w));
 }
 
 /** Whether to say it in Chinese first: the search has Chinese in it. */

@@ -14,6 +14,7 @@ const urls = [
     ['/', '1.0'],
     ['/browse', '0.6'],
     ['/mix', '0.6'],
+    ['/emergency', '0.7'],
     ...kinds.map(k => [`/kind/${encodeURIComponent(k)}`, '0.5']),
     ...index.map(e => [`/s/${encodeURIComponent(e.id)}`, e.src === 'wd' && !e.primaryBand ? '0.4' : e.status === 'Well-documented' ? '0.8' : '0.7']),
 ];

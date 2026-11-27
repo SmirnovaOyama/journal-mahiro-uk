@@ -12,7 +12,7 @@ import { rowBleed } from '../components/SettingsListItem';
 import { SubstanceRow } from '../components/SubstanceRow';
 import { ChevronRight, Clover, Close, Plus } from '../components/icons';
 import { Linked } from '../components/Linked';
-import { dataText, tr } from '../lib/i18n';
+import { dataText, phraseList, tr } from '../lib/i18n';
 import { sessionsOf, useJournal } from '../lib/journal';
 import { courseFor } from '../lib/time';
 
@@ -47,6 +47,9 @@ function useStillActive(byId: Map<string, IndexEntry>, details: Record<string, D
     return { ids: [...ids], candidates: [...new Set((latest?.ingestions ?? []).map(i => i.substance).filter(x => byId.has(x)))] };
 }
 
+/** A pair's answer, and what it was read without (see `pairs` below). */
+type Checked = PairResult & { without?: IndexEntry[]; unchecked?: boolean };
+
 /** The mix checker: put substances on the table, read one answer. */
 export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] | null; byId: Map<string, IndexEntry> }) {
     const chosen = useMemo(() => ids.map(id => byId.get(id)).filter((e): e is IndexEntry => !!e), [ids, byId]);
@@ -57,6 +60,18 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
     const input = useRef<HTMLInputElement>(null);
     const [details, setDetails] = useState<Record<string, Detail>>({});
     const [matrix, setMatrix] = useState<ComboMatrix>();
+    // The ones whose own page couldn't be read: no connection, and not kept
+    // on this device (lib/offline.ts). Asked for again once there is one.
+    const [unread, setUnread] = useState<ReadonlySet<string>>(new Set());
+    const [tries, setTries] = useState(0);
+    useEffect(() => {
+        const again = () => {
+            setUnread(new Set());
+            setTries(t => t + 1);
+        };
+        window.addEventListener('online', again);
+        return () => window.removeEventListener('online', again);
+    }, []);
 
     useEffect(() => {
         document.title = tr('Mix');
@@ -80,8 +95,8 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
             if (!details[id])
                 loadDetail(id)
                     .then(d => setDetails(prev => ({ ...prev, [d.id]: d })))
-                    .catch(() => {});
-    }, [wanted, details]);
+                    .catch(() => setUnread(prev => (prev.has(id) ? prev : new Set(prev).add(id))));
+    }, [wanted, details, tries]);
 
     const hits = useMemo(
         () => (index ? search(index, q, 30).filter(h => !ids.includes(h.entry.id)).slice(0, 6) : []),
@@ -97,15 +112,25 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
     };
     const remove = (id: string) => setIds(ids.filter(x => x !== id));
 
-    const pairs: PairResult[] = useMemo(() => {
-        const out: PairResult[] = [];
+    /* A pair read without one of its substances' own pages has only the
+       TripSit table and a guess to go on. More to read can only make an
+       answer more serious, so a warning found that way stands. Anything
+       milder can't be trusted, and is shown as not checked. */
+    const pairs: Checked[] = useMemo(() => {
+        const out: Checked[] = [];
         for (let i = 0; i < chosen.length; i++)
-            for (let j = i + 1; j < chosen.length; j++)
-                out.push(checkPair(chosen[i], chosen[j], details[chosen[i].id], details[chosen[j].id], matrix));
+            for (let j = i + 1; j < chosen.length; j++) {
+                const r = checkPair(chosen[i], chosen[j], details[chosen[i].id], details[chosen[j].id], matrix);
+                const without = [chosen[i], chosen[j]].filter(e => !details[e.id]);
+                if (!without.length) out.push(r);
+                else if (RANK[r.verdict] >= RANK.Caution) out.push({ ...r, without });
+                else out.push({ a: r.a, b: r.b, verdict: 'Unknown', without, unchecked: true });
+            }
         return out.sort((a, b) => RANK[b.verdict] - RANK[a.verdict]);
     }, [chosen, details, matrix]);
-    const ready = chosen.every(e => details[e.id]) && matrix;
-    const top = worst(pairs);
+    const ready = chosen.every(e => details[e.id] || unread.has(e.id)) && matrix;
+    const top: Checked | undefined = worst(pairs);
+    const namesOf = (es: IndexEntry[]) => phraseList(es.map(e => nameOf(e)));
 
     const sourceWords = (s?: string) =>
         s === 'PsychonautWiki'
@@ -260,10 +285,12 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                             />
                         )}
                         <p className={`verdict-word tone-${VERDICT[top.verdict].tone}`}>
-                            {tr(VERDICT[top.verdict].label)}
+                            {top.unchecked ? tr('Not checked') : tr(VERDICT[top.verdict].label)}
                         </p>
                         <p className="verdict-says">
-                            {tr(VERDICT[top.verdict].meaning)}
+                            {top.unchecked
+                                ? tr('This needs a connection: nothing is kept on this device for {0}. Until it’s checked, don’t take it as safe.', { 0: namesOf(top.without!) })
+                                : tr(VERDICT[top.verdict].meaning)}
                         </p>
 
                         <div className="settings-section mt-7">
@@ -280,21 +307,29 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                                 className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold tone-${v.tone}`}
                                             >
                                                 {v.tone === 'positive' && <Clover size={18} />}
-                                                {tr(v.label)}
+                                                {p.unchecked ? tr('Not checked') : tr(v.label)}
                                             </span>
                                         </div>
                                         {note && <p className="text-sm mt-1"><Linked text={dataText(note)} /></p>}
-                                        {pairs.length > 1 && !note && (
+                                        {pairs.length > 1 && !note && !p.unchecked && (
                                             <p className="text-sm mt-1">{tr(v.meaning)}</p>
                                         )}
-                                        <p className="text-xs text-[var(--text-muted)] mt-1">{sourceWords(p.source)}</p>
+                                        {!p.unchecked && <p className="text-xs text-[var(--text-muted)] mt-1">{sourceWords(p.source)}</p>}
+                                        {p.without && (
+                                            <p className="text-xs text-[var(--text-muted)] mt-1">
+                                                {p.unchecked
+                                                    ? tr('Nothing is kept on this device for {0}, so this pair needs a connection to check.', { 0: namesOf(p.without) })
+                                                    : tr('Read without a connection, and without the page for {0}: there may be more to it.', { 0: namesOf(p.without) })}
+                                            </p>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
 
                         <p className="footnote">
-                            {tr('Mixing advice from TripSit and PsychonautWiki. Information, not medical advice. If someone is unresponsive or breathing slowly, call emergency services.')}
+                            {tr('Mixing advice from TripSit and PsychonautWiki. Information, not medical advice. If someone is unresponsive or breathing slowly, call emergency services.')}{' '}
+                            <Link to={{ page: 'emergency' }}>{tr('What to do until help comes')}</Link>
                         </p>
                     </section>
                 )}

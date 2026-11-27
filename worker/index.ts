@@ -166,6 +166,7 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
         }
         case 'browse':
         case 'saved':
+        case 'emergency':
             speakFor(lang);
             return { ...pagePreview(route.page, index.length || undefined), path: `/${route.page}`, found: true };
         case 'settings': {
