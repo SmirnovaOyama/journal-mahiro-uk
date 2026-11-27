@@ -159,9 +159,14 @@ export const GLYPHS = {
         'M13.4 10.6c1.4 1.3 1.45 3.35.1 4.75-.85.9-1.75 1.8-2.65 2.65-1.35 1.3-3.45 1.25-4.75-.1-1.3-1.35-1.25-3.4.05-4.7.4-.4.85-.85 1.3-1.3',
     ],
     // Out to another site: a box with an arrow leaving it at the corner.
-    // A link that leaves the site: an arrow going up and out, with no box
-    // around it. The box crowded the arrow at the 13 to 18px it's drawn at.
-    external: ['M6.8 17.2c3.4-3.4 6.8-6.9 10.2-10.3', 'M8.9 6.8c2.7-.1 5.5-.1 8.2.05.15 2.7.15 5.5.05 8.2'],
+    // A link that leaves the site: an arrow going out of a box with round
+    // corners. The box stops the same distance short of the arrow's head on
+    // both sides, so the arrow has room at the 13 to 18px it's drawn at.
+    external: [
+        'M14.3 4.6c1.7-.1 3.4-.1 5.1.05.15 1.7.15 3.4.05 5.1',
+        'M19.3 4.7c-2.6 2.5-5.1 5.1-7.7 7.7',
+        'M10.9 6.2c-1.2-.05-2.4-.05-3.6.05-1.3.1-2.1.9-2.2 2.2-.2 2.8-.2 5.6.05 8.3.1 1.3.9 2.1 2.2 2.2 2.8.2 5.6.2 8.3-.05 1.3-.1 2.1-.9 2.2-2.2.1-1.2.1-2.4.05-3.6',
+    ],
     'arrow-up-right': ['M7.2 16.8c3.1-3.2 6.3-6.3 9.4-9.5', 'M9.6 7.1c2.4-.1 4.8-.1 7.1.05.1 2.4.1 4.8 0 7.2'],
     'arrow-left': ['M19.2 12.1c-4.6-.1-9.3-.05-13.9.05', 'M10.6 6.5c-1.8 1.9-3.6 3.7-5.4 5.6 1.8 1.9 3.6 3.7 5.5 5.5'],
     'arrow-right': ['M4.8 12.1c4.6-.1 9.3-.05 13.9.05', 'M13.4 6.5c1.8 1.9 3.6 3.7 5.4 5.6-1.8 1.9-3.6 3.7-5.5 5.5'],
