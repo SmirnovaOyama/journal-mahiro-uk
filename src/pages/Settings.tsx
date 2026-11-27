@@ -430,6 +430,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             { value: 'system', label: tr('Follow the browser') },
             { value: 'en', label: LANG_NAMES.en },
             { value: 'zh-Hant', label: LANG_NAMES['zh-Hant'] },
+            { value: 'zh-Hans', label: LANG_NAMES['zh-Hans'] },
         ];
         return (
             <div className="relative space-y-4 md:pb-32">
