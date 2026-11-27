@@ -1,0 +1,75 @@
+# Once a week, fetch what the sources say now (npm run data) and, if any of
+# it differs from what's in the repository, open a pull request that lists
+# every dose, timing and combination that changed (scripts/data-diff.mjs).
+# Nothing reaches the site until someone has read that list and merged it:
+# a push to main is what deploys.
+#
+# Needs, under Settings, Actions, General: "Allow GitHub Actions to create
+# and approve pull requests".
+
+name: Refresh the data
+
+on:
+  schedule:
+    # Mondays, 04:17 UTC.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # What the sync scripts fetched last time, so only what changed is
+      # asked for again (scripts/.cache, which the repository doesn't keep).
+      - uses: actions/cache@v4
+        with:
+          path: scripts/.cache
+          key: data-cache-${{ github.run_id }}
+          restore-keys: data-cache-
+
+      - run: npm ci
+
+      - name: Fetch and write the data
+        run: npm run data
+
+      # The mix checker's floors, against the new data: a sync that turns
+      # a deadly pair mild fails here, and opens nothing.
+      - name: Test
+        run: npm test
+
+      - name: Open a pull request if anything changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- public/data)" ]; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          node scripts/data-diff.mjs > "$RUNNER_TEMP/changes.md"
+          branch="data/refresh-$(date -u +%F)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add public/data
+          git commit -m "The data, as its sources have it on $(date -u +%F)"
+          git push --force -u origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "The data, as its sources have it on $(date -u +%F)" \
+            --body-file "$RUNNER_TEMP/changes.md" \
+            || gh pr edit "$branch" --body-file "$RUNNER_TEMP/changes.md"

@@ -20,8 +20,9 @@ import { SITE, essayPreview, kindPreview, mixPreview, pagePreview, sitePreview, 
 import { parse } from '../src/lib/routes';
 import { XUNXUN_ID } from '../src/lib/xunxun';
 import { handleApi, type ApiEnv } from './api';
+import { handleTelegram, type TelegramEnv } from './telegram';
 
-interface Env extends ApiEnv {
+interface Env extends ApiEnv, TelegramEnv {
     ASSETS: { fetch(input: Request | string): Promise<Response> };
 }
 
@@ -193,6 +194,9 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
 export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url);
+
+        // The site as a Telegram bot (worker/telegram.ts).
+        if (url.pathname === '/api/telegram') return handleTelegram(request, env, { load: path => json(env, url.origin, path), speak: speakFor });
 
         // Accounts and their encrypted journals (worker/api.ts).
         if (url.pathname.startsWith('/api/')) return handleApi(request, env);

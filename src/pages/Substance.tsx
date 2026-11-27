@@ -27,6 +27,8 @@ import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
 import Doodle, { Route } from '../components/Doodle';
 import { Fold } from '../components/Fold';
 import { WithMedicines } from './Medicines';
+import { REPO } from './Credits';
+import { SITE } from '../lib/preview';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
@@ -1033,6 +1035,18 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         )}
                     </div>
                 </section>
+
+                {/* 3,000 pages put together by scripts: some of it will be
+                    wrong, and the reader who notices is the one who can say. */}
+                <p className="footnote">
+                    <a
+                        href={`${REPO}/issues/new?title=${encodeURIComponent(`${detail.name}: `)}&body=${encodeURIComponent(`Page: ${SITE.origin}/s/${detail.id}\n\nWhat is wrong:\n\nWhere it says otherwise (a link, if you have one):\n`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {tr('Something wrong on this page? Say so on GitHub')}
+                    </a>
+                </p>
             </main>
         </>
     );
