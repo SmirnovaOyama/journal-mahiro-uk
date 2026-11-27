@@ -10,6 +10,7 @@ import {
     type ComboStatus,
     type Detail,
     type Quoted,
+    type AiText,
     type IndexEntry,
     convertAmount,
     fmtAmount,
@@ -173,6 +174,26 @@ function Fact({ about, sub, children }: { about: string; sub?: string; children:
     );
 }
 
+/** What an AI wrote (Detail.ai), in the reader's language. */
+function aiSays(t?: AiText): string {
+    if (!t) return '';
+    const l: string = currentLang();
+    if (l === 'en') return t.en;
+    return (l === 'zh-Hans' && t.zhHans) || t.zh;
+}
+
+/** The line under anything an AI wrote, so it's never taken for a source. */
+function AiNote({ fact }: { fact?: boolean }) {
+    return (
+        <p className="footnote">
+            <span className="ai-tag">AI</span>
+            {fact
+                ? tr('Written by AI. It may be wrong.')
+                : tr('Written by AI, as no source had this. It may be wrong: check it before you rely on it.')}
+        </p>
+    );
+}
+
 /** Where a quote is from, linked to the place in the article; and where the
  *  rows beside it are from (`figures`: a Wikipedia article's infobox), if
  *  that's somewhere else. */
@@ -332,9 +353,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     }
     const limited = detail.status === 'Limited data';
     // In Chinese, zh.wikipedia's opening in that writing where it has one;
-    // else the English sources'.
+    // else the English sources'; else, where none has any, an AI's words.
     const zhSummary = (isZh() && (hans ? detail.summaryZhHans ?? detail.summaryZh : detail.summaryZh)) || '';
-    const summary = zhSummary || detail.summary;
+    const ai = detail.ai;
+    const aiSummary = !zhSummary && !detail.summary ? aiSays(ai?.summary) : '';
+    const summary = zhSummary || detail.summary || aiSummary;
     const whatItIs = describe(
         { category: detail.category, chemicalClass: detail.chemicalClass ?? entry?.chemicalClass ?? '' },
     );
@@ -365,6 +388,11 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     const how = detail.pharmacology;
     const uses = detail.uses;
     const side = detail.sideEffects;
+    // AI words only where the sources have none (scripts/ai-fill.mjs).
+    const aiHow = how?.text ? '' : aiSays(ai?.pharmacology);
+    const aiUses = uses?.text ? '' : aiSays(ai?.uses);
+    const aiSide = side?.text ? '' : aiSays(ai?.sideEffects);
+    const aiFact = aiSays(ai?.fact);
     const hrt = isHrt(detail.id);
 
     // What the journal says: the last time it was logged, and whether that's still working.
@@ -457,6 +485,24 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 <p className="text-sm text-[var(--text)] mt-1">
                                     <Formula of={detail.formula} />
                                     {detail.molarMass != null && <span className={`text-xs ${muted}`}>{tr(', {0} g/mol', { 0: detail.molarMass })}</span>}
+                                </p>
+                            )}
+                            {!detail.formula && ai?.contains && ai.contains.length > 0 && (
+                                <p className="text-sm text-[var(--text)] mt-1">
+                                    {tr('Mainly ')}
+                                    {ai.contains.map((c, k) => (
+                                        <React.Fragment key={c.id}>
+                                            {k > 0 && tr(', ')}
+                                            <Link to={{ page: 'substance', id: c.id }}>{(isZh() && c.zh) || c.name}</Link>{' '}
+                                            <span className={`text-xs ${muted}`}>
+                                                <Formula of={c.formula} />
+                                            </span>
+                                        </React.Fragment>
+                                    ))}
+                                    <span className={`block text-xs ${muted}`}>
+                                        <span className="ai-tag">AI</span>
+                                        {tr('Which compounds, by AI; their formulas from PubChem.')}
+                                    </span>
                                 </p>
                             )}
                             {structure && (
@@ -674,29 +720,41 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     return first.length < summary.trim().length - 2 ? first : undefined;
                                 })()}
                             >
-                                <p className="text-sm max-w-prose" lang={zhSummary ? undefined : 'en'}><Linked text={summary} /></p>
-                                {zhSummary ? (
+                                <p className="text-sm max-w-prose" lang={zhSummary || aiSummary ? undefined : 'en'}><Linked text={summary} /></p>
+                                {aiSummary ? (
+                                    <AiNote />
+                                ) : zhSummary ? (
                                     <p className="footnote">{tr('From {0}.', { 0: tr('the Chinese Wikipedia') })}</p>
                                 ) : (
                                     detail.summarySources && <p className="footnote">{tr('From {0}.', { 0: detail.summarySources })}</p>
                                 )}
                             </Fold>
                         )}
-                        {how && (
+                        {aiFact && (
+                            <Fold title={tr('Did you know')} icon="flask" hint={firstSentence(aiFact)}>
+                                <p className="text-sm max-w-prose">{aiFact}</p>
+                                <AiNote fact />
+                            </Fold>
+                        )}
+                        {(how || aiHow) && (
                             <Fold
                                 title={tr('How it works')}
                                 icon="question"
                                 hint={
-                                    how.text
+                                    !how || aiHow
+                                        ? firstSentence(how?.text || aiHow)
+                                        : how.text
                                         ? firstSentence(how.text)
                                         : how.acts
                                           ? how.acts.map(a => `${tr(ACTS[a.how][0])} ${targetNames(a.on.slice(0, 3)).join(', ')}`).join('; ')
                                           : (termText(how.kind ?? '') || how.body?.map(r => tr('{0}: {1}', { 0: tr(BODY[r.what][0]), 1: termText(r.says) })).join(tr('. ')))
                                 }
                             >
+                                {aiHow && <p className="text-sm max-w-prose">{aiHow}</p>}
+                                {how && (<>
                                 {how.text && <p className="text-sm max-w-prose">{how.text}</p>}
                                 {(how.kind || how.acts) && (
-                                    <dl className={how.text ? 'mt-2' : undefined}>
+                                    <dl className={how.text || aiHow ? 'mt-2' : undefined}>
                                         {how.kind && <Fact about={tr('Kind of drug')}>{termText(how.kind)}</Fact>}
                                         {how.acts?.map(a => (
                                             <Fact key={a.how} about={tr(ACTS[a.how][0])} sub={ACTS[a.how][1] && tr(ACTS[a.how][1])}>
@@ -744,14 +802,18 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         )
                                     }
                                 />
+                                </>)}
+                                {aiHow && <AiNote />}
                             </Fold>
                         )}
-                        {uses && (
+                        {(uses || aiUses) && (
                             <Fold
                                 title={tr('What it’s used for')}
                                 icon={Route.oral}
                                 hint={
-                                    uses.text
+                                    !uses || aiUses
+                                        ? firstSentence(uses?.text || aiUses)
+                                        : uses.text
                                         ? firstSentence(uses.text)
                                         : uses.treats
                                           ? cap(uses.treats.slice(0, 4).map(termText).join(tr(', ')))
@@ -760,31 +822,39 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                             : termText(uses.routes ?? "")
                                 }
                             >
+                                {aiUses && <p className="text-sm max-w-prose">{aiUses}</p>}
+                                {uses && (<>
                                 {uses.text && <p className="text-sm max-w-prose">{uses.text}</p>}
                                 {uses.recreational && <p className="text-sm max-w-prose mt-3">{uses.recreational}</p>}
                                 {(uses.treats || uses.brands || uses.routes) && (
-                                    <dl className={uses.text ? 'mt-2' : undefined}>
+                                    <dl className={uses.text || aiUses ? 'mt-2' : undefined}>
                                         {uses.treats && <Fact about={tr('Listed as a treatment for')}>{cap(uses.treats.map(termText).join(tr(', ')))}</Fact>}
                                         {uses.brands && <Fact about={tr('Sold as')}>{uses.brands}</Fact>}
                                         {uses.routes && <Fact about={tr('Taken')}>{termText(uses.routes)}</Fact>}
                                     </dl>
                                 )}
                                 <QuotedFrom q={uses} figures={uses.figures} also={uses.treats ? tr('What it treats is from Wikidata.') : undefined} />
+                                </>)}
+                                {aiUses && <AiNote />}
                             </Fold>
                         )}
-                        {side && (
+                        {(side || aiSide) && (
                             <Fold
                                 title={tr('Side effects')}
                                 icon="caution"
                                 hint={
-                                    side.text
+                                    !side || aiSide
+                                        ? firstSentence(side?.text || aiSide)
+                                        : side.text
                                         ? firstSentence(side.text)
                                         : [side.addiction && tr('Addiction: {0}', { 0: dataText(side.addiction) }), side.dependence && tr('Dependence: {0}', { 0: dataText(side.dependence) })].filter(Boolean).join(tr('. '))
                                 }
                             >
+                                {aiSide && <p className="text-sm max-w-prose">{aiSide}</p>}
+                                {side && (<>
                                 {side.text && <p className="text-sm max-w-prose">{side.text}</p>}
                                 {(side.addiction || side.dependence) && (
-                                    <dl className={side.text ? 'mt-2' : undefined}>
+                                    <dl className={side.text || aiSide ? 'mt-2' : undefined}>
                                         {side.addiction && (
                                             <Fact about={tr('Addiction')} sub={tr('how likely')}>
                                                 {dataText(side.addiction)}
@@ -798,6 +868,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     </dl>
                                 )}
                                 <QuotedFrom q={side} figures={side.figures} />
+                                </>)}
+                                {aiSide && <AiNote />}
                             </Fold>
                         )}
                         {safety.length > 0 && (

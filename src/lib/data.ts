@@ -133,6 +133,24 @@ export type ActHow =
 /** What the body does with a dose, in the order it happens. */
 export type BodyStep = 'absorbed' | 'onset' | 'lasts' | 'halfLife' | 'brokenDown' | 'turnsInto' | 'leaves';
 
+/** One piece of AI-written text in each language: `zh` in 正體中文,
+ *  `zhHans` the same in 简体中文 (converted with OpenCC). */
+export interface AiText { en: string; zh: string; zhHans?: string }
+export interface AiWritten {
+  by: string;
+  date: string;
+  summary?: AiText;
+  pharmacology?: AiText;
+  uses?: AiText;
+  sideEffects?: AiText;
+  /** A true and curious fact: its history, its name, its chemistry. */
+  fact?: AiText;
+  /** For a plant, brew or mixture with no formula of its own: its main
+   *  active compounds as the AI named them, with each one's formula as the
+   *  catalogue has it from PubChem. */
+  contains?: { id: string; name: string; zh?: string; formula: string }[];
+}
+
 export interface Detail {
   id: string;
   name: string;/** 'Wikidata' for a reference entry: what it is, no doses. */
@@ -188,6 +206,11 @@ export interface Detail {
   /** Its side effects, as the article sums them up, and how likely it is to
    *  be habit-forming, from the infobox. */
   sideEffects?: Quoted & { addiction?: string; dependence?: string; figures?: string };
+  /** What an AI wrote where no source had anything (scripts/ai-fill.mjs):
+   *  each part only where the section is otherwise empty, every one shown
+   *  with a line saying it was written by AI. Kept apart from the sourced
+   *  data so it can be reviewed, or taken out whole by deleting the key. */
+  ai?: AiWritten;
   advisory?: string;
   /** 'FreeODwiki' where the advisory is its warning, brought along with its doses (scripts/freeodwiki.mjs). */
   advisorySource?: string;
