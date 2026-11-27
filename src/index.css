@@ -186,6 +186,11 @@ html.mono {
 :lang(zh-Hant-HK) {
     --font-cjk: "PingFang HK", "PingFang TC", "Microsoft JhengHei", "Noto Sans CJK HK", "Noto Sans HK", "Source Han Sans HK", "PingFang SC", "Hiragino Sans";
 }
+:lang(zh-CN),
+:lang(zh-SG),
+:lang(zh-Hans) {
+    --font-cjk: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC", "Hiragino Sans GB", "PingFang TC", "Hiragino Sans";
+}
 :lang(ja) {
     --font-cjk: "Hiragino Sans", "PingFang SC", "Apple SD Gothic Neo";
 }
