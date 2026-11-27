@@ -163,6 +163,10 @@ function DoseStage({ active }: { active: boolean }) {
     const low = useGlide(along(d.band[0], d.domain));
     const high = useGlide(along(d.band[1], d.domain));
     const b = v < low - 1e-6 ? BANDS.light : v > high + 1e-6 ? BANDS.strong : BANDS.common;
+    // The band's two ends roll to the next substance's as the amount above
+    // them does, on the same reels over the same time. Written plain, they
+    // changed at once while the band they name was still gliding.
+    const mark = (n: number) => <Odometer value={n} decimals={0} places={3} rollMs={GLIDE_MS} gentle />;
     const head = (i: number) => {
         const x = DOSES[i];
         return (
@@ -191,7 +195,7 @@ function DoseStage({ active }: { active: boolean }) {
                     value={onRail(v)}
                     band={{ low: onRail(low), high: onRail(high) }}
                     domain={RAIL}
-                    marks={d.band}
+                    marks={[mark(d.band[0]), mark(d.band[1])]}
                     label={tr(b.name)}
                     tone={b.tone}
                 />
