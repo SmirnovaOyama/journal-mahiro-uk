@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
+import { kv } from './kv';
 
 /* Small things remembered on this device: saved substances, the ones looked
    at lately, and a theme chosen over the system's. Only the saved list ever
@@ -12,7 +13,7 @@ const THEME = 'journal.theme.v2';
 
 function read<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = key === THEME ? localStorage.getItem(key) : kv.get(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
@@ -20,10 +21,13 @@ function read<T>(key: string, fallback: T): T {
 }
 
 function write(key: string, value: unknown) {
+  // Private mode or full: keep going without it. The theme is needed
+  // before a lock's code is typed, so it stays outside the lock (lib/kv.ts).
+  if (key !== THEME) return kv.set(key, JSON.stringify(value));
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    /* private mode or full: keep going without it */
+    /* as above */
   }
 }
 

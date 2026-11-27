@@ -1,5 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { go } from './router';
+import { kv } from './kv';
 
 /* The journal: what was taken, how much, how and when. Kept in this
    browser (localStorage). With an account it's also kept there, encrypted
@@ -112,7 +113,7 @@ export function cleanJournal(raw: unknown): JournalData {
 
 function read(): JournalData {
     try {
-        const raw = localStorage.getItem(KEY);
+        const raw = kv.get(KEY);
         return raw ? cleanJournal(JSON.parse(raw)) : empty();
     } catch {
         return empty();
@@ -145,11 +146,8 @@ const localSubs = new Set<() => void>();
 
 function commit(next: JournalData, merged = false) {
     data = next;
-    try {
-        localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-        /* storage full or off: the change still holds until the page closes */
-    }
+    // Storage full or off: the change still holds until the page closes.
+    kv.set(KEY, JSON.stringify(next));
     subs.forEach(f => f());
     if (!merged) localSubs.forEach(f => f());
 }
@@ -169,8 +167,7 @@ export function onLocalChange(f: () => void): () => void {
 }
 
 // Another tab changed it: take theirs.
-window.addEventListener('storage', e => {
-    if (e.key !== KEY) return;
+kv.on(KEY, () => {
     data = read();
     subs.forEach(f => f());
 });

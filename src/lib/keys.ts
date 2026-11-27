@@ -149,7 +149,7 @@ async function through(bytes: Uint8Array, stream: CompressionStream | Decompress
 }
 
 /** Compressed when the browser can (a first byte of 1), plain if not (0). */
-async function pack(text: string): Promise<Uint8Array> {
+export async function pack(text: string): Promise<Uint8Array> {
     const raw = enc.encode(text);
     if (typeof CompressionStream === 'undefined') return new Uint8Array([0, ...raw]);
     const z = await through(raw, new CompressionStream('gzip'));
@@ -159,7 +159,7 @@ async function pack(text: string): Promise<Uint8Array> {
     return out;
 }
 
-async function unpack(bytes: Uint8Array): Promise<string> {
+export async function unpack(bytes: Uint8Array): Promise<string> {
     const body = bytes.subarray(1);
     if (bytes[0] === 0) return new TextDecoder().decode(body);
     return new TextDecoder().decode(await through(body, new DecompressionStream('gzip')));

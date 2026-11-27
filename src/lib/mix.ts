@@ -62,6 +62,12 @@ export const VERDICT: Record<
   },
 };
 
+/** Entries the sync gives no group (scripts/sync-wikidata.mjs gives one only
+ *  to the entries it writes itself), by what they are. The harmala plants
+ *  and the brew made with them are MAOIs by what's in them. */
+const SSRIS = new Set(['citalopram', 'escitalopram', 'fluoxetine', 'fluvoxamine', 'paroxetine', 'sertraline', 'dapoxetine']);
+const MAOIS = new Set(['moclobemide', 'tetrahydroharmine', 'peganum-harmala', 'banisteriopsis-caapi', 'ayahuasca']);
+
 /** Every name a combination list might use for this substance: its own
  *  names, and the groups it belongs to ("Opioids", "2C-x", "MAOIs"). */
 export function namesFor(e: IndexEntry): Set<string> {
@@ -99,6 +105,12 @@ export function namesFor(e: IndexEntry): Set<string> {
   if (id === 'nitrous' || id === 'nitrous-oxide') add('nitrous');
   if (id.includes('mushroom') || id === 'psilocybin' || id === 'psilocin') add('mushrooms');
   if (id === 'diphenhydramine') add('dph');
+  // The antidepressants PsychonautWiki and TripSit list by name come with
+  // no group and no combinations of their own, so each read "Not
+  // documented" against tramadol, DXM and MDMA: the pairs they matter most
+  // in. The matrix speaks of them as "SSRIs" and "MAOIs".
+  if (SSRIS.has(id)) add('ssris');
+  if (MAOIS.has(id)) add('maois');
   return keys;
 }
 

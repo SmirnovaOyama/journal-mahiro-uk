@@ -29,6 +29,8 @@ import {
     type Wrapped,
 } from './keys';
 import { tr } from './i18n';
+import { kv } from './kv';
+import { applyPerson, cleanPerson, getPerson, mergePerson, onPersonChange, personIsEmpty, type Person } from './person';
 
 /* An account, which is optional: a username and a password, and with them
    the journal and the saved list kept the same on every device signed in.
@@ -85,25 +87,17 @@ const KEY = 'journal.account.v1';
 const NOTE = 'journal.account.note.v1';
 
 function readNote(): string | null {
-    try {
-        return localStorage.getItem(NOTE);
-    } catch {
-        return null;
-    }
+    return kv.get(NOTE);
 }
 
 function writeNote(note: string | null) {
-    try {
-        if (note) localStorage.setItem(NOTE, note);
-        else localStorage.removeItem(NOTE);
-    } catch {
-        /* shown for this visit only */
-    }
+    // Where storage is off, it's shown for this visit only.
+    kv.set(NOTE, note || null);
 }
 
 function readStored(): Stored | null {
     try {
-        const s = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Stored | null;
+        const s = JSON.parse(kv.get(KEY) ?? 'null') as Stored | null;
         return s && typeof s.token === 'string' && s.user && typeof s.user.id === 'string' ? s : null;
     } catch {
         return null;
@@ -111,12 +105,8 @@ function readStored(): Stored | null {
 }
 
 function writeStored(s: Stored | null) {
-    try {
-        if (s) localStorage.setItem(KEY, JSON.stringify(s));
-        else localStorage.removeItem(KEY);
-    } catch {
-        /* kept in memory for this visit */
-    }
+    // Where storage is off, it's kept in memory for this visit.
+    kv.set(KEY, s ? JSON.stringify(s) : null);
 }
 
 const first = readStored();
@@ -493,8 +483,9 @@ interface Vault {
     v: 1;
     journal: JournalData;
     saved: SavedLog;
-    /** Settings that go with the person: the body weight. */
-    prefs?: { weight?: BodyWeight };
+    /** What goes with the person: the body weight, and the medicines,
+     *  limits and products (lib/person.ts). */
+    prefs?: { weight?: BodyWeight; person?: Person };
 }
 
 function readVault(text: string): Vault {
@@ -502,12 +493,16 @@ function readVault(text: string): Vault {
     const saved = raw.saved && typeof raw.saved === 'object' && !Array.isArray(raw.saved) ? raw.saved : {};
     const w = raw.prefs?.weight;
     const weight = w && typeof w === 'object' && typeof w.at === 'number' ? w : undefined;
-    return { v: 1, journal: cleanJournal(raw.journal), saved, ...(weight ? { prefs: { weight } } : {}) };
+    const person = raw.prefs?.person ? cleanPerson(raw.prefs.person) : null;
+    return { v: 1, journal: cleanJournal(raw.journal), saved, ...prefsWith(weight ?? null, person) };
 }
 
-/** A vault's prefs with the weight in, or none at all, so a copy without a
- *  weight stays exactly as it was. */
-const prefsWith = (weight: BodyWeight | null) => (weight ? { prefs: { weight } } : {});
+/** A vault's prefs with the weight and the person in, or none at all, so a
+ *  copy without either stays exactly as it was. */
+function prefsWith(weight: BodyWeight | null, person: Person | null) {
+    const p = person && !personIsEmpty(person) ? person : null;
+    return weight || p ? { prefs: { ...(weight ? { weight } : {}), ...(p ? { person: p } : {}) } } : {};
+}
 
 /** JSON with every object's keys in order, to tell whether two copies are alike. */
 function canonical(v: unknown): string {
@@ -576,6 +571,9 @@ function apply(m: Vault, j0: JournalData, s0: SavedLog) {
     const w = getWeight();
     const weight = mergeWeight(w, m.prefs?.weight);
     if (canonical(weight) !== canonical(w)) applyWeight(weight);
+    const p = getPerson();
+    const person = mergePerson(p, m.prefs?.person);
+    if (canonical(person) !== canonical(p)) applyPerson(person);
 }
 
 async function syncOnce() {
@@ -620,14 +618,14 @@ async function syncOnce() {
                     v: 1,
                     journal: syncMerge(j0, remote.journal),
                     saved: mergeSaved(s0, remote.saved),
-                    ...prefsWith(mergeWeight(getWeight(), remote.prefs?.weight)),
+                    ...prefsWith(mergeWeight(getWeight(), remote.prefs?.weight), mergePerson(getPerson(), remote.prefs?.person)),
                 };
                 theirs = canonical(remote);
             } else {
                 // Nothing there yet, or nothing new since this device last
                 // merged it: this device's copy is the whole of it.
                 if (got.same && !cur.dirty && changes === gen) return finish(got.version);
-                merged = { v: 1, journal: syncMerge(j0, emptyJournal()), saved: s0, ...prefsWith(getWeight()) };
+                merged = { v: 1, journal: syncMerge(j0, emptyJournal()), saved: s0, ...prefsWith(getWeight(), getPerson()) };
             }
             apply(merged, j0, s0);
             if (theirs !== null && canonical(merged) === theirs) return finish(got.version);
@@ -669,6 +667,7 @@ export function startSync() {
     onLocalChange(changed);
     onSavedChange(changed);
     onWeightChange(changed);
+    onPersonChange(changed);
     const wake = () => {
         if (document.visibilityState !== 'visible' || !state.account || Date.now() - lastWake < 10_000) return;
         lastWake = Date.now();
@@ -681,8 +680,7 @@ export function startSync() {
         if (document.visibilityState === 'visible' && state.account) void syncNow();
     }, 2 * 60_000);
     // Another tab signed in or out, or synced.
-    window.addEventListener('storage', e => {
-        if (e.key !== KEY) return;
+    kv.on(KEY, () => {
         const s = readStored();
         if (!s) set({ account: null, status: 'off' });
         else if (s.token !== state.account?.token) {

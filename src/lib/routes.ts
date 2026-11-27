@@ -10,6 +10,14 @@ export type Route =
     | { page: 'browse' }
     | { page: 'saved' }
     | { page: 'emergency' }
+    /** The session going on, on one calm screen. */
+    | { page: 'now' }
+    /** Someone else's session, shared with a link: the key that opens it is
+     *  after the #, which no server is sent. */
+    | { page: 'watch'; id: string }
+    /** The dose form, filled in from the address: /log/caffeine/100mg/oral.
+     *  Nothing is logged until Log it is pressed. */
+    | { page: 'log'; id?: string; dose?: number; unit?: string; route?: string }
     | { page: 'journal'; session?: string; view?: 'stats' | 'weight'; substance?: string }
     | { page: 'settings'; sub?: SettingsSub };
 
@@ -22,6 +30,8 @@ export type SettingsSub =
     | 'appearance'
     | 'language'
     | 'weight'
+    | 'medicines'
+    | 'privacy'
     | 'disclaimer'
     | 'essay'
     | 'credits'
@@ -44,6 +54,8 @@ const SETTINGS_SUBS: readonly SettingsSub[] = [
     'appearance',
     'language',
     'weight',
+    'medicines',
+    'privacy',
     'disclaimer',
     'essay',
     'credits',
@@ -70,6 +82,20 @@ export function parse(path: string): Route {
     if (parts[0] === 'browse') return { page: 'browse' };
     if (parts[0] === 'saved') return { page: 'saved' };
     if (parts[0] === 'emergency') return { page: 'emergency' };
+    if (parts[0] === 'now') return { page: 'now' };
+    if (parts[0] === 'watch' && parts[1]) return { page: 'watch', id: parts[1] };
+    if (parts[0] === 'log') {
+        if (!parts[1]) return { page: 'log' };
+        const m = (parts[2] ?? '').match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+        const dose = m ? Number(m[1]) : NaN;
+        const route = (parts[3] ?? '').trim();
+        return {
+            page: 'log',
+            id: parts[1].toLowerCase(),
+            ...(Number.isFinite(dose) ? { dose, ...(m![2] ? { unit: m![2] } : {}) } : {}),
+            ...(route ? { route: route.charAt(0).toUpperCase() + route.slice(1) } : {}),
+        };
+    }
     if (parts[0] === 'journal') {
         if (parts[1] === 'stats') return { page: 'journal', view: 'stats' };
         if (parts[1] === 'weight') return { page: 'journal', view: 'weight' };
@@ -103,9 +129,18 @@ export function href(r: Route): string {
                   : r.session
                     ? `/journal/${encodeURIComponent(r.session)}`
                     : '/journal';
+        case 'watch':
+            return `/watch/${encodeURIComponent(r.id)}`;
+        case 'log': {
+            if (!r.id) return '/log';
+            const amount = r.dose != null ? `/${encodeURIComponent(`${r.dose}${r.unit ?? ''}`)}` : '';
+            // A route only after an amount: the amount's place can't be left empty.
+            return `/log/${encodeURIComponent(r.id)}${amount}${amount && r.route ? `/${encodeURIComponent(r.route.toLowerCase())}` : ''}`;
+        }
         case 'browse':
         case 'saved':
         case 'emergency':
+        case 'now':
             return `/${r.page}`;
         default:
             return '/';
