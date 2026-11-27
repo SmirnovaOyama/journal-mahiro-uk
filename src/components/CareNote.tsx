@@ -1,16 +1,17 @@
 import { saysChinese } from '../lib/care';
 import PixelCat from './PixelCat';
 import { External, Phone } from './icons';
-import { isZh } from '../lib/i18n';
+import { currentLang, isZh } from '../lib/i18n';
 
 /* What a search for a poison finds: not a warning, a check-in. No box and
    no alarm colours, a cat by it, a few soft sentences with a kaomoji or two, and people to
    talk to. It sits above the results and blocks nothing. In Chinese when the
    search was. */
 
-/* Each line, with what to call it where the two Chinese scripts differ
+/* Each line, with what to call it where the two Chinese writings differ
    (`hant`: the name, where, and what the link says, for a reader in
-   正體中文). The ones nearest the reader come first. */
+   正體中文; the line itself is in 简体中文). The ones nearest the reader
+   come first. */
 type Line = {
     where: string;
     name: string;
@@ -94,10 +95,12 @@ const COPY = {
 };
 
 export function CareNote({ q }: { q: string }) {
-    // In Chinese when the search is, or the site is: the site's own script
-    // for its reader, and the search's own for someone who only typed in it.
+    // In Chinese when the search is, or the site is: the site's own writing
+    // for its reader, and 简体中文, which more readers of it use, for
+    // someone who only typed in Chinese.
     const zh = saysChinese(q) || isZh();
-    const t = isZh() ? COPY.zhHant : zh ? COPY.zh : COPY.en;
+    const hant = currentLang() === 'zh-Hant';
+    const t = hant ? COPY.zhHant : zh ? COPY.zh : COPY.en;
     return (
         <section className="care-note m-appear mt-6" aria-label={t.title}>
             <div className="flex items-start gap-3">
@@ -119,7 +122,7 @@ export function CareNote({ q }: { q: string }) {
             <h3 className="group-heading mt-5 mb-1">{t.heading}</h3>
             <ul className="care-lines">
                 {LINES.filter(l => zh || !l.zhOnly)
-                    .sort((a, b) => (isZh() ? NEAR_HANT.indexOf(b.name) - NEAR_HANT.indexOf(a.name) : 0))
+                    .sort((a, b) => (hant ? NEAR_HANT.indexOf(b.name) - NEAR_HANT.indexOf(a.name) : 0))
                     .map(l => (
                     <li key={l.name}>
                         <a
@@ -128,11 +131,11 @@ export function CareNote({ q }: { q: string }) {
                             className="care-line no-underline"
                         >
                             <span className="min-w-0">
-                                <span className="block text-sm font-semibold text-[var(--text)]">{(isZh() && l.hant?.name) || l.name}</span>
-                                <span className="block text-xs text-[var(--text-muted)]">{(isZh() && l.hant?.where) || l.where}</span>
+                                <span className="block text-sm font-semibold text-[var(--text)]">{(hant && l.hant?.name) || l.name}</span>
+                                <span className="block text-xs text-[var(--text-muted)]">{(hant && l.hant?.where) || l.where}</span>
                             </span>
                             <span className="care-number">
-                                {(isZh() && l.hant?.number) || l.number}
+                                {(hant && l.hant?.number) || l.number}
                                 {l.href ? <External size={13} /> : <Phone size={14} />}
                             </span>
                         </a>
