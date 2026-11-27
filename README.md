@@ -40,6 +40,9 @@ mass (2,949: a plant or a family of drugs has none of its own).
 
 **Check a mix.** Put two or more substances together, alcohol and medicines
 included, and get one answer: the most serious risk first, with the reason.
+The medicines you take every day (Settings, About you) are counted in
+without being asked: one substance and a daily antidepressant is already a
+pair, and a substance's own page says what it does with them.
 
 **Know what to do when it goes wrong.** One page, at `/emergency`: when to
 call an ambulance, the number to call by place (the one where the device's
@@ -50,7 +53,11 @@ line puts into plain words what FRANK, the WHO, St John Ambulance, the NHS,
 988 Lifeline, Samaritans or PsychonautWiki says, and they are listed at its
 foot. It is one tap from
 a running session, a mix's answer, Search and Settings, and a search for
-"overdose" or 急救 finds it.
+"overdose" or 急救 finds it. Its tools say no advice of their own: what the
+journal holds of the last 24 hours, the daily medicines and the body
+weight, set out for the crew and shown large; a beat at 110 a minute to
+press a chest to; the steps read aloud; and the device's position, read on
+the device and sent nowhere, to say on the call.
 
 **Keep a journal.** Log what you take, how, how much and when.
 
@@ -58,7 +65,30 @@ a running session, a mix's answer, Search and Settings, and a search for
   timeline. The session still going sits on top, with anything in it that
   doesn't mix.
 - The form warns before a redose while the last one is still working, and
-  before anything that mixes badly with what you logged in the last day.
+  before anything that mixes badly with what you logged in the last day,
+  with a medicine you take every day, or with what you logged days ago and
+  is still at work: five half-lives by the half-life its page gives, or the
+  wait a drug's own label gives where that is longer (five weeks for
+  fluoxetine, two for the MAOIs that bind for good).
+- It shows what you wrote the last night you took the same thing, before
+  you take it again.
+- Limits, set while sober on a substance's page in the journal: the most in
+  one night, and the days between nights. The form says them back when a
+  dose would cross one.
+- A product with several ingredients (a cold medicine) is written down once
+  from its box and logged as so much of each. Nothing comes filled in: what
+  is in a box differs by country. Paracetamol is added up over 24 hours
+  against the NHS's 4 g, wherever it came from.
+- A drug that can't safely be stopped at once (a gabapentinoid, a
+  benzodiazepine, an opioid, a Z-drug), logged seven days in a row, gets one
+  note, in the NHS's words for its kind.
+- Now (`/now`): the night that's going on, on one screen, in large type,
+  with the screen kept on. "I don't feel right" asks first whether it's an
+  emergency, then says what FRANK says for panic, with a slow breath to
+  follow.
+- A dose has an address, `/log/caffeine/100mg/oral`, that opens the form
+  filled in and logs nothing until it's sent: for a bookmark, a phone's
+  Shortcuts, or an NFC sticker on the box.
 - Each session can have a name, notes, a Shulgin rating (− to ++++), and a
   star.
 - Stats show sessions month by month, the most used substances, and each
@@ -66,6 +96,19 @@ a running session, a mix's answer, Search and Settings, and a search for
   average, and every dose.
 - Export the journal as a file, or import one, including PsychonautWiki
   Journal's export.
+
+**Have someone watch over a night.** From Now, a link for someone you
+trust. They see what you log that night, where each thing is on its course,
+how long since your device last spoke, and whether you answered your
+check-in or missed it. Neither of you needs an account. See
+[Watching over a night](#watching-over-a-night).
+
+**Lock it.** A code on the journal, an other code that opens an empty one,
+a plain name and icon, and erasing the device at once. See
+[Lock and privacy](#lock-and-privacy).
+
+**Ask it from Telegram.** `/mix mdma tramadol`, `/dose ketamine`, or the
+bot's name and a question in any chat. See [Telegram](#telegram).
 
 **Sync it, if you want.** Make an account with a username and a password, and
 the journal and the saved list are kept the same on each device signed in to
@@ -108,6 +151,11 @@ for chat apps and search engines.
 | `/journal/substance/<id>` | One substance's history in the journal |
 | `/saved`, `/settings` | Saved substances; settings |
 | `/emergency` | What to do in an emergency, until help comes |
+| `/now` | The night that's going on, on one screen |
+| `/watch/<id>#<key>` | A night someone shared, for the person watching over it |
+| `/log/<substance>/<amount>/<route>` | The dose form, filled in from the address |
+| `/settings/medicines` | The medicines taken every day |
+| `/settings/privacy` | The lock, the other code, a plain name and icon, erasing the device |
 | `/settings/account` | The account: sign in or make one; on a phone, its parts as tiles (`/settings/sync`, `/settings/security`, `/settings/devices`), on a wide window as tabs |
 | `/settings/two-factor` | Two-step sign-in |
 | `/settings/weight` | Body weight |
@@ -205,8 +253,87 @@ The server never sees the password, the journal, or the saved list.
   up to an hour. A device stays signed in for 60 days after it was last
   used. A new password signs every other device out.
 
+What syncs: the journal with its body weights, the saved list, the body
+weight set in Settings, and what the journal knows of the person besides
+doses (`src/lib/person.ts`): the medicines taken every day, the limits, and
+the products written down from their boxes. Each merges to whichever
+device changed it last.
+
 The server side is `worker/api.ts`, with its tables in `migrations/`, on
 Cloudflare D1.
+
+## Watching over a night
+
+"Don't use alone", for someone who is alone (`src/lib/watch.ts`).
+
+- The sharing device makes a random key and encrypts what it shares with it
+  (AES-GCM): the night's doses, the daily medicines, the body weight, and
+  when a check-in was last answered.
+- The server keeps that sealed copy for 12 hours (`/api/watch`, the
+  `watches` table), with the hash of a token only the sharing device has,
+  which is what lets it replace or end the copy. No account is asked of
+  either side, and none is recorded.
+- The link is `/watch/<id>#<key>`. The key is after the `#`, which a browser
+  never sends to a server: whoever has the link can read the night, and the
+  server can't.
+- The copy is sent again when the journal changes, when a check-in is
+  answered, and every two minutes while the site is open on the sharing
+  device. A closed page sends nothing, so the watcher's page also says how
+  long it has been since that device last spoke, and treats silence as
+  something to act on.
+- A check-in, if asked for, is one large button on Now. Missed, the
+  watcher's page says so, sounds a tone, and (if allowed) raises a
+  notification, for as long as that page stays open.
+
+## Lock and privacy
+
+For a phone other people see, or may be made to show (Settings, About you,
+Lock and privacy; `src/lib/kv.ts`).
+
+- **A lock.** The journal, the saved list, the medicines and limits, and the
+  account's sign-in are kept together in a box encrypted with a random key
+  (AES-GCM), which is stored wrapped by the key a code makes
+  (PBKDF2-SHA256, 600,000 rounds). With it on, none of the app is loaded
+  until the code is typed: `src/main.tsx` asks for it on a screen that names
+  nothing, then loads the rest (`src/boot.tsx`). It can ask again after so
+  long out of sight. There is no way to reset the code.
+- **An other code** opens a second, empty journal, for someone made to open
+  the site. From inside it the lock can't be changed or turned off, and it
+  doesn't say there is another. It deceives a look, not an examination: the
+  two boxes sit side by side in storage, and one is larger.
+- **A plain name and icon.** The tab, the browser's history and an app added
+  to the Home Screen are called what the reader chose, under a grey page
+  (`src/lib/quiet.ts`; the icons are drawn by `scripts/plain-icons.mjs`).
+- **Erase this device**: everything the site keeps on it, at once, from
+  Settings or from the lock screen. Nothing is said to an account, so its
+  copy stays.
+
+What isn't locked: the theme and the language, which the page needs before
+the code is typed, and what the service worker keeps for offline, which
+names the substances that were opened.
+
+## Telegram
+
+The same catalogue and the same mix checker, asked from a chat
+(`worker/telegram.ts`): `/mix mdma tramadol`, `/dose ketamine`,
+`/emergency`, plain words in a chat with the bot alone, or its name and a
+question in any chat (inline mode). It answers in English, 正體中文 or
+简体中文 by the language Telegram says the asker uses, and every answer
+links to its page. Nothing is kept or logged.
+
+Telegram posts each message to `/api/telegram`, and the answer goes back as
+the reply to that request, so the Worker never calls Telegram and holds no
+bot token: only a secret that Telegram sends with each update. To set it up:
+
+```bash
+# 1. Make a bot with @BotFather, and turn inline mode on (/setinline).
+# 2. Give the Worker a secret of your own: any long random string.
+npx wrangler secret put TELEGRAM_SECRET
+# 3. Point the bot at the site, once.
+TELEGRAM_BOT_TOKEN=… TELEGRAM_SECRET=… node scripts/telegram-webhook.mjs
+```
+
+Without `TELEGRAM_SECRET` the address answers 404.
 
 ### Admin
 
@@ -248,6 +375,10 @@ npm run dev
 | `npx wrangler d1 migrations apply oyama-journal --local` | Make the account tables in the local database (`--remote` for the real one) |
 | `node scripts/admin-key.mjs <username>` | The admin's key hash, from its password (see [Admin](#admin)) |
 | `npm run build` | Type-check and build into `dist/` |
+| `npm test` | The tests in `tests/`: the mix checker against the catalogue, the journal's merging, what the journal says back, the lock, the Telegram bot |
+| `node scripts/data-diff.mjs` | Every dose, timing and combination a data sync changed, against the last commit |
+| `node scripts/plain-icons.mjs` | Draw the plain icon into `public/` |
+| `node scripts/telegram-webhook.mjs` | Point a Telegram bot at the site (see [Telegram](#telegram)) |
 | `npm run data` | Every data step in turn: PsychonautWiki and TripSit, then Wikidata and Wikipedia, PubChem structures, absorption by route, and the dose check |
 | `node scripts/absorption.mjs` | How much of a dose gets in, by route: PsychonautWiki's figures, and Wikipedia's drug infoboxes where the route is named |
 | `node scripts/check-doses.mjs` | Checks every route's doses rise in order on their rail, mends rows whose ranges change unit, and fails on any left |
@@ -274,6 +405,23 @@ Accounts are under `/api/` on the same Worker (`worker/api.ts`), with a D1
 database (`oyama-journal`) and two Workers rate limiters. A change to the
 tables is a new file in `migrations/`, applied with
 `npx wrangler d1 migrations apply oyama-journal --remote` before deploying.
+Shared nights are in the same database (`migrations/0004_watch.sql`).
+
+### Tests, and the data kept fresh
+
+`npm test` bundles each `tests/*.test.ts` with the esbuild Vite brings and
+runs it with Node's test runner, against the catalogue as it is in the
+repository. The mix checker's tests are floors: pairs whose danger no source
+disputes, which the checker may call worse but never milder.
+
+Once a week a workflow (`.github/workflows/data.yml`) runs `npm run data`
+and the tests and, if anything differs, opens a pull request that lists
+every dose, timing and combination that changed. Nothing reaches the site
+until that list has been read and merged. It needs "Allow GitHub Actions to
+create and approve pull requests" under the repository's Actions settings.
+
+Each substance's page ends with a link that opens a GitHub issue about it,
+for the reader who notices something wrong.
 
 ## Offline
 
@@ -296,15 +444,24 @@ and the files of the build before it are let go.
 
 - `src/App.tsx`: the shell, with the sidebar on a wide window and the tab bar
   on a phone.
+- `src/main.tsx` asks for the lock's code when there is one, then loads
+  `src/boot.tsx`, which starts the app.
 - `src/pages/`: Search, Substance, Kind, Mix, Journal, Saved, Settings, the
-  emergency page (Emergency), the account (Account), the admin's page
-  (Admin), and the intro (Onboarding).
+  emergency page (Emergency), the night on one screen (Now), a night someone
+  shared (Watch), the daily medicines (Medicines), the lock (Privacy), the
+  account (Account), the admin's page (Admin), and the intro (Onboarding).
 - `src/components/`, among them:
   - `Odometer`: the rolling number.
   - `LevelRail` and `DoseRuler`: the dose rail.
   - `Molecule`: the drawings, loaded per first letter from `public/data/structures/`.
   - `Timeline` and `SessionChart`: the duration curve and the session timeline.
-  - `IngestionForm`: logging a dose.
+  - `IngestionForm`: logging a dose; `ProductForm`: logging a product with
+    several ingredients.
+  - `JournalNotes`: last time, paracetamol's total, days in a row, limits.
+  - `EmergencyTools`: the card for the crew, the beat, reading aloud, the
+    position.
+  - `ShareNight`: sharing a night, and answering its check-ins.
+  - `DoseLink`: a dose's own address.
   - `scrub.ts`: reading the charts by touch.
   - `StackedBars`: the column charts, read by touch too.
   - `ProfileHeader`: the top of the account page.
@@ -312,6 +469,14 @@ and the files of the build before it are let go.
 - `src/lib/`:
   - `data.ts`, `mix.ts`: the data and the mix checker.
   - `journal.ts`: the journal's store, sessions, import, export and merging.
+  - `person.ts`: the medicines taken every day, the limits, the products.
+  - `advice.ts`: what the journal says back: how long a drug stays, the
+    last night's notes, a night's total, paracetamol over 24 hours, days in
+    a row.
+  - `kv.ts`: where all of that is kept on the device, and the lock on it;
+    `lockscreen.ts`: the screen that asks for the code; `quiet.ts`: the
+    plain name and icon.
+  - `watch.ts`: a night shared with someone, sealed on the device.
   - `account.ts`: signing in and out, two-step sign-in, and syncing.
   - `eggs.ts`: a few things for whoever looks up estradiol.
   - `alcohol.ts`: blood alcohol, roughly, from the body weight.
@@ -324,7 +489,9 @@ and the files of the build before it are let go.
     substances for when there's no connection.
   - `care.ts`: the searches that are answered with a check-in, or with the
     way to the emergency page.
-- `worker/`: the Worker; `api.ts` is the accounts.
+- `worker/`: the Worker; `api.ts` is the accounts and shared nights,
+  `telegram.ts` the Telegram bot.
+- `tests/`: the tests, and `setup.ts`, the little of a browser they need.
 - `migrations/`: the account tables.
 - `scripts/`: the data sync, structures, cards, sitemap, icons, and the
   admin's key hash.

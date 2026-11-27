@@ -67,6 +67,10 @@ const WORDS = {
     再回收抑制剂: '再摄取抑制剂',
     抗组织胺: '抗组胺药',
     茶胺酸: '茶氨酸',
+    // Paracetamol, as the catalogue itself names it in each place.
+    乙酰胺酚: '对乙酰氨基酚',
+    // The iPhone's Shortcuts app goes by another name there.
+    捷径: '快捷指令',
     程式码: '代码',
 };
 
