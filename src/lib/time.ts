@@ -36,8 +36,10 @@ export interface Course {
   spans: Partial<Record<'onset' | 'comeup' | 'peak' | 'offset' | 'afterEffects', Span>>;
 }
 
-/** Lays the phases end to end. Needs at least a peak and an offset; a
- *  missing onset or come-up counts as no time at all. */
+/** Lays the phases end to end. Needs at least a peak, and an offset or a
+ *  total; a missing onset counts as no time at all. With no
+ *  offset, wearing off fills what's left of the total after the peak (the
+ *  sources often give a total but no offset, as for gabapentin). */
 export function courseOf(row: DurationRow | undefined): Course | null {
   if (!row) return null;
   const onset = parseSpan(row.onset);
@@ -45,18 +47,23 @@ export function courseOf(row: DurationRow | undefined): Course | null {
   const peak = parseSpan(row.peak);
   const offset = parseSpan(row.offset);
   const after = parseSpan(row.afterEffects);
-  if (!peak || !offset || (!onset && !comeup)) return null;
-  const firstEffects = onset ? mid(onset) : 0;
-  const peakStart = firstEffects + (comeup ? mid(comeup) : 0);
+  const total = parseSpan(row.total);
+  if (!peak || (!onset && !comeup)) return null;
+  // With no come-up given, it comes up across the onset range instead of
+  // jumping straight to the peak: felt from its early end, full by its late end.
+  const firstEffects = onset ? (comeup ? mid(onset) : onset.min) : 0;
+  const peakStart = comeup ? firstEffects + mid(comeup) : onset!.max;
   const peakEnd = peakStart + mid(peak);
-  const over = peakEnd + mid(offset);
+  const wearOff = offset ? mid(offset) : total ? mid(total) - peakEnd : 0;
+  if (wearOff <= 0) return null;
+  const over = peakEnd + wearOff;
   return {
     firstEffects,
     peakStart,
     peakEnd,
     over,
     afterEnd: after ? over + mid(after) : null,
-    total: parseSpan(row.total),
+    total,
     spans: {
       ...(onset && { onset }),
       ...(comeup && { comeup }),
