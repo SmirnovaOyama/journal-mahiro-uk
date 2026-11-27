@@ -61,6 +61,12 @@ const WORDS = {
     连结: '链接',
     纪录: '记录',
     预设: '默认',
+    // And the pharmacology the catalogue uses, where the two places have
+    // settled on different words for the same thing.
+    正肾上腺素: '去甲肾上腺素',
+    再回收抑制剂: '再摄取抑制剂',
+    抗组织胺: '抗组胺药',
+    茶胺酸: '茶氨酸',
 };
 
 const HAN = /[㐀-鿿]/;

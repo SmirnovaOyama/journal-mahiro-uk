@@ -22,7 +22,7 @@ const zh: Record<string, string> = {
     'Cannabis': '大麻',
     'Mushrooms': '蕈类',
     'Caffeine': '咖啡因',
-    'L-Theanine': 'L-茶胺酸',
+    'L-Theanine': 'L-茶氨酸',
     // App.tsx
     'Search': '搜索',
     'Journal': '日志',
@@ -679,7 +679,7 @@ const zh: Record<string, string> = {
     'LSD and Cannabis': 'LSD 与大麻',
     'Ketamine, taken twice': '氯胺酮，用了两次',
     'Mushrooms and a Cannabis edible': '蕈类与大麻食品',
-    'Caffeine, twice, and L-Theanine': '咖啡因两次，加上 L-茶胺酸',
+    'Caffeine, twice, and L-Theanine': '咖啡因两次，加上 L-茶氨酸',
     'No account needed': '不需要账号',
     'Kept on this device': '保存在这台装置',
     'Encrypted sync, if you want it': '需要的话，可加密同步',
