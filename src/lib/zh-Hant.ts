@@ -761,6 +761,9 @@ const zh: Record<string, string> = {
     'This site gathers public harm-reduction information about psychoactive substances: doses, how long they last, and which combinations are risky. It is information, not medical advice, and it is no reason to take anything.': '本站彙整關於精神活性物質的公開減害資訊：劑量、持續時間，以及哪些組合有風險。這些是資訊，不是醫療建議，也不構成使用任何物質的理由。',
     'Doses and timings are typical ranges from PsychonautWiki and TripSit. Your body, your tolerance, the medicines you take and what is really in a pill or powder can all change them. Start low, test what you have, and don’t use alone.': '劑量與時間是來自 PsychonautWiki 與 TripSit 的典型範圍。你的體質、耐受性、正在服用的藥物，以及藥丸或粉末裡實際的成分，都可能改變它們。從低劑量開始、檢驗手上的東西，而且不要獨自使用。',
     'If someone is unresponsive, breathing slowly or not at all, or having a seizure, call emergency services now.': '如果有人沒有反應、呼吸緩慢或停止，或正在癲癇發作，請立刻撥打急救電話。',
+    'Mainland China, Hong Kong and Taiwan': '中國大陸、香港、台灣地區',
+    'Most of the substances on this site are controlled by law in mainland China, Hong Kong and Taiwan, including many that are legal or sold openly elsewhere. Under the Narcotics Control Law of the People’s Republic of China, Hong Kong’s Dangerous Drugs Ordinance (Cap. 134) and Taiwan’s Narcotics Hazard Prevention Act, making, selling, carrying or using them can lead to detention, compulsory drug treatment, prison or heavier penalties.': '本站提及的物質大多在中國大陸、香港、台灣地區受法律管制，其中包括許多在其他地方合法或公開販售的物質。依據《中華人民共和國禁毒法》、香港《危險藥物條例》（第 134 章）及台灣《毒品危害防制條例》，製造、販賣、持有或施用這些物質，可能被處以拘留、強制戒毒、徒刑或更重的刑罰。',
+    'This site is for harm reduction only. Nothing on it encourages, teaches or helps anyone to get or use a controlled substance, and it is not legal advice. Follow the law where you are.': '本站僅供減害用途，不鼓勵、不教導也不協助任何人取得或使用受管制物質，亦不構成法律意見。請遵守你所在地的法律。',
 
     // pages/Substance.tsx
     'Don’t mix with': '不要併用',
