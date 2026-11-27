@@ -464,6 +464,13 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                     <p>
                         {tr('Doses and timings are typical ranges from PsychonautWiki and TripSit. Your body, your tolerance, the medicines you take and what is really in a pill or powder can all change them. Start low, test what you have, and don’t use alone.')}
                     </p>
+                    <h2 className="pt-2 font-semibold text-[var(--text)]">{tr('Mainland China, Hong Kong and Taiwan')}</h2>
+                    <p>
+                        {tr('Most of the substances on this site are controlled by law in mainland China, Hong Kong and Taiwan, including many that are legal or sold openly elsewhere. Under the Narcotics Control Law of the People’s Republic of China, Hong Kong’s Dangerous Drugs Ordinance (Cap. 134) and Taiwan’s Narcotics Hazard Prevention Act, making, selling, carrying or using them can lead to detention, compulsory drug treatment, prison or heavier penalties.')}
+                    </p>
+                    <p>
+                        {tr('This site is for harm reduction only. Nothing on it encourages, teaches or helps anyone to get or use a controlled substance, and it is not legal advice. Follow the law where you are.')}
+                    </p>
                     <p className="text-[var(--danger)]">
                         {tr('If someone is unresponsive, breathing slowly or not at all, or having a seizure, call emergency services now.')}
                     </p>
