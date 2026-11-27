@@ -223,7 +223,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                         className={`w-full min-h-12 flex items-center gap-3 py-3 text-sm text-[var(--text)] no-underline ${rowBleed}`}
                                     >
                                         <span className="flex-1 min-w-0">
-                                            {A.name} {tr('and')} {B.name}
+                                            {nameOf(A)} {tr('and')} {nameOf(B)}
                                         </span>
                                         {v && <span className={`shrink-0 text-sm font-medium ${TONE_TEXT[v.tone]}`}>{tr(v.label)}</span>}
                                         <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)] opacity-70" />

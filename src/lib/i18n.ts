@@ -1,5 +1,6 @@
 /* The site's words in one of its languages: English, as written in the
-   code, or 正體中文 from lib/zh-Hant.ts, which is keyed by the English.
+   code, or 正體中文 from lib/zh-Hant.ts and 简体中文 from lib/zh-Hans.ts,
+   both keyed by the English.
 
        tr('Save')                              "儲存"
        tr('{0} doses', { 0: 3 })               "3 次用藥"
@@ -10,12 +11,13 @@
    lib/data.ts and lib/mix.ts too, and for it the language is always
    English. Choosing and remembering a language is lib/lang.ts. */
 
-export type Lang = 'en' | 'zh-Hant';
+export type Lang = 'en' | 'zh-Hant' | 'zh-Hans';
 
 let lang: Lang = 'en';
 let dict: Record<string, string> | null = null;
 
-/** The catalogue's own words (lib/zh-Hant-data.ts), keyed loosely. */
+/** The catalogue's own words (lib/zh-Hant-data.ts or lib/zh-Hans-data.ts),
+ *  keyed loosely. */
 let data: Map<string, string> | null = null;
 
 /** A line as the catalogue's words are keyed: case, hyphens, doubled
@@ -104,7 +106,7 @@ export function dataText(raw: string): string {
 }
 
 export const currentLang = () => lang;
-export const isZh = () => lang === 'zh-Hant';
+export const isZh = () => lang === 'zh-Hant' || lang === 'zh-Hans';
 
 /** A line in the current language, with each {name} filled in. `sense`
  *  tells apart two uses of one English word that part ways in another
@@ -125,7 +127,7 @@ export function spaced(text: string): string {
 }
 
 /** The locale dates and clock times are written in. */
-export const dateLocale = () => (lang === 'zh-Hant' ? 'zh-TW' : 'en-GB');
+export const dateLocale = () => (lang === 'zh-Hant' ? 'zh-TW' : lang === 'zh-Hans' ? 'zh-CN' : 'en-GB');
 
 /** A list as a phrase: "a, b and c", "a、b 和 c". */
 export function phraseList(xs: string[], last: 'and' | 'or' = 'and'): string {
@@ -150,24 +152,25 @@ export function roaName(roa: string): string {
         .join('');
 }
 
+/** The units of time, in each writing: 正體中文 first, 简体中文 second. */
+const UNITS: Record<string, [string, string]> = {
+    s: ['秒', '秒'],
+    mi: ['分鐘', '分钟'],
+    h: ['小時', '小时'],
+    d: ['天', '天'],
+    w: ['週', '周'],
+    mo: ['個月', '个月'],
+    y: ['年', '年'],
+};
+
 /** A span of time as the data writes it ("15–30 min", "4–24+ h", "1 - 2 weeks"). */
 export function spanText(raw: string): string {
     if (lang === 'en' || !raw) return raw;
+    const k = lang === 'zh-Hans' ? 1 : 0;
     return raw.replace(/(\d\+?)\s*(seconds?|sec|s|minutes?|min|hours?|h|days?|d|weeks?|months?|years?)\b/gi, (_, n: string, u: string) => {
-        const k = u.toLowerCase();
-        const unit = /^s/.test(k)
-            ? '秒'
-            : /^mi/.test(k)
-              ? '分鐘'
-              : /^h/.test(k)
-                ? '小時'
-                : /^d/.test(k)
-                  ? '天'
-                  : /^w/.test(k)
-                    ? '週'
-                    : /^mo/.test(k)
-                      ? '個月'
-                      : '年';
-        return `${n} ${unit}`;
+        const w = u.toLowerCase();
+        // "mo" before "mi" before "m" is why these are tested in this order.
+        const key = /^s/.test(w) ? 's' : /^mi/.test(w) ? 'mi' : /^h/.test(w) ? 'h' : /^d/.test(w) ? 'd' : /^w/.test(w) ? 'w' : /^mo/.test(w) ? 'mo' : 'y';
+        return `${n} ${UNITS[key][k]}`;
     });
 }

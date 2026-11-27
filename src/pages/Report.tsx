@@ -3,7 +3,7 @@ import { useOpenedFromLink } from '../lib/router';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Doodle, { type DoodleName } from '../components/Doodle';
 import { Linked } from '../components/Linked';
-import { isZh, tr } from '../lib/i18n';
+import { currentLang, isZh, tr } from '../lib/i18n';
 
 export type CaseReport = {
     id: string;
@@ -22,17 +22,22 @@ export type CaseReport = {
 };
 
 const cache = new Map<string, Promise<CaseReport | null>>();
-/** A report in the reader's language: its 正體中文 telling
- *  (<id>.zh-Hant.json) where there is one, else the English. */
+/** A report in the reader's language: its own telling in their writing
+ *  (<id>.zh-Hant.json, <id>.zh-Hans.json) where there is one, else the
+ *  other writing's, else the English. */
 export function loadReport(id: string) {
-    const zh = isZh();
-    const key = `${id}|${zh ? 'zh' : 'en'}`;
-    let p = cache.get(key);
+    const lang = currentLang();
+    let p = cache.get(`${id}|${lang}`);
     if (!p) {
         const get = (name: string) =>
-            fetch(`/data/reports/${encodeURIComponent(name)}.json`).then(r => (r.ok ? (r.json() as Promise<CaseReport>) : null));
-        p = (zh ? get(`${id}.zh-Hant`).catch(() => null).then(r => r ?? get(id)) : get(id)).catch(() => null);
-        cache.set(key, p);
+            fetch(`/data/reports/${encodeURIComponent(name)}.json`)
+                .then(r => (r.ok ? (r.json() as Promise<CaseReport>) : null))
+                .catch(() => null);
+        const other = lang === 'zh-Hans' ? 'zh-Hant' : 'zh-Hans';
+        p = (
+            isZh() ? get(`${id}.${lang}`).then(r => r ?? get(`${id}.${other}`)).then(r => r ?? get(id)) : get(id)
+        ).catch(() => null);
+        cache.set(`${id}|${lang}`, p);
     }
     return p;
 }

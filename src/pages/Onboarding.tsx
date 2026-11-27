@@ -169,7 +169,7 @@ function DoseStage({ active }: { active: boolean }) {
             <div className="flex items-center gap-3">
                 <Molecule id={x.id} form={x.form} size="sm" />
                 <div>
-                    <p className="text-sm font-medium text-[var(--text)]">{x.name}</p>
+                    <p className="text-sm font-medium text-[var(--text)]">{tr(x.name)}</p>
                     <p className="text-xs text-[var(--text-muted)]">{tr('{0}, in {1}', { 0: tr(x.route), 1: x.unit })}</p>
                 </div>
             </div>
@@ -250,12 +250,12 @@ function MixStage({ active }: { active: boolean }) {
             <div className="flex flex-wrap items-center justify-center gap-2">
                 <span className="chip chip-static text-[var(--text)]">
                     <Molecule id={a} form="capsule" size="xs" />
-                    {an}
+                    {tr(an)}
                 </span>
                 <span className="text-[var(--text-muted)]">{'+'}</span>
                 <span className="chip chip-static text-[var(--text)]">
                     <Molecule id={b} form="capsule" size="xs" />
-                    {bn}
+                    {tr(bn)}
                 </span>
             </div>
         );
@@ -375,7 +375,7 @@ function JournalStage({ active }: { active: boolean }) {
             color: HUE[name],
             course: { firstEffects: a, peakStart: b, peakEnd: c, over: d, afterEnd: null, total: null, spans: {} } as Course,
             strength,
-            label: name,
+            label: tr(name),
         }));
     const s = SESSIONS[shown];
     return (
