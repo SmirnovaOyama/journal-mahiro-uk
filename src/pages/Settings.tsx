@@ -17,6 +17,7 @@ import { AdminPage } from './Admin';
 import { TwoFactorPage } from './TwoFactor';
 import { WeightPage } from './Weight';
 import { EssayPage } from './Essay';
+import { AuthorRow, CreditsPage, REPO } from './Credits';
 import { useWide } from '../hooks/useWide';
 import { LANG_NAMES, useLang, type LangChoice } from '../lib/lang';
 import { SettingsTile } from '../components/SettingsTile';
@@ -197,7 +198,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             hint: tr('Language, appearance, body weight, pixel cats'),
         },
         { id: 'data', label: tr('Data'), Icon: Database, hint: tr('Journal, saved, looked at lately') },
-        { id: 'about', label: tr('About'), Icon: Info, hint: tr('Sources, disclaimer') },
+        { id: 'about', label: tr('About'), Icon: Info, hint: tr('Sources, credits, disclaimer') },
     ];
 
     const renderGeneral = () => (
@@ -348,9 +349,15 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
 
     const renderAbout = () => (
         <div className="space-y-8">
+            {/* Whose site it is, first: the picture, the name, their GitHub. */}
+            <div className={section}>
+                <AuthorRow />
+            </div>
             <div>
                 <SectionHeading title={tr('About')} />
                 <div className={section}>
+                    <LinkRow label="GitHub" value={tr('Source code')} href={REPO} />
+                    <NavRow label={tr('Credits')} onClick={() => open('credits')} />
                     <NavRow label={tr('Disclaimer')} onClick={() => open('disclaimer')} />
                     <NavRow label={tr('Show the intro again')} onClick={showOnboardingAgain} />
                     <NavRow label={tr('A Borrowed Spring')} value={tr('Essay')} onClick={() => open('essay')} />
@@ -392,6 +399,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     if (sub === 'two-factor') return <TwoFactorPage />;
     if (sub === 'weight') return <WeightPage />;
     if (sub === 'essay') return <EssayPage />;
+    if (sub === 'credits') return <CreditsPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;
     if (sub === 'recover') return <RecoverPage />;
     if (sub === 'admin' || sub === 'admin-overview' || sub === 'admin-accounts') return <AdminPage sub={sub} />;

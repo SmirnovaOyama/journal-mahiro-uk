@@ -91,6 +91,7 @@ for chat apps and search engines.
 | `/settings/account` | The account: sign in or make one; on a phone, its parts as tiles (`/settings/sync`, `/settings/security`, `/settings/devices`), on a wide window as tabs |
 | `/settings/two-factor` | Two-step sign-in |
 | `/settings/weight` | Body weight |
+| `/settings/credits` | Credits: who made it, what it's built on, where the data is from |
 | `/settings/admin` | The admin's page: `/settings/admin-overview`, `/settings/admin-accounts` |
 
 ## Data

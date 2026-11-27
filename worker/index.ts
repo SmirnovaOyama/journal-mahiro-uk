@@ -170,7 +170,7 @@ async function pageFor(env: Env, url: URL, lang: Lang): Promise<Page> {
             return { ...pagePreview(route.page, index.length || undefined), path: `/${route.page}`, found: true };
         case 'settings': {
             // An account's own pages, and the admin's: nothing for a search engine.
-            const own = !!route.sub && !['general', 'data', 'about', 'appearance', 'language', 'disclaimer', 'essay'].includes(route.sub);
+            const own = !!route.sub && !['general', 'data', 'about', 'appearance', 'language', 'disclaimer', 'essay', 'credits'].includes(route.sub);
             speakFor(lang);
             if (route.sub === 'essay') return { ...essayPreview(index.length || undefined), path: '/settings/essay', found: true };
             return { ...pagePreview('settings', index.length || undefined), path: '/settings', found: true, privatePage: own };
