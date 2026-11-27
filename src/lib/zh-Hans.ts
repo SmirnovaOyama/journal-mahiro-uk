@@ -22,7 +22,7 @@ const zh: Record<string, string> = {
     'Cannabis': '大麻',
     'Mushrooms': '蕈类',
     'Caffeine': '咖啡因',
-    'L-Theanine': 'L-茶氨酸',
+    'L-Theanine': 'L-茶胺酸',
     // App.tsx
     'Search': '搜索',
     'Journal': '日志',
@@ -679,7 +679,7 @@ const zh: Record<string, string> = {
     'LSD and Cannabis': 'LSD 与大麻',
     'Ketamine, taken twice': '氯胺酮，用了两次',
     'Mushrooms and a Cannabis edible': '蕈类与大麻食品',
-    'Caffeine, twice, and L-Theanine': '咖啡因两次，加上 L-茶氨酸',
+    'Caffeine, twice, and L-Theanine': '咖啡因两次，加上 L-茶胺酸',
     'No account needed': '不需要账号',
     'Kept on this device': '保存在这台装置',
     'Encrypted sync, if you want it': '需要的话，可加密同步',
@@ -1030,6 +1030,12 @@ const zh: Record<string, string> = {
     'Log what you take and when. Kept on your device, and synced encrypted if you want.': '记下你用了什么、什么时候用的。资料存在你的装置上，也可以选择加密同步。',
     // pages/Substance.tsx
     'the Chinese Wikipedia': '中文维基百科',
+    // pages/Substance.tsx: what an AI wrote
+    'Written by AI. It may be wrong.': '由 AI 撰写，内容可能有误。',
+    'Written by AI, as no source had this. It may be wrong: check it before you rely on it.': '由 AI 撰写，因为现有来源没有这部分。内容可能有误：依赖之前请先查证。',
+    'Did you know': '你知道吗',
+    'Mainly ': '主要成分：',
+    'Which compounds, by AI; their formulas from PubChem.': '成分由 AI 列出，化学式来自 PubChem。',
     // worker/index.ts: the installed app's own name and line
     '{0}, for {1} psychoactive substances, and a journal kept on your device.': '{0}，收录 {1} 种精神活性物质，还有一份只存在你装置上的日志。',
 };
