@@ -34,7 +34,7 @@ import { Timeline } from '../components/Timeline';
 import { Alert, ChevronRight, Clover, External, Heart, Info, Plus } from '../components/icons';
 import { Waiting } from '../components/Waiting';
 import { Linked } from '../components/Linked';
-import { dataText, dateLocale, isZh, roaName, termText, tr } from '../lib/i18n';
+import { currentLang, dataText, dateLocale, isZh, roaName, termText, tr } from '../lib/i18n';
 
 /** A link's line. The sync writes a handful of these, in English. */
 const linkSays = (d: string) => {
@@ -323,15 +323,17 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
         .map(a => a.trim())
         .filter(a => a && squash(a) !== squash(detail.name));
     // Under its Chinese name, the other Chinese names come first among the
-    // others, then the name the sources use, then the names they list.
-    if (isZh() && detail.zh)
-        aliases.unshift(
-            ...(detail.zhOther ? detail.zhOther.split(',').map(a => a.trim()).filter(Boolean) : []),
-            detail.name,
-        );
+    // others, then the name the sources use, then the names they list. Each
+    // is in the writing being read.
+    const hans = currentLang() === 'zh-Hans';
+    if (isZh() && (hans ? detail.zhHans ?? detail.zh : detail.zh)) {
+        const other = (hans ? detail.zhHansOther ?? detail.zhOther : detail.zhOther) ?? '';
+        aliases.unshift(...other.split(',').map(a => a.trim()).filter(Boolean), detail.name);
+    }
     const limited = detail.status === 'Limited data';
-    // In 正體中文, zh.wikipedia's opening where it has one; else the English sources'.
-    const zhSummary = isZh() && detail.summaryZh ? detail.summaryZh : '';
+    // In Chinese, zh.wikipedia's opening in that writing where it has one;
+    // else the English sources'.
+    const zhSummary = (isZh() && (hans ? detail.summaryZhHans ?? detail.summaryZh : detail.summaryZh)) || '';
     const summary = zhSummary || detail.summary;
     const whatItIs = describe(
         { category: detail.category, chemicalClass: detail.chemicalClass ?? entry?.chemicalClass ?? '' },
@@ -891,9 +893,14 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <Fold title={tr('Sources and further reading')} icon="report">
                                 {detail.helpfulLinks.length > 0 && (
                                     <div className="settings-section">
-                                        {/* The zh.wikipedia article, for a reader in Chinese only, and first. */}
+                                        {/* The zh.wikipedia article, for a reader in Chinese only, in
+                                            their own writing, and first. */}
                                         {[...detail.helpfulLinks]
-                                            .filter(l => isZh() || !l.description.startsWith('zh:'))
+                                            .filter(l =>
+                                                l.description.startsWith('zh:')
+                                                    ? isZh() && l.url.includes(currentLang() === 'zh-Hans' ? '/zh-cn/' : '/zh-tw/')
+                                                    : true,
+                                            )
                                             .sort((a, b) => Number(b.description.startsWith('zh:')) - Number(a.description.startsWith('zh:')))
                                             .map(l => (
                                             <a
