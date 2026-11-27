@@ -186,7 +186,7 @@ function aiSays(t?: AiText): string {
 function AiNote({ fact }: { fact?: boolean }) {
     return (
         <p className="footnote">
-            <span className="ai-tag">{tr('AI')}</span>
+            <span className="ai-tag">AI</span>
             {fact
                 ? tr('Written by AI. It may be wrong.')
                 : tr('Written by AI, as no source had this. It may be wrong: check it before you rely on it.')}
@@ -498,7 +498,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         </React.Fragment>
                                     ))}
                                     <span className={`block text-xs ${muted}`}>
-                                        <span className="ai-tag">{tr('AI')}</span>
+                                        <span className="ai-tag">AI</span>
                                         {tr('Which compounds, by AI; their formulas from PubChem.')}
                                     </span>
                                 </p>

@@ -1017,7 +1017,6 @@ const zh: Record<string, string> = {
     // pages/Substance.tsx
     'the Chinese Wikipedia': '中文維基百科',
     // pages/Substance.tsx: what an AI wrote
-    'AI': 'AI',
     'Written by AI. It may be wrong.': '由 AI 撰寫，內容可能有誤。',
     'Written by AI, as no source had this. It may be wrong: check it before you rely on it.': '由 AI 撰寫，因為現有來源沒有這部分。內容可能有誤：依賴之前請先查證。',
     'Did you know': '你知道嗎',
