@@ -19,6 +19,20 @@ export function useIndex() {
   return { index, byId, failed };
 }
 
+/** The pages of several substances, as they load: the ones that have. */
+export function useDetails(ids: string[]): Record<string, Detail> {
+  const [details, setDetails] = useState<Record<string, Detail>>({});
+  const key = ids.join('|');
+  useEffect(() => {
+    for (const id of ids)
+      if (!details[id])
+        loadDetail(id)
+          .then((d) => setDetails((p) => (p[d.id] ? p : { ...p, [d.id]: d })))
+          .catch(() => {});
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return details;
+}
+
 export function useDetail(id: string | null) {
   const [state, setState] = useState<{ id: string; detail?: Detail; failed?: boolean } | null>(null);
   useEffect(() => {

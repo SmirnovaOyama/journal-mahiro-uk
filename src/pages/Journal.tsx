@@ -21,6 +21,8 @@ import { courseFor, courseOf, formatMinutes } from '../lib/time';
 import Doodle from '../components/Doodle';
 import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
+import { ProductForm } from '../components/ProductForm';
+import { LimitEditor, ParacetamolLine, PatternNotes } from '../components/JournalNotes';
 import { Link } from '../components/Link';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
 import Segmented from '../components/Segmented';
@@ -377,6 +379,8 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     const [prefill] = useState<Prefill | null>(() => peekPrefill());
     useEffect(() => clearPrefill(), []);
     const [adding, setAdding] = useState(!!prefill);
+    // The form for a product with several ingredients, in the dose form's place.
+    const [product, setProduct] = useState(false);
     const [onlyStarred, setOnlyStarred] = useState(false);
     const [matrix, setMatrix] = useState<ComboMatrix>();
     useEffect(() => {
@@ -424,7 +428,15 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                             </button>
                         )}
                         {view !== 'weight' && (
-                            <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
+                            <button
+                                type="button"
+                                className={`${adding ? headerAction : headerActionAccent} tap-target`}
+                                aria-expanded={adding}
+                                onClick={() => {
+                                    setAdding(a => !a);
+                                    setProduct(false);
+                                }}
+                            >
                                 <Plus size={16} />
                                 {adding ? tr('Close') : tr('Log')}
                             </button>
@@ -444,12 +456,27 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                 />
                 <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
                     <div className="disclosure-inner">
-                        {adding && (
+                        {adding && product && (
+                            <div className="pb-8">
+                                <ProductForm
+                                    index={index}
+                                    byId={byId}
+                                    onLog={doses => {
+                                        doses.forEach(d => add(d));
+                                        setAdding(false);
+                                        setProduct(false);
+                                    }}
+                                    onCancel={() => setProduct(false)}
+                                />
+                            </div>
+                        )}
+                        {adding && !product && (
                             <div className="pb-8">
                                 <IngestionForm
                                     index={index}
                                     byId={byId}
                                     initial={prefill ?? undefined}
+                                    onProduct={() => setProduct(true)}
                                     onSave={i => {
                                         add(i);
                                         if (isHrt(i.substance)) {
@@ -499,6 +526,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         <SessionChart doses={chartDoses(live, details, color)} now={now} />
                                         <ChartCaption doses={chartDoses(live, details, color)} now={now} />
                                         <AlcoholLine s={live} now={now} />
+                                        <ParacetamolLine doses={live.ingestions} now={now} />
                                     </div>
                                     <div className="mt-3">
                                         <Interactions pairs={pairsOf(live, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution)} />
@@ -519,6 +547,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                             )}
 
                             {/* Below the session going on, which comes first. */}
+                            <PatternNotes byId={byId} now={now} />
                             <KeepNote />
 
                             {previous.length > 0 ? (
@@ -655,6 +684,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
 
                 <SessionChart doses={chartDoses(s, details, color)} now={now} />
                 <AlcoholLine s={s} now={now} />
+                <ParacetamolLine doses={s.ingestions} now={now} />
 
                 <section className="mt-6">
                     <h2 className="group-heading mb-2">{tr('How it went')}</h2>
@@ -979,7 +1009,10 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
             />
             <div className={`${PAGE_COLUMN} pb-10`}>
                 {doses.length === 0 ? (
-                    <p className={`text-sm ${muted}`}>{tr('Nothing logged for {0}.', { 0: name })}</p>
+                    <>
+                        <p className={`text-sm ${muted} mb-8`}>{tr('Nothing logged for {0}.', { 0: name })}</p>
+                        <LimitEditor id={id} />
+                    </>
                 ) : (
                     <>
                         <div className="grid grid-cols-3 gap-3 mb-8">
@@ -994,6 +1027,8 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
                                 </div>
                             ))}
                         </div>
+
+                        <LimitEditor id={id} unit={sameUnit ?? undefined} />
 
                         {!oneRoute && (
                             <section className="mb-9">

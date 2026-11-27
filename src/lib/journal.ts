@@ -339,8 +339,10 @@ export function historyOf(list: Ingestion[], substance: string): Ingestion[] {
 
 /* ── moving it in and out ───────────────────────────────────────────── */
 
-export function exportFile(d: JournalData): Blob {
-    const body = { app: 'journal.mahiro.uk', exported: new Date().toISOString(), ...d };
+/** The journal as a file, with what's kept of the person beside it (the
+ *  medicines, limits and products of lib/person.ts) when there is any. */
+export function exportFile(d: JournalData, person?: unknown): Blob {
+    const body = { app: 'journal.mahiro.uk', exported: new Date().toISOString(), ...d, ...(person ? { person } : {}) };
     return new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' });
 }
 

@@ -17,11 +17,20 @@ import { WaitMark } from './Waiting';
 import Switch from './Switch';
 import { Alert, Close } from './icons';
 import { roaName, tr } from '../lib/i18n';
+import { LINGER_DAYS, PARACETAMOL, PARACETAMOL_DAY_MG, PARACETAMOL_SOURCE, lastNightOf, lastTime, lingering, nightTotal, paracetamolMg } from '../lib/advice';
+import { medicinesOf, usePerson } from '../lib/person';
+import { LastTimeNote, gramsText } from './JournalNotes';
+import { Link } from './Link';
 
 /* Logging one dose: what, how, how much, when. Laid out as hrt.mahiro.uk's
    dose form is, labelled lines one under another, and as it's filled in it
    says what the journal already knows: the same thing taken again too soon,
-   or something taken in the last day that it mixes badly with. */
+   or something taken in the last day that it mixes badly with. It reads
+   further than a day too: a medicine taken every day (lib/person.ts), a
+   drug logged days ago that is still at work, a limit set while sober, and
+   the last night's own notes (lib/advice.ts). */
+
+const DAY = 24 * 3600_000;
 
 const ROUTES = ['Oral', 'Sublingual', 'Insufflated', 'Smoked', 'Vaporized', 'Inhaled', 'Intravenous', 'Intramuscular', 'Rectal', 'Transdermal'];
 const UNITS = ['mg', 'μg', 'g', 'mL', 'tabs', 'drinks', 'puffs'];
@@ -71,6 +80,7 @@ export function IngestionForm({
     onSave,
     onCancel,
     onDelete,
+    onProduct,
 }: {
     index: IndexEntry[] | null;
     byId: Map<string, IndexEntry>;
@@ -79,6 +89,8 @@ export function IngestionForm({
     onSave: (i: Omit<Ingestion, 'id'> & { id?: string }) => void;
     onCancel: () => void;
     onDelete?: () => void;
+    /** Opens the form for a product with several ingredients instead. */
+    onProduct?: () => void;
 }) {
     const { data } = useJournal();
     const start = editing ?? initial;
@@ -100,6 +112,7 @@ export function IngestionForm({
     const searchRef = useRef<HTMLInputElement>(null);
 
     const entry = substance ? byId.get(substance) : undefined;
+    const name = entry?.name ?? custom.trim();
     const { detail, loading } = useDetail(entry ? entry.id : null);
     // The ways this substance is taken, once its page has arrived: null until
     // then. The general list is only for what has no routes of its own (a
@@ -150,16 +163,63 @@ export function IngestionForm({
             .then(setMatrix)
             .catch(() => {});
     }, []);
+    // And what reaches further back than a day: the medicines taken every
+    // day, and whatever was logged in the last weeks that may still be at work.
+    const { person } = usePerson();
+    const meds = useMemo(() => medicinesOf(person).filter(m => byId.has(m.id)), [person, byId]);
+    const older = useMemo(
+        () => [...new Set(data.ingestions.filter(i => i.id !== editing?.id && time - i.time > DAY && time - i.time <= LINGER_DAYS * DAY).map(i => i.substance))],
+        [data.ingestions, editing?.id, time],
+    );
     useEffect(() => {
-        for (const i of recent)
-            if (byId.get(i.substance) && !others[i.substance])
-                loadDetail(i.substance)
+        for (const id of new Set([...recent.map(i => i.substance), ...older, ...meds.map(m => m.id)]))
+            if (byId.get(id) && !others[id])
+                loadDetail(id)
                     .then(d => setOthers(p => ({ ...p, [d.id]: d })))
                     .catch(() => {});
-    }, [recent, byId, others]);
+    }, [recent, older, meds, byId, others]);
+    const still = useMemo(() => lingering(data.ingestions, others, time, editing?.id), [data.ingestions, others, time, editing?.id]);
+
+    // What this dose is logged under: the catalogue's id, or the name as typed.
+    const key = substance && byId.get(substance) ? substance : custom.trim();
+    const limit = key ? person.limits[key] : undefined;
+    const paracetamol = useMemo(() => {
+        if (key !== PARACETAMOL) return null;
+        const before = paracetamolMg(data.ingestions, time, editing?.id);
+        const mine = dose != null && doseOk ? convertAmount(dose, unit || 'mg', 'mg') : null;
+        return { mg: before.mg + (mine ?? 0), before: before.mg };
+    }, [key, data.ingestions, time, editing?.id, dose, doseOk, unit]);
 
     const warnings = useMemo(() => {
-        const out: { key: string; tone: 'danger' | 'warning'; text: string }[] = [];
+        const out: { key: string; tone: 'danger' | 'warning'; text: string; link?: { label: string; href: string } }[] = [];
+        // The limits set while sober, said back.
+        if (key && limit?.max && limit.unit) {
+            const night = nightTotal(data.ingestions, key, time, limit.unit, editing?.id);
+            const mine = dose != null && doseOk ? convertAmount(dose, unit || limit.unit, limit.unit) : null;
+            const total = night.total + (mine ?? 0);
+            if (total > limit.max)
+                out.push({
+                    key: 'limit-max',
+                    tone: 'warning',
+                    text: tr('You set {0} {1} of {2} as the most for one night. With this dose it comes to {3} {1}.', { 0: fmtAmount(limit.max), 1: limit.unit, 2: name, 3: fmtAmount(total) }),
+                });
+        }
+        if (key && limit?.gap) {
+            const last = lastNightOf(data.ingestions, key, time, editing?.id);
+            if (last != null && time - last < limit.gap * DAY)
+                out.push({
+                    key: 'limit-gap',
+                    tone: 'warning',
+                    text: tr('You set {0} days between nights of {1}. The last was {2} ago.', { 0: limit.gap, 1: name, 2: formatMinutes(Math.max(1, Math.round((time - last) / 60000))) }),
+                });
+        }
+        if (paracetamol && paracetamol.mg > PARACETAMOL_DAY_MG)
+            out.push({
+                key: 'paracetamol',
+                tone: 'danger',
+                text: tr('With this dose, {0} of paracetamol in 24 hours: more than the 4 g an adult should take. Too much can damage the liver: get medical advice now.', { 0: gramsText(paracetamol.mg) }),
+                link: { label: PARACETAMOL_SOURCE.name, href: PARACETAMOL_SOURCE.href },
+            });
         if (!entry) return out;
         // The same substance again.
         const same = recent.filter(i => i.substance === entry.id && i.time <= time).sort((a, b) => b.time - a.time)[0];
@@ -200,8 +260,40 @@ export function IngestionForm({
                     text: tr('{0} with {1}, logged in the last day. {2}', { 0: tr(v.label), 1: nameOf(p.b), 2: tr(v.meaning) }),
                 });
             });
+        // A medicine taken every day counts as taken today. Then what was
+        // logged days ago and may still be at work.
+        const further: { p: PairResult; ago?: number }[] = [];
+        for (const m of meds) {
+            const other = byId.get(m.id);
+            if (!other || other.id === entry.id || seen.has(other.id)) continue;
+            seen.add(other.id);
+            further.push({ p: checkPair(entry, other, detail ?? undefined, others[other.id], matrix) });
+        }
+        for (const i of still) {
+            const other = byId.get(i.substance);
+            if (!other || other.id === entry.id || seen.has(other.id)) continue;
+            seen.add(other.id);
+            further.push({ p: checkPair(entry, other, detail ?? undefined, others[other.id], matrix), ago: Math.round((time - i.time) / 60000) });
+        }
+        further
+            .filter(f => RANK[f.p.verdict] >= RANK.Caution)
+            .sort((a, b) => RANK[b.p.verdict] - RANK[a.p.verdict])
+            .forEach(({ p, ago }) => {
+                const v = VERDICT[p.verdict];
+                out.push({
+                    key: p.b.id,
+                    tone: v.tone === 'danger' ? 'danger' : 'warning',
+                    text:
+                        ago == null
+                            ? tr('{0} with {1}, which you take every day. {2}', { 0: tr(v.label), 1: nameOf(p.b), 2: tr(v.meaning) })
+                            : tr('{0} with {1}, logged {2} ago and likely still at work. {3}', { 0: tr(v.label), 1: nameOf(p.b), 2: formatMinutes(ago), 3: tr(v.meaning) }),
+                });
+            });
         return out;
-    }, [entry, recent, time, detail, byId, others, matrix]);
+    }, [entry, recent, time, detail, byId, others, matrix, meds, still, key, limit, paracetamol, data.ingestions, editing?.id, dose, doseOk, unit, name]);
+
+    // What was written the last night this was taken, shown before it's taken again.
+    const last = useMemo(() => (key && !editing ? lastTime(data, key, time) : null), [key, editing, data, time]);
 
     const hits = useMemo(() => (index && q.trim() ? search(index, q, 6) : []), [index, q]);
     // What's been logged lately, to pick again in one tap.
@@ -216,7 +308,6 @@ export function IngestionForm({
         }
         return out;
     }, [data.ingestions, byId]);
-    const name = entry?.name ?? custom.trim();
     const canSave = !!name && doseOk && Number.isFinite(time);
 
     const save = () => {
@@ -301,6 +392,11 @@ export function IngestionForm({
                                 ))}
                             </div>
                         )}
+                        {!q.trim() && onProduct && (
+                            <button type="button" className="link-button mt-3 block text-sm" onClick={onProduct}>
+                                {tr('A product with several ingredients')}
+                            </button>
+                        )}
                         {isCareSearch(q) && <CareNote q={q} />}
                         {q.trim() && (
                             <div className="mt-2 flex flex-col">
@@ -341,6 +437,8 @@ export function IngestionForm({
 
             {name && (
                 <>
+                    {last && <LastTimeNote last={last} />}
+
                     {/* How */}
                     <div>
                         <span className={label}>{tr('Route')}</span>
@@ -406,6 +504,11 @@ export function IngestionForm({
                         {row && isPerKg(row.unit) && !weight.kg && (
                             <p className="mt-2 text-xs text-[var(--text-muted)]">{tr('Its doses are given per kilogram: set your body weight in Settings to see where this amount falls.')}</p>
                         )}
+                        {paracetamol && paracetamol.mg > 0 && paracetamol.mg <= PARACETAMOL_DAY_MG && (
+                            <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">
+                                {tr('With this dose, {0} of paracetamol in 24 hours. The limit for an adult is 4 g.', { 0: gramsText(paracetamol.mg) })}
+                            </p>
+                        )}
                         {row?.absorbed && (
                             <p className="mt-2 text-xs text-[var(--text-muted)]">
                                 {tr('{0} of a dose taken this way reaches the blood.', { 0: absorbedText(row.absorbed).replace(/^./, c => c.toUpperCase()) })}
@@ -457,6 +560,14 @@ export function IngestionForm({
                         />
                     </div>
 
+                    {key && !editing && !limit?.max && !limit?.gap && (
+                        <p className="-mt-2 text-xs text-[var(--text-muted)]">
+                            <Link to={{ page: 'journal', substance: key }} className="underline underline-offset-[3px]">
+                                {tr('Set a limit for {0}', { 0: name })}
+                            </Link>
+                        </p>
+                    )}
+
                     {warnings.length > 0 && (
                         <div className="flex flex-col gap-2" role="status">
                             {warnings.map(w => (
@@ -465,7 +576,17 @@ export function IngestionForm({
                                     className={`flex gap-2 text-sm leading-relaxed ${w.tone === 'danger' ? 'text-[var(--danger)]' : 'text-[var(--warning)]'}`}
                                 >
                                     <Alert size={16} className="mt-0.5 shrink-0" />
-                                    <span>{w.text}</span>
+                                    <span>
+                                        {w.text}
+                                        {w.link && (
+                                            <>
+                                                {' '}
+                                                <a href={w.link.href} target="_blank" rel="noopener noreferrer" className="text-xs underline underline-offset-[3px]">
+                                                    {w.link.label}
+                                                </a>
+                                            </>
+                                        )}
+                                    </span>
                                 </p>
                             ))}
                         </div>

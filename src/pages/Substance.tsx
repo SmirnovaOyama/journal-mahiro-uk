@@ -26,6 +26,7 @@ import { Absorption } from '../components/Absorption';
 import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
 import Doodle, { Route } from '../components/Doodle';
 import { Fold } from '../components/Fold';
+import { WithMedicines } from './Medicines';
 import { Link } from '../components/Link';
 import { Molecule, useStructure } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN, headerAction, headerActionAccent } from '../components/PageHeader';
@@ -590,6 +591,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             ))}
                         </div>
                     )}
+
+                    {entry && <WithMedicines entry={entry} byId={byId} />}
 
                     {reference && (
                         <p className={`mt-5 text-sm leading-relaxed ${muted} max-w-prose`}>

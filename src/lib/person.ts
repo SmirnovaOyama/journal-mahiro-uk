@@ -119,6 +119,9 @@ kv.on(KEY, () => {
 
 export const getPerson = () => person;
 export const applyPerson = (next: Person) => commit(next, true);
+/** Puts in a copy read from a file, merged with what's here: a change made
+ *  on this device, so it reaches the account. */
+export const importPerson = (from: Person) => commit(mergePerson(from, person));
 export function onPersonChange(f: () => void): () => void {
     localSubs.add(f);
     return () => {

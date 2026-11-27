@@ -15,6 +15,7 @@ import { Linked } from '../components/Linked';
 import { dataText, phraseList, tr } from '../lib/i18n';
 import { sessionsOf, useJournal } from '../lib/journal';
 import { courseFor } from '../lib/time';
+import { medicinesOf, usePerson } from '../lib/person';
 
 const EXAMPLES: [string, string][] = [
     ['alcohol', 'ketamine'],
@@ -47,8 +48,10 @@ function useStillActive(byId: Map<string, IndexEntry>, details: Record<string, D
     return { ids: [...ids], candidates: [...new Set((latest?.ingestions ?? []).map(i => i.substance).filter(x => byId.has(x)))] };
 }
 
-/** A pair's answer, and what it was read without (see `pairs` below). */
-type Checked = PairResult & { without?: IndexEntry[]; unchecked?: boolean };
+/** A pair's answer, and what it was read without (see `pairs` below).
+ *  `daily`: its second substance is a medicine taken every day, not one
+ *  put on the table. */
+type Checked = PairResult & { without?: IndexEntry[]; unchecked?: boolean; daily?: boolean };
 
 /** The mix checker: put substances on the table, read one answer. */
 export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] | null; byId: Map<string, IndexEntry> }) {
@@ -82,13 +85,24 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
             .catch(() => {});
     }, []);
 
+    // The medicines taken every day (pages/Medicines.tsx) are on the table
+    // without being put there: each is checked against everything chosen.
+    const { person } = usePerson();
+    const daily = useMemo(
+        () =>
+            medicinesOf(person)
+                .map(m => byId.get(m.id))
+                .filter((e): e is IndexEntry => !!e && !ids.includes(e.id)),
+        [person, byId, ids],
+    );
+
     // What's still working from the journal, offered at the top to add.
     const working = useStillActive(byId, details);
     const activeOff = working.ids.filter(id => !ids.includes(id)).map(id => byId.get(id)!);
     // With nothing chosen, the common checks show their answer, so their
     // substances are read too.
     const exampleIds = chosen.length ? [] : EXAMPLES.flat();
-    const wantedKey = [...new Set([...chosen.map(e => e.id), ...working.candidates, ...exampleIds])].filter(id => byId.has(id)).join();
+    const wantedKey = [...new Set([...chosen.map(e => e.id), ...daily.map(e => e.id), ...working.candidates, ...exampleIds])].filter(id => byId.has(id)).join();
     const wanted = useMemo(() => wantedKey.split(',').filter(Boolean), [wantedKey]);
     useEffect(() => {
         for (const id of wanted)
@@ -118,17 +132,23 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
        milder can't be trusted, and is shown as not checked. */
     const pairs: Checked[] = useMemo(() => {
         const out: Checked[] = [];
-        for (let i = 0; i < chosen.length; i++)
-            for (let j = i + 1; j < chosen.length; j++) {
-                const r = checkPair(chosen[i], chosen[j], details[chosen[i].id], details[chosen[j].id], matrix);
-                const without = [chosen[i], chosen[j]].filter(e => !details[e.id]);
-                if (!without.length) out.push(r);
-                else if (RANK[r.verdict] >= RANK.Caution) out.push({ ...r, without });
-                else out.push({ a: r.a, b: r.b, verdict: 'Unknown', without, unchecked: true });
-            }
+        const check = (a: IndexEntry, b: IndexEntry, isDaily: boolean) => {
+            const r = checkPair(a, b, details[a.id], details[b.id], matrix);
+            const without = [a, b].filter(e => !details[e.id]);
+            const more = isDaily ? { daily: true } : {};
+            if (!without.length) out.push({ ...r, ...more });
+            else if (RANK[r.verdict] >= RANK.Caution) out.push({ ...r, without, ...more });
+            else out.push({ a: r.a, b: r.b, verdict: 'Unknown', without, unchecked: true, ...more });
+        };
+        for (let i = 0; i < chosen.length; i++) {
+            for (let j = i + 1; j < chosen.length; j++) check(chosen[i], chosen[j], false);
+            for (const m of daily) check(chosen[i], m, true);
+        }
         return out.sort((a, b) => RANK[b.verdict] - RANK[a.verdict]);
-    }, [chosen, details, matrix]);
-    const ready = chosen.every(e => details[e.id] || unread.has(e.id)) && matrix;
+    }, [chosen, daily, details, matrix]);
+    const ready = [...chosen, ...daily].every(e => details[e.id] || unread.has(e.id)) && matrix;
+    /** Enough on the table for an answer: two chosen, or one and a daily medicine. */
+    const enough = chosen.length >= 2 || (chosen.length === 1 && daily.length > 0);
     const top: Checked | undefined = worst(pairs);
     const namesOf = (es: IndexEntry[]) => phraseList(es.map(e => nameOf(e)));
 
@@ -148,6 +168,34 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                 <p className="text-sm text-[var(--text-muted)] mb-4">
                     {tr('What are the risks of taking these together? Add everything you plan to take, including alcohol and any medication.')}
                 </p>
+
+                {daily.length > 0 ? (
+                    <section className="mb-4" aria-label={tr('Taken every day')}>
+                        <h2 className="group-heading mb-2">{tr('Taken every day')}</h2>
+                        <ul className="flex flex-wrap items-center gap-2">
+                            {daily.map(e => (
+                                <li key={e.id} className="inline-flex items-center gap-1.5 h-9 ps-2.5 pe-3.5 rounded-full border-(length:--hairline) border-[var(--border-strong)]">
+                                    <Molecule id={e.id} form={e.form} size="xs" />
+                                    <Link to={{ page: 'substance', id: e.id }} className="text-sm font-medium text-[var(--text)] no-underline">
+                                        {nameOf(e)}
+                                    </Link>
+                                </li>
+                            ))}
+                            <li>
+                                <Link to={{ page: 'settings', sub: 'medicines' }} className="text-xs text-[var(--text-muted)] underline underline-offset-[3px]">
+                                    {tr('Change')}
+                                </Link>
+                            </li>
+                        </ul>
+                    </section>
+                ) : (
+                    <p className="-mt-2 mb-4 text-xs text-[var(--text-muted)]">
+                        <Link to={{ page: 'settings', sub: 'medicines' }} className="underline underline-offset-[3px]">
+                            {tr('Add the medicines you take every day')}
+                        </Link>
+                        {tr(', and every check counts them in.')}
+                    </p>
+                )}
 
                 {activeOff.length > 0 && (
                     <section className="mb-4" aria-label={tr('Still working, from your journal')}>
@@ -259,17 +307,17 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                     </section>
                 )}
 
-                {chosen.length === 1 && (
+                {chosen.length === 1 && !enough && (
                     <p className="text-sm text-[var(--text-muted)] mt-5">
                         {tr('Add one more to see how they mix.')}
                     </p>
                 )}
 
-                {chosen.length >= 2 && !ready && (
+                {enough && !ready && (
                     <p className="text-sm text-[var(--text-muted)] mt-8">{tr('Checking…')}</p>
                 )}
 
-                {chosen.length >= 2 && ready && top && (
+                {enough && ready && top && (
                     <section className="verdict m-appear" aria-live="polite">
                         <p className="group-heading">
                             {pairs.length === 1
@@ -310,6 +358,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                                 {p.unchecked ? tr('Not checked') : tr(v.label)}
                                             </span>
                                         </div>
+                                        {p.daily && <p className="text-xs text-[var(--text-muted)] mt-0.5">{tr('You take {0} every day.', { 0: nameOf(p.b) })}</p>}
                                         {note && <p className="text-sm mt-1"><Linked text={dataText(note)} /></p>}
                                         {pairs.length > 1 && !note && !p.unchecked && (
                                             <p className="text-sm mt-1">{tr(v.meaning)}</p>

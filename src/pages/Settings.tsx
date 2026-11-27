@@ -24,6 +24,8 @@ import { SettingsTile } from '../components/SettingsTile';
 import { Link } from '../components/Link';
 import { keepsOffline } from '../lib/offline';
 import { phraseList, tr } from '../lib/i18n';
+import { cleanPerson, importPerson, medicinesOf, personIsEmpty, usePerson } from '../lib/person';
+import { MedicinesPage } from './Medicines';
 
 /* Settings, laid out as hrt.mahiro.uk lays its own out (pages/Settings.tsx
    there): on a phone, the three groups as a list of tiles, each opening its
@@ -148,9 +150,11 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     const [importNote, setImportNote] = useState<string | null>(null);
     const wide = useWide();
     const language = useLang();
+    const { person } = usePerson();
+    const medCount = medicinesOf(person).length;
 
     const doExport = () => {
-        const url = URL.createObjectURL(exportFile(journal.data));
+        const url = URL.createObjectURL(exportFile(journal.data, personIsEmpty(person) ? undefined : person));
         const a = document.createElement('a');
         a.href = url;
         a.download = `journal-${new Date().toISOString().slice(0, 10)}.json`;
@@ -172,6 +176,13 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
         }
         const { next, added, addedWeights } = merge(journal.data, parsed);
         journal.replace(next);
+        // The medicines, limits and products exported beside it, if any.
+        try {
+            const from = (JSON.parse(text) as { person?: unknown }).person;
+            if (from) importPerson(cleanPerson(from));
+        } catch {
+            /* not ours: there's none in it */
+        }
         const parts = [
             added ? (added === 1 ? tr('1 dose') : tr('{0} doses', { 0: added })) : '',
             addedWeights ? (addedWeights === 1 ? tr('1 weight') : tr('{0} weights', { 0: addedWeights })) : '',
@@ -261,6 +272,20 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                     )}
                 </div>
             </div>
+        </div>
+    );
+
+    const renderYou = () => (
+        <div>
+            <SectionHeading title={tr('About you')} />
+            <div className={section}>
+                <NavRow
+                    label={tr('Medicines I take every day')}
+                    value={medCount ? String(medCount) : tr('None')}
+                    onClick={() => open('medicines')}
+                />
+            </div>
+            <p className={`text-xs ${muted} mt-2`}>{tr('Counted as already taken in every mix check and in the dose form.')}</p>
         </div>
     );
 
@@ -396,7 +421,17 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
         </div>
     );
 
-    const catContent = (id: Cat) => (id === 'general' ? renderGeneral() : id === 'data' ? renderData() : renderAbout());
+    const catContent = (id: Cat) =>
+        id === 'general' ? (
+            <div className="space-y-8">
+                {renderGeneral()}
+                {renderYou()}
+            </div>
+        ) : id === 'data' ? (
+            renderData()
+        ) : (
+            renderAbout()
+        );
 
     // The account and its pages (pages/Account.tsx), two-step sign-in
     // (pages/TwoFactor.tsx), and the admin's (pages/Admin.tsx).
@@ -406,6 +441,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
     if (sub === 'recovery-key') return <RecoveryKeyPage />;
     if (sub === 'two-factor') return <TwoFactorPage />;
     if (sub === 'weight') return <WeightPage />;
+    if (sub === 'medicines') return <MedicinesPage />;
     if (sub === 'essay') return <EssayPage />;
     if (sub === 'credits') return <CreditsPage />;
     if (sub === 'delete-account') return <DeleteAccountPage />;
