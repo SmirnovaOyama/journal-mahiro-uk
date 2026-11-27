@@ -5,10 +5,21 @@
 
    Wording: Taiwan's terms where the regions differ (軟體 words, 帳號, 登入),
    full-width punctuation, a space between Chinese and Latin letters or
-   digits. Names of substances and of sources stay as the catalogue has
-   them. */
+   digits. Names of sources stay as they write them, and so do names of
+   substances, which the catalogue gives in Chinese itself (its `zh` and
+   `zhHans`); the few the introduction writes out are the exception, and
+   are below. */
 
 const zh: Record<string, string> = {
+    /* The handful of substances the introduction names, which it writes
+       out itself rather than reading from the catalogue
+       (src/pages/Onboarding.tsx). */
+    'Alcohol': '酒精',
+    'Ketamine': '愷他命',
+    'Cannabis': '大麻',
+    'Mushrooms': '蕈類',
+    'Caffeine': '咖啡因',
+    'L-Theanine': 'L-茶胺酸',
     // App.tsx
     'Search': '搜尋',
     'Journal': '日誌',
@@ -657,15 +668,15 @@ const zh: Record<string, string> = {
 
     // pages/Onboarding.tsx
     'Saturday night': '週六晚上',
-    'MDMA and Cannabis': 'MDMA 與 Cannabis',
+    'MDMA and Cannabis': 'MDMA 與大麻',
     'Monday': '週一',
     'Friday': '週五',
     'Thursday': '週四',
     'Sunday afternoon': '週日下午',
-    'LSD and Cannabis': 'LSD 與 Cannabis',
-    'Ketamine, taken twice': 'Ketamine，用了兩次',
-    'Mushrooms and a Cannabis edible': 'Mushrooms 與 Cannabis 食品',
-    'Caffeine, twice, and L-Theanine': 'Caffeine 兩次，加上 L-Theanine',
+    'LSD and Cannabis': 'LSD 與大麻',
+    'Ketamine, taken twice': '愷他命，用了兩次',
+    'Mushrooms and a Cannabis edible': '蕈類與大麻食品',
+    'Caffeine, twice, and L-Theanine': '咖啡因兩次，加上 L-茶胺酸',
     'No account needed': '不需要帳號',
     'Kept on this device': '保存在這台裝置',
     'Encrypted sync, if you want it': '需要的話，可加密同步',

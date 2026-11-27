@@ -1,13 +1,15 @@
 // Puts what scripts/fetch-zh.mjs fetched into public/data: each substance's
-// name in 正體中文, the other names people search for it by (in Taiwan's,
-// Hong Kong's and mainland China's writing, so a search in either script
-// finds it), and the opening of its zh.wikipedia article as Wikipedia
-// writes it for Taiwan.
+// name in 正體中文 and in 简体中文, the other names people search for it by
+// (in Taiwan's, Hong Kong's and mainland China's writing, so a search in
+// either finds it), and the opening of its zh.wikipedia article as
+// Wikipedia writes it for each.
 //
 //   node scripts/zh-data.mjs
 //
-// index.json entries gain `zh` (the name) and `zhAliases`; a substance's
-// file gains `zh`, `summaryZh` and a link to its zh.wikipedia article.
+// index.json entries gain `zh` and `zhHans` (the names) and `zhAliases`; a
+// substance's file gains those, `zhOther`/`zhHansOther` (the other names
+// its page shows), `summaryZh`/`summaryZhHans` and a link to its
+// zh.wikipedia article in each writing.
 // Run again after sync-wikidata.mjs, which takes them out.
 
 import fs from 'node:fs/promises';
@@ -25,8 +27,10 @@ try {
 } catch {
     console.warn('no scripts/data/zh-variants.json: run scripts/fetch-zh-variants.mjs for Taiwan\'s wording');
 }
-/** A name in Taiwan's writing, and in both writings for searching by. */
+/** A name in Taiwan's writing, in the mainland's, and in both for
+ *  searching by, so a search in either writing finds the substance. */
 const twForm = n => (n && variants.tw[n]) || n;
+const cnForm = n => (n && variants.cn[n]) || n;
 const bothForms = n => [n, variants.tw[n], variants.cn[n]].filter(Boolean);
 
 /* What Taiwan actually calls a handful of substances, where Wikipedia's
@@ -49,6 +53,18 @@ const TAIWAN = {
     zolpidem: '佐沛眠',
     methylphenidate: '派醋甲酯',
     buprenorphine: '丁基原啡因',
+};
+
+/* And what the mainland calls them, where the same holds: Wikidata's label
+   is the botanical genus (大麻屬 for cannabis) or the chemical (乙醇 for
+   alcohol) rather than the word anybody uses. Its pharmacological names
+   (氯胺酮, 甲基苯丙胺, 苯丙胺) are already the ones used there, so they
+   are not listed here. */
+const MAINLAND = {
+    cannabis: '大麻',
+    alcohol: '酒精',
+    nitrous: '笑气',
+    nicotine: '尼古丁',
 };
 
 const CJK = /[㐀-鿿]/;
@@ -84,6 +100,7 @@ let named = 0;
 let summarised = 0;
 for (const e of index) {
     delete e.zh;
+    delete e.zhHans;
     delete e.zhAliases;
     const file = path.join(SUBS, `${e.id}.json`);
     let d;
@@ -93,8 +110,11 @@ for (const e of index) {
         continue;
     }
     delete d.zh;
+    delete d.zhHans;
     delete d.summaryZh;
+    delete d.summaryZhHans;
     delete d.zhOther;
+    delete d.zhHansOther;
     d.helpfulLinks = (d.helpfulLinks ?? []).filter(l => !/zh\.wikipedia\.org/.test(l.url));
     const qid = d.wikidata ?? qidOf[e.id];
     const it = qid && items[qid];
@@ -102,59 +122,82 @@ for (const e of index) {
         const w = it.zhwiki ? wiki[it.zhwiki] : undefined;
         const t = w?.titles ?? {};
         const L = it.labels;
-        // Taiwan's name first, then Hong Kong's, then any traditional one.
-        // Taiwan's name first, then Hong Kong's, then any Chinese name put
-        // into Taiwan's writing by Wikipedia's own converter.
-        const name = [L['zh-tw'], bare(t['zh-tw']), L['zh-hant'], L['zh-hk'], bare(t['zh-hk']), twForm(L['zh']), twForm(bare(t['zh']))].find(showable);
+        // Taiwan's name first, then Hong Kong's, then any traditional one,
+        // then any Chinese name put into Taiwan's writing by Wikipedia's own
+        // converter; and the same for the mainland's.
+        const hant = [L['zh-tw'], bare(t['zh-tw']), L['zh-hant'], L['zh-hk'], bare(t['zh-hk']), twForm(L['zh']), twForm(bare(t['zh']))].find(showable);
+        const hans = [L['zh-cn'], bare(t['zh-cn']), L['zh-hans'], cnForm(L['zh']), cnForm(bare(t['zh'])), cnForm(hant)].find(showable);
         // An acronym or a code ("LSD", "2C-B", "MDMA") is what people call it here too.
         const keepLatin = /^[A-Z0-9αβγ][A-Za-z0-9αβγ,()\-]{0,9}$/.test(e.name) && /[A-Z0-9]{2}/.test(e.name);
-        if (TAIWAN[e.id]) {
-            e.zh = d.zh = TAIWAN[e.id];
-            named++;
-        } else if (name && !keepLatin) {
-            e.zh = d.zh = name;
+        // A hand-kept name stands whatever the converter said; otherwise the
+        // writing's own name, unless the catalogue's is what people say.
+        const chosen = TAIWAN[e.id] ?? (keepLatin ? '' : hant);
+        const chosenHans = MAINLAND[e.id] ?? (keepLatin ? '' : hans) ?? (TAIWAN[e.id] ? cnForm(TAIWAN[e.id]) : '');
+        if (chosen) {
+            e.zh = d.zh = chosen;
             named++;
         }
+        if (chosenHans) e.zhHans = d.zhHans = chosenHans;
         // Searched by any of its Chinese names, in either writing, so
-        // 愷他命 and 氯胺酮 both find ketamine. The name Taiwan's own
-        // displaced is one of them.
+        // 愷他命 and 氯胺酮 both find ketamine whichever one is being read.
+        // The names the hand-kept ones displaced are among them.
         const all = new Set(
-            [...Object.values(L), ...Object.values(t).map(bare), ...Object.values(it.aliases).flat(), name]
+            [...Object.values(L), ...Object.values(t).map(bare), ...Object.values(it.aliases).flat(), hant, hans]
                 .filter(Boolean)
                 .flatMap(bothForms)
                 .filter(searchable),
         );
-        if (e.zh) all.delete(e.zh);
+        for (const n of [e.zh, e.zhHans]) if (n) all.delete(n);
         if (all.size) e.zhAliases = [...all].join(', ');
-        // The few of those a page is worth showing under the name it leads
-        // with: short, in Taiwan's writing, and not the mainland's form of
-        // one already listed, so 愷他命's page names 氯胺酮 and K他命.
-        if (e.zh) {
+        // The few of those a page is worth naming under the one it leads
+        // with: short, in that writing, and not the other writing's form of
+        // one already named, so 愷他命's page names 氯胺酮 and K他命.
+        const others = (own, otherOwn, form, other) => {
             const shown = [];
-            for (const n of all) {
-                if (!showable(n) || twForm(n) !== n || shown.some(s => variants.cn[s] === n)) continue;
+            // The other writing's own name is one of these, where it reads
+            // in this writing too: Taiwan sees 氯胺酮 on a packet as well.
+            for (const n of [otherOwn, ...all]) {
+                if (!n) continue;
+                if (!showable(n) || form(n) !== n || n === own || shown.some(s => other(s) === n)) continue;
                 shown.push(n);
                 if (shown.length === 4) break;
             }
-            if (shown.length) d.zhOther = shown.join(', ');
-        }
+            return shown.join(', ');
+        };
+        /* A hand-kept name is written in its own writing by hand, so it
+           doesn't belong on the other's page (愷他命 keeps a character
+           简体中文 doesn't use); one the converter gave does. */
+        if (e.zh) d.zhOther = others(e.zh, MAINLAND[e.id] ? '' : e.zhHans, twForm, cnForm) || undefined;
+        if (e.zhHans) d.zhHansOther = others(e.zhHans, TAIWAN[e.id] ? '' : e.zh, cnForm, twForm) || undefined;
         const summary = opening(w?.['zh-tw']);
         if (summary) {
             d.summaryZh = summary;
             summarised++;
         }
-        if (it.zhwiki)
-            d.helpfulLinks.push({
-                title: '維基百科',
-                description: 'zh:Encyclopedia article',
-                url: `https://zh.wikipedia.org/zh-tw/${encodeURIComponent(it.zhwiki.replace(/ /g, '_'))}`,
-            });
-    } else if (TAIWAN[e.id]) {
-        // Taiwan's name stands even where Wikidata knows nothing of it.
-        e.zh = d.zh = TAIWAN[e.id];
-        named++;
+        const summaryHans = opening(w?.['zh-cn']);
+        if (summaryHans) d.summaryZhHans = summaryHans;
+        if (it.zhwiki) {
+            // The same article, served in each writing (Substance.tsx shows
+            // a reader the one in theirs).
+            const title = encodeURIComponent(it.zhwiki.replace(/ /g, '_'));
+            d.helpfulLinks.push(
+                { title: '維基百科', description: 'zh:Encyclopedia article', url: `https://zh.wikipedia.org/zh-tw/${title}` },
+                { title: '维基百科', description: 'zh:Encyclopedia article', url: `https://zh.wikipedia.org/zh-cn/${title}` },
+            );
+        }
+    } else if (TAIWAN[e.id] || MAINLAND[e.id]) {
+        // A hand-kept name stands even where Wikidata knows nothing of it.
+        if (TAIWAN[e.id]) {
+            e.zh = d.zh = TAIWAN[e.id];
+            named++;
+        }
+        const h = MAINLAND[e.id] ?? (TAIWAN[e.id] && cnForm(TAIWAN[e.id]));
+        if (h) e.zhHans = d.zhHans = h;
     }
     await fs.writeFile(file, JSON.stringify(d));
 }
 await fs.writeFile(path.join(DATA, 'index.json'), JSON.stringify(index));
-console.log(`${named} names, ${index.filter(e => e.zhAliases).length} with Chinese names to search by, ${summarised} openings`);
+console.log(
+    `${named} names in 正體中文 and ${index.filter(e => e.zhHans).length} in 简体中文, ` +
+        `${index.filter(e => e.zhAliases).length} with Chinese names to search by, ${summarised} openings`,
+);
