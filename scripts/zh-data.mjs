@@ -152,17 +152,23 @@ for (const e of index) {
         // The few of those a page is worth naming under the one it leads
         // with: short, in that writing, and not the other writing's form of
         // one already named, so 愷他命's page names 氯胺酮 and K他命.
-        const others = (own, form, other) => {
+        const others = (own, otherOwn, form, other) => {
             const shown = [];
-            for (const n of all) {
+            // The other writing's own name is one of these, where it reads
+            // in this writing too: Taiwan sees 氯胺酮 on a packet as well.
+            for (const n of [otherOwn, ...all]) {
+                if (!n) continue;
                 if (!showable(n) || form(n) !== n || n === own || shown.some(s => other(s) === n)) continue;
                 shown.push(n);
                 if (shown.length === 4) break;
             }
             return shown.join(', ');
         };
-        if (e.zh) d.zhOther = others(e.zh, twForm, cnForm) || undefined;
-        if (e.zhHans) d.zhHansOther = others(e.zhHans, cnForm, twForm) || undefined;
+        /* A hand-kept name is written in its own writing by hand, so it
+           doesn't belong on the other's page (愷他命 keeps a character
+           简体中文 doesn't use); one the converter gave does. */
+        if (e.zh) d.zhOther = others(e.zh, MAINLAND[e.id] ? '' : e.zhHans, twForm, cnForm) || undefined;
+        if (e.zhHans) d.zhHansOther = others(e.zhHans, TAIWAN[e.id] ? '' : e.zh, cnForm, twForm) || undefined;
         const summary = opening(w?.['zh-tw']);
         if (summary) {
             d.summaryZh = summary;

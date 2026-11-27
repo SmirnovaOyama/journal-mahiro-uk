@@ -48,6 +48,19 @@ const WORDS = {
     吩坦尼: '芬太尼',
     美沙冬: '美沙酮',
     卡痛树: '帽柱木',
+    // And the words of an interface, which the converter leaves as Taiwan
+    // writes them: it changes the characters, not the choice of word, so
+    // 儲存 comes out 储存 where the mainland says 保存.
+    储存: '保存',
+    设定: '设置',
+    搜寻: '搜索',
+    登入: '登录',
+    汇出: '导出',
+    汇入: '导入',
+    档案: '文件',
+    连结: '链接',
+    纪录: '记录',
+    预设: '默认',
 };
 
 const HAN = /[㐀-鿿]/;
