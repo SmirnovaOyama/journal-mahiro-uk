@@ -7,6 +7,7 @@ import { medicinesOf, usePerson } from '../lib/person';
 import { formatWeight, useWeight } from '../lib/store';
 import { Close } from './icons';
 import { gramsText } from './JournalNotes';
+import { Molecule } from './Molecule';
 
 /* The emergency page's tools: what was taken, set out for whoever comes to
    help; a beat to press a chest to; the steps read aloud, for hands that
@@ -74,8 +75,9 @@ export function CrewCard({ byId }: { byId?: Map<string, IndexEntry> }) {
             {doses.length > 0 ? (
                 <ul className="settings-section">
                     {doses.map(i => (
-                        <li key={i.id} className="flex items-baseline gap-3 py-2.5">
+                        <li key={i.id} className="flex items-center gap-3 py-2.5">
                             <span className={`shrink-0 tabular-nums ${muted} ${big ? 'w-24' : 'w-[4.5rem] text-sm'}`}>{when(i.time, now)}</span>
+                            {byId?.get(i.substance) && <Molecule id={i.substance} form={byId.get(i.substance)!.form} size="sm" />}
                             <span className="min-w-0 flex-1">
                                 <span className="block font-semibold text-[var(--text)] [overflow-wrap:anywhere]">
                                     <Named id={i.substance} name={i.name} byId={byId} />
@@ -121,7 +123,7 @@ export function CrewCard({ byId }: { byId?: Map<string, IndexEntry> }) {
                     {tr('Show it large')}
                 </button>
             </div>
-            <p className={`text-sm ${muted} mt-0.5 mb-2`}>{tr('From the journal on this device, for the last 24 hours. Show it to the crew, or read it out on the call.')}</p>
+            <p className={`text-sm ${muted} mt-0.5 mb-2`}>{tr('From the journal on this device, for the last 24 hours: to show the crew, or to read out on the call.')}</p>
             {body(false)}
             {large && (
                 <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--bg)] text-[var(--text)]" role="dialog" aria-modal="true" aria-labelledby="crew-card-large">

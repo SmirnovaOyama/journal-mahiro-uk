@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlcoholLine } from '../components/AlcoholLine';
 import { ParacetamolLine } from '../components/JournalNotes';
 import { Link } from '../components/Link';
+import { Molecule } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChart';
 import { ShareNight, CheckIn } from '../components/ShareNight';
@@ -168,18 +169,27 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
                         <ul className="mt-6 space-y-4">
                             {courses.map(d => {
                                 const end = d.course ? d.time + d.course.over * 60_000 : null;
+                                // Its structure beside its name, as everywhere a substance is shown.
+                                const e = byId.get(live.ingestions.find(i => i.id === d.id)?.substance ?? '');
                                 return (
-                                    <li key={d.id}>
-                                        <p className="text-xl font-semibold leading-7 [overflow-wrap:anywhere]" style={{ color: d.color }}>
-                                            {d.label}
-                                        </p>
-                                        <p className="text-lg leading-7 text-[var(--text)]">
-                                            {end == null
-                                                ? tr('How long it lasts isn’t documented.')
-                                                : now >= end
-                                                  ? tr('Over.')
-                                                  : tr('{0}, over around {1}', { 0: phaseAt(d, now).replace(/^./, c => c.toUpperCase()), 1: clock(end) })}
-                                        </p>
+                                    <li key={d.id} className="flex items-start gap-3">
+                                        {e && (
+                                            <span className="mt-1 shrink-0">
+                                                <Molecule id={e.id} form={e.form} size="sm" />
+                                            </span>
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className="text-xl font-semibold leading-7 [overflow-wrap:anywhere]" style={{ color: d.color }}>
+                                                {d.label}
+                                            </p>
+                                            <p className="text-lg leading-7 text-[var(--text)]">
+                                                {end == null
+                                                    ? tr('How long it lasts isn’t documented.')
+                                                    : now >= end
+                                                      ? tr('Over.')
+                                                      : tr('{0}, over around {1}', { 0: phaseAt(d, now).replace(/^./, c => c.toUpperCase()), 1: clock(end) })}
+                                            </p>
+                                        </div>
                                     </li>
                                 );
                             })}

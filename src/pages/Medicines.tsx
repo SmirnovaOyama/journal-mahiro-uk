@@ -68,7 +68,7 @@ export function MedicinesPage() {
             <PageHeader backTo title={tr('Medicines I take every day')} />
             <div className={`${PAGE_COLUMN} mt-3 pb-10`}>
                 <p className={`text-sm ${muted} mb-4`}>
-                    {tr('Add what you take every day: an antidepressant, lithium, a hormone. The mix checker, each substance’s page and the dose form then count it as already taken.')}
+                    {tr('What you take every day goes here: an antidepressant, lithium, a hormone. The mix checker, each substance’s page and the dose form then count it as already taken.')}
                 </p>
 
                 <SearchField
@@ -134,7 +134,7 @@ export function MedicinesPage() {
                             })}
                         </div>
                         <p className={`mt-2 text-xs ${muted}`}>
-                            {tr('What the sources say of these together. Medicines prescribed together are a prescriber’s decision: don’t stop one because of this line, ask them.')}
+                            {tr('What the sources say of these together. Medicines prescribed together are a prescriber’s decision, and this line is no reason to stop one: the prescriber is the one to ask.')}
                         </p>
                     </section>
                 )}

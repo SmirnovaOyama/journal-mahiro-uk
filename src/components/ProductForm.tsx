@@ -9,6 +9,7 @@ import Choice from './Choice';
 import { Alert, Close } from './icons';
 import { gramsText } from './JournalNotes';
 import { Link } from './Link';
+import { Molecule } from './Molecule';
 import { SearchField } from './SearchField';
 
 /* Logging a product with more than one ingredient: a cold medicine, taken
@@ -68,6 +69,16 @@ export function ProductForm({
     const chip = (active: boolean) =>
         `chip ${active ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : 'chip-static text-[var(--text-muted)] hover:text-[var(--text)]'}`;
     const partName = (p: { substance: string; name: string }) => (byId.get(p.substance) ? nameOf(byId.get(p.substance)!) : p.name);
+    /** An ingredient as the site shows any substance: its structure drawn, then its name. */
+    const part = (p: { substance: string; name: string }, cls = '') => {
+        const e = byId.get(p.substance);
+        return (
+            <span className={`flex min-w-0 items-center gap-2 ${cls}`}>
+                {e && <Molecule id={e.id} form={e.form} size="xs" />}
+                <span className="min-w-0 [overflow-wrap:anywhere]">{partName(p)}</span>
+            </span>
+        );
+    };
 
     /* ── a product being written down ── */
     if (draft) {
@@ -119,7 +130,7 @@ export function ProductForm({
                     {draft.parts.map((p, k) => (
                         <div key={p.substance} className="mb-3">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-medium text-[var(--text)]">{partName(p)}</span>
+                                {part(p, 'text-sm font-medium text-[var(--text)]')}
                                 <button
                                     type="button"
                                     className="btn-ghost !size-8 !p-0"
@@ -150,10 +161,11 @@ export function ProductForm({
                                 <button
                                     type="button"
                                     key={h.entry.id}
-                                    className="py-2 text-start text-sm text-[var(--text)] rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)] -mx-2 px-2"
+                                    className="flex items-center gap-3 py-2 text-start text-sm text-[var(--text)] rounded-[var(--radius-md)] hover:bg-[var(--surface-hover)] -mx-2 px-2"
                                     onClick={() => addPart(h.entry.id, h.entry.name)}
                                 >
-                                    {nameOf(h.entry)}
+                                    <Molecule id={h.entry.id} form={h.entry.form} size="xs" />
+                                    <span className="min-w-0 flex-1">{nameOf(h.entry)}</span>
                                 </button>
                             ))}
                             <button
@@ -166,7 +178,7 @@ export function ProductForm({
                         </div>
                     )}
                     <p className="mt-3 text-xs text-[var(--text-muted)]">
-                        {tr('Copy each active ingredient and its amount from the box or the leaflet. What’s in a product differs from one country to the next.')}
+                        {tr('Each active ingredient and its amount are on the box or the leaflet. What’s in a product differs from one country to the next, so none comes filled in.')}
                     </p>
                 </div>
                 <div className="flex items-center gap-3 pt-1">
@@ -274,7 +286,7 @@ export function ProductForm({
                             <div className="settings-section mt-3">
                                 {taken.map(p => (
                                     <div key={p.substance} className="flex min-h-10 items-center justify-between gap-3 py-2 text-sm">
-                                        <span className="text-[var(--text)]">{partName(p)}</span>
+                                        {part(p, 'text-[var(--text)]')}
                                         <span className="tabular-nums font-medium text-[var(--text)]">{amountText(p.total, p.unit)}</span>
                                     </div>
                                 ))}

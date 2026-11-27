@@ -177,7 +177,7 @@ export function LimitEditor({ id, unit: usual }: { id: string; unit?: string }) 
     return (
         <section className="mb-9">
             <h2 className="group-heading mb-1">{tr('Limits')}</h2>
-            <p className={`text-xs ${muted} mb-4`}>{tr('Set them while sober. When a dose would cross one, the dose form says so.')}</p>
+            <p className={`text-xs ${muted} mb-4`}>{tr('Limits are for setting while sober. When a dose would cross one, the dose form says so.')}</p>
             <div className="flex flex-col gap-5">
                 <div>
                     <label className={label} htmlFor="limit-max">

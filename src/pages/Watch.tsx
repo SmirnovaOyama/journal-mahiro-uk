@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '../components/Link';
+import { Molecule } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChart';
 import { loadCombos, nameOf, type ComboMatrix, type IndexEntry } from '../lib/data';
@@ -144,11 +145,11 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                     </p>
                     <p className={`mt-1 text-sm ${muted}`}>
                         {state === 'gone'
-                            ? tr('The person who shared it stopped sharing, or its 12 hours ran out. If you’re worried about them, call them.')
+                            ? tr('The person who shared it stopped sharing, or its 12 hours ran out. A phone call is the way to reach them now.')
                             : state === 'key'
-                              ? tr('The part after the # is the key that opens it. Ask for the whole link again.')
+                              ? tr('The part after the # is the key that opens it, and it is missing here. The whole link is needed.')
                               : state === 'offline'
-                                ? tr('Check your connection. This page tries again every half minute.')
+                                ? tr('There is no connection, or the server didn’t answer. This page tries again every half minute.')
                                 : ''}
                     </p>
                     <p className="mt-6">
@@ -198,8 +199,9 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                     {doses.length ? (
                         <ul className="settings-section">
                             {[...doses].reverse().map(i => (
-                                <li key={i.id} className="flex items-baseline gap-3 py-2.5">
+                                <li key={i.id} className="flex items-center gap-3 py-2.5">
                                     <span className={`w-[4.5rem] shrink-0 text-sm tabular-nums ${muted}`}>{when(i.time, now)}</span>
+                                    {byId.get(i.substance) && <Molecule id={i.substance} form={byId.get(i.substance)!.form} size="sm" />}
                                     <span className="min-w-0 flex-1">
                                         <Link to={{ page: 'substance', id: i.substance }} className="block font-semibold text-[var(--text)] no-underline [overflow-wrap:anywhere]">
                                             {local(i.substance, i.name)}

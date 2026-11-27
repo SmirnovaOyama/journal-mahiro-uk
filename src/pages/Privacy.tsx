@@ -269,7 +269,7 @@ export function PrivacyPage() {
                         </div>
                     </div>
                     <p className={`mt-3 text-xs ${muted}`}>
-                        {tr('An app already on the Home Screen keeps the name and icon it was added with: turn this on first, then add the site again. The address still shows in a browser’s address bar.')}
+                        {tr('An app already on the Home Screen keeps the name and icon it was added with: it takes the new ones only when added again with this on. The address still shows in a browser’s address bar.')}
                     </p>
                 </section>
 

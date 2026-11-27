@@ -86,7 +86,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                     {tr('Someone to watch over tonight')}
                 </h2>
                 <p className={`text-sm ${muted}`}>
-                    {tr('Make a link for someone you trust. They see what you log tonight, where it is on its course, and whether you’ve checked in. It’s encrypted on this device and the key is in the link itself: the server keeps a copy it can’t read, for 12 hours.')}
+                    {tr('A link for someone you trust. They see what you log tonight, where it is on its course, and whether you’ve checked in. It’s encrypted on this device and the key is in the link itself: the server keeps a copy it can’t read, for 12 hours.')}
                 </p>
                 <div className="mt-4 flex items-center justify-between gap-3">
                     <span className="text-sm text-[var(--text)]">{tr('Ask me to check in')}</span>
@@ -120,7 +120,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                 {tr('Shared until {0}', { 0: clock(share.expires) })}
             </h2>
             <p className={`text-sm ${muted}`}>
-                {tr('Anyone with this link can read tonight’s doses until then. Send it only to the person watching. They see changes while this site is open on your device.')}
+                {tr('Anyone with this link can read tonight’s doses until then, so it is for the person watching and no one else. They see changes while this site is open on your device.')}
             </p>
             <div className="mt-4 flex justify-center rounded-[var(--radius-lg)] bg-white p-4">
                 <QRCodeSVG value={link} size={176} level="M" />

@@ -1044,7 +1044,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         target="_blank"
                         rel="noopener noreferrer"
                     >
-                        {tr('Something wrong on this page? Say so on GitHub')}
+                        {tr('A mistake on this page can be reported on GitHub')}
                     </a>
                 </p>
             </main>
