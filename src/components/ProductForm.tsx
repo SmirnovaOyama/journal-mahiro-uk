@@ -250,7 +250,14 @@ export function ProductForm({
                 <>
                     <div>
                         <span className={label}>{tr('In one {0}', { 0: tr(product.per, undefined, 'per') })}</span>
-                        <p className="text-sm text-[var(--text)]">{product.parts.map(p => `${partName(p)} ${amountText(p.amount, p.unit)}`).join(tr(', '))}</p>
+                        <div className="settings-section">
+                            {product.parts.map(p => (
+                                <div key={p.substance} className="flex min-h-10 items-center justify-between gap-3 py-2 text-sm">
+                                    {part(p, 'text-[var(--text)]')}
+                                    <span className="shrink-0 tabular-nums text-[var(--text-muted)]">{amountText(p.amount, p.unit)}</span>
+                                </div>
+                            ))}
+                        </div>
                         <p className="mt-1.5 flex gap-4 text-xs">
                             <button
                                 type="button"

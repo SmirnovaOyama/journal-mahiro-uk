@@ -217,10 +217,17 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                         <p className={`text-sm ${muted}`}>{tr('Nothing logged yet tonight.')}</p>
                     )}
                     {night.medicines.length > 0 && (
-                        <p className="mt-3 text-sm">
-                            <span className={muted}>{tr('Takes every day:')} </span>
-                            {night.medicines.map(m => local(m.id, m.name)).join(tr(', '))}
-                        </p>
+                        <div className="mt-3 text-sm">
+                            <p className={muted}>{tr('Takes every day:')}</p>
+                            <ul className="mt-1 space-y-1.5">
+                                {night.medicines.map(m => (
+                                    <li key={m.id} className="flex items-center gap-3 font-medium text-[var(--text)]">
+                                        {byId.get(m.id) && <Molecule id={m.id} form={byId.get(m.id)!.form} size="sm" />}
+                                        <span className="min-w-0 [overflow-wrap:anywhere]">{local(m.id, m.name)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     )}
                     {night.weightKg && (
                         <p className="mt-1 text-sm">

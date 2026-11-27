@@ -17,6 +17,7 @@ import { useFeature } from '../lib/features';
 import { usePerson } from '../lib/person';
 import Choice from './Choice';
 import { Link } from './Link';
+import { Molecule } from './Molecule';
 
 /* What the journal says back, in the places it's said: the last night's
    notes in the dose form, paracetamol's running total, a drug logged day
@@ -129,7 +130,10 @@ export function PatternNotes({ byId, now }: { byId: Map<string, IndexEntry>; now
                 const src = STOP_SOURCES[r.kind];
                 return (
                     <section key={r.id} className="callout mb-8 space-y-2" aria-label={tr('Days in a row')}>
-                        <p className={`font-medium ${on}`}>{tr('{0}, {1} days in a row', { 0: nameOf(e), 1: r.days })}</p>
+                        <p className={`flex items-center gap-2 font-medium ${on}`}>
+                            <Molecule id={e.id} form={e.form} size="xs" />
+                            <span>{tr('{0}, {1} days in a row', { 0: nameOf(e), 1: r.days })}</span>
+                        </p>
                         <p>{tr(STOP_WORDS[r.kind])}</p>
                         <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
                             <button type="button" className={`link-button !text-[var(--text)]`} onClick={() => dismiss(r.id, r.days)}>

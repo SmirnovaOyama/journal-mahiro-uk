@@ -96,15 +96,19 @@ export function CrewCard({ byId }: { byId?: Map<string, IndexEntry> }) {
             )}
             {apap > 0 && <p className="mt-3">{tr('Paracetamol in 24 hours: {0}', { 0: gramsText(apap) })}</p>}
             {meds.length > 0 && (
-                <p className="mt-3">
-                    <span className={muted}>{tr('Takes every day:')} </span>
-                    {meds.map((m, k) => (
-                        <span key={m.id} className="font-semibold">
-                            {k > 0 && tr(', ')}
-                            <Named id={m.id} name={m.name} byId={byId} />
-                        </span>
-                    ))}
-                </p>
+                <div className="mt-3">
+                    <p className={muted}>{tr('Takes every day:')}</p>
+                    <ul className="mt-1 space-y-1.5">
+                        {meds.map(m => (
+                            <li key={m.id} className="flex items-center gap-3 font-semibold">
+                                {byId?.get(m.id) && <Molecule id={m.id} form={byId.get(m.id)!.form} size="sm" />}
+                                <span className="min-w-0 [overflow-wrap:anywhere]">
+                                    <Named id={m.id} name={m.name} byId={byId} />
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             )}
             {weight.kg && (
                 <p className="mt-3">
