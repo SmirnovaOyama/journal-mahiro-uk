@@ -1,11 +1,14 @@
 import { squash, type ComboMatrix, type ComboStatus, type Detail, type IndexEntry } from './data';
 import { tr } from './i18n';
+import { traitsOf, type Trait } from './traits';
 
 /* Whether two substances are safe together. The answer comes from, in turn:
    each substance's own list of combinations (PsychonautWiki and TripSit, as
    synced), the TripSit matrix, and only then a cautious guess from what kind
-   of drug each one is, which is always labelled as a guess. Where sources
-   disagree the more serious answer wins. */
+   of drug each one is, which is always labelled as a guess, and failing
+   that what AI makes of what each one does in the body (lib/traits.ts),
+   which is always labelled as AI's. Where sources disagree the more
+   serious answer wins. */
 
 export type Verdict = ComboStatus | 'Unknown';
 
@@ -128,10 +131,10 @@ function fromMatrix(raw: string): ComboStatus {
 /** Notes the sync wrote when it had nothing to say ("Documented unsafe
  *  interaction on PsychonautWiki.") say less than the verdict's own words. */
 function isBoilerplate(note?: string) {
-  return !note || /^(documented .* interaction on|tripsit classification)/i.test(note);
+  return !note || /^(documented .* interaction on|tripsit classification|listed as a significant drug interaction on wikidata)/i.test(note);
 }
 
-export type Source = 'PsychonautWiki' | 'TripSit' | 'Guess';
+export type Source = 'PsychonautWiki' | 'TripSit' | 'Wikidata' | 'Guess' | 'AI';
 
 export interface PairResult {
   a: IndexEntry;
@@ -170,6 +173,138 @@ function guess(a: IndexEntry, b: IndexEntry): PairResult | null {
   return null;
 }
 
+/* What AI makes of a pair no source covers, from what each one does
+   (lib/traits.ts). The first rule that fits is the most serious. */
+const RULES: { when: (x: Set<Trait>, y: Set<Trait>) => boolean; verdict: ComboStatus; note: () => string }[] = [
+  {
+    when: (x, y) => (x.has('maoi') && (y.has('serotonin') || y.has('maoi'))) || (y.has('maoi') && x.has('serotonin')),
+    verdict: 'Dangerous',
+    note: () => tr('Together they can cause serotonin syndrome: fever, shaking, confusion and a racing heart. It can kill.'),
+  },
+  {
+    when: (x, y) => (x.has('maoi') && (y.has('stimulant') || y.has('dopamine'))) || (y.has('maoi') && (x.has('stimulant') || x.has('dopamine'))),
+    verdict: 'Dangerous',
+    note: () => tr('The MAOI stops the body clearing the other one, and blood pressure can climb to a dangerous level.'),
+  },
+  {
+    when: (x, y) => (x.has('nitrate') && y.has('pde5')) || (y.has('nitrate') && x.has('pde5')),
+    verdict: 'Dangerous',
+    note: () => tr('Both widen blood vessels. Together blood pressure can fall far enough to faint, or to cause a heart attack or stroke.'),
+  },
+  {
+    when: (x, y) => x.has('breathing') && y.has('breathing'),
+    verdict: 'Dangerous',
+    note: () => tr('Both slow your breathing. Together they can stop it, and this is how most overdoses happen.'),
+  },
+  {
+    when: (x, y) => (x.has('antabuse') && y.has('ethanol')) || (y.has('antabuse') && x.has('ethanol')),
+    verdict: 'Unsafe',
+    note: () => tr('With alcohol it causes flushing, vomiting, a pounding heart and a sharp fall in blood pressure.'),
+  },
+  {
+    when: (x, y) => x.has('qt') && y.has('qt'),
+    verdict: 'Unsafe',
+    note: () => tr('Both change the heart’s rhythm in the same way. Together they can bring on a dangerous irregular heartbeat.'),
+  },
+  {
+    when: (x, y) => (x.has('lithium') && y.has('nsaid')) || (y.has('lithium') && x.has('nsaid')),
+    verdict: 'Unsafe',
+    note: () => tr('The painkiller keeps lithium in the body, and lithium can build up to a poisonous level.'),
+  },
+  {
+    when: (x, y) => x.has('serotonin') && y.has('serotonin'),
+    verdict: 'Caution',
+    note: () => tr('Both raise serotonin. Too much can cause serotonin syndrome: watch for shaking, sweating, fever and confusion.'),
+  },
+  {
+    when: (x, y) => x.has('seizure') && y.has('seizure'),
+    verdict: 'Caution',
+    note: () => tr('Both make a seizure more likely.'),
+  },
+  {
+    when: (x, y) => x.has('anticholinergic') && y.has('anticholinergic'),
+    verdict: 'Caution',
+    note: () => tr('Both block acetylcholine. Together they can cause confusion, overheating, a racing heart and trouble passing urine.'),
+  },
+  {
+    when: (x, y) => x.has('stimulant') && y.has('stimulant'),
+    verdict: 'Caution',
+    note: () => tr('Both push heart rate, blood pressure and body temperature up.'),
+  },
+  {
+    when: (x, y) => x.has('sedating') && y.has('sedating'),
+    verdict: 'Caution',
+    note: () => tr('Both make you drowsy. Together you may be slower and clumsier than you expect, so don’t drive.'),
+  },
+  {
+    when: (x, y) => {
+      const foggy = (t: Set<Trait>) => t.has('sedating') || t.has('dizzy') || t.has('anticholinergic');
+      return foggy(x) && foggy(y);
+    },
+    verdict: 'Caution',
+    note: () => tr('Both can make you dizzy, drowsy or confused. Together that adds up and falls are more likely, so start low and don’t drive.'),
+  },
+  {
+    when: (x, y) => (x.has('dopamine') && y.has('antidopamine')) || (y.has('dopamine') && x.has('antidopamine')),
+    verdict: 'Decrease',
+    note: () => tr('One raises dopamine and the other blocks it, so each can undo what the other is for.'),
+  },
+  // What kind of drug each one is, as TripSit's chart has the kinds.
+  {
+    when: (x, y) => (x.has('psychedelic') && y.has('stimulant')) || (y.has('psychedelic') && x.has('stimulant')),
+    verdict: 'Caution',
+    note: () => tr('A stimulant can tip a trip into anxiety or paranoia, and both strain the heart.'),
+  },
+  {
+    when: (x, y) => (x.has('psychedelic') && y.has('dissociative')) || (y.has('psychedelic') && x.has('dissociative')),
+    verdict: 'Caution',
+    note: () => tr('Together the trip can get much stronger and more confusing than either alone.'),
+  },
+  {
+    when: (x, y) => (x.has('psychedelic') && y.has('cannabinoid')) || (y.has('psychedelic') && x.has('cannabinoid')),
+    verdict: 'Caution',
+    note: () => tr('Cannabis can make a trip much stronger and harder to predict, sometimes frightening.'),
+  },
+  {
+    when: (x, y) => (x.has('breathing') && y.has('stimulant')) || (y.has('breathing') && x.has('stimulant')),
+    verdict: 'Caution',
+    note: () => tr('The stimulant can hide how much the depressant is doing. When it wears off, the depressant can hit harder.'),
+  },
+  {
+    when: (x, y) => x.has('psychedelic') && y.has('psychedelic'),
+    verdict: 'Synergy',
+    note: () => tr('Both are psychedelics, so each makes the other stronger. Take much less of both.'),
+  },
+  {
+    when: (x, y) => (x.has('psychedelic') && y.has('sedating')) || (y.has('psychedelic') && x.has('sedating')),
+    verdict: 'Decrease',
+    note: () => tr('A depressant dulls a trip. Don’t take more of either to make up for it.'),
+  },
+  {
+    when: (x, y) => x.has('lowbp') && y.has('lowbp'),
+    verdict: 'Caution',
+    note: () => tr('Both lower blood pressure. Standing up quickly can make you dizzy or faint.'),
+  },
+  {
+    when: (x, y) => x.has('bleeding') && y.has('bleeding'),
+    verdict: 'Caution',
+    note: () => tr('Both make bleeding more likely. Watch for easy bruising, nosebleeds or black stools.'),
+  },
+  {
+    when: (x, y) => x.has('liver') && y.has('liver'),
+    verdict: 'Caution',
+    note: () => tr('Both are hard on the liver.'),
+  },
+];
+
+export function inferred(a: IndexEntry, b: IndexEntry): PairResult | null {
+  if (a.id === b.id) return null;
+  const x = traitsOf(a);
+  const y = traitsOf(b);
+  const rule = RULES.find((r) => r.when(x, y));
+  return rule ? { a, b, verdict: rule.verdict, source: 'AI', note: rule.note() } : null;
+}
+
 export function checkPair(
   a: IndexEntry,
   b: IndexEntry,
@@ -189,7 +324,7 @@ export function checkPair(
           b,
           verdict: c.status,
           note: isBoilerplate(c.note) ? undefined : c.note,
-          source: c.note?.startsWith('TripSit') ? 'TripSit' : 'PsychonautWiki',
+          source: c.note?.startsWith('TripSit') ? 'TripSit' : c.note?.includes('on Wikidata') ? 'Wikidata' : 'PsychonautWiki',
         });
     }
   };
@@ -213,7 +348,10 @@ export function checkPair(
     const note = top.note ?? found.find((f) => f.verdict === top.verdict && f.note)?.note;
     return { ...top, note };
   }
-  return guess(a, b) ?? { a, b, verdict: 'Unknown' };
+  const g = guess(a, b);
+  const i = inferred(a, b);
+  if (g && (!i || RANK[g.verdict] >= RANK[i.verdict])) return g;
+  return i ?? { a, b, verdict: 'Unknown' };
 }
 
 export function worst(results: PairResult[]): PairResult | undefined {

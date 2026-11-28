@@ -87,3 +87,30 @@ test('worst picks the most serious', () => {
     const rs = [check('cocaine', 'alcohol'), check('alprazolam', 'oxycodone'), check('cannabis', 'lsd')];
     assert.equal(worst(rs)?.verdict, 'Dangerous');
 });
+
+/* Pairs no source covers, which AI works out from what each one does
+   (lib/traits.ts). Each is always labelled as AI's, never as a source. */
+const BY_AI: [string, string, Verdict][] = [
+    ['amantadine', 'pregabalin', 'Caution'],
+    ['sertraline', 'trazodone', 'Caution'],
+    ['viagra', 'poppers', 'Dangerous'],
+    ['disulfiram', 'alcohol', 'Unsafe'],
+    ['citalopram', 'quetiapine', 'Unsafe'],
+    ['lithium', 'ibuprofen', 'Unsafe'],
+    ['diphenhydramine', 'trihexyphenidyl', 'Caution'],
+    ['risperidone', 'pramipexole', 'Decrease'],
+    ['aspirin', 'fluoxetine', 'Caution'],
+];
+
+test('a pair no source covers gets AI’s estimate, labelled as AI’s', () => {
+    for (const [a, b, v] of BY_AI) {
+        const r = check(a, b);
+        assert.equal(r.verdict, v, `${a} with ${b}`);
+        assert.equal(r.source, 'AI', `${a} with ${b} is AI’s`);
+        assert.ok(r.note, `${a} with ${b} says why`);
+    }
+});
+
+test('AI never stands in for a source', () => {
+    for (const [a, b] of AT_LEAST) assert.notEqual(check(a, b).source, 'AI', `${a} with ${b}`);
+});

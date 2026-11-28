@@ -161,9 +161,11 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
             ? tr('Documented by PsychonautWiki')
             : s === 'TripSit'
               ? tr('Documented by TripSit')
-              : s === 'Guess'
-                ? tr('No data on this exact combination. This is a cautious estimate based on each drug’s class')
-                : tr('No source covers this pair');
+              : s === 'Wikidata'
+                ? tr('Listed as a drug interaction on Wikidata')
+                : s === 'Guess'
+                  ? tr('No data on this exact combination. This is a cautious estimate based on each drug’s class')
+                  : tr('No source covers this pair');
 
     return (
         <>
@@ -367,7 +369,13 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                         {pairs.length > 1 && !note && !p.unchecked && (
                                             <p className="text-sm mt-1">{tr(v.meaning)}</p>
                                         )}
-                                        {!p.unchecked && <p className="text-xs text-[var(--text-muted)] mt-1">{sourceWords(p.source)}</p>}
+                                        {!p.unchecked && p.source === 'AI' && (
+                                            <p className="text-xs text-[var(--text-muted)] mt-1">
+                                                <span className="ai-tag">AI</span>
+                                                {tr('No source covers this pair, so AI worked this out from what each one does in the body. It may be wrong: ask a pharmacist before relying on it.')}
+                                            </p>
+                                        )}
+                                        {!p.unchecked && p.source !== 'AI' && <p className="text-xs text-[var(--text-muted)] mt-1">{sourceWords(p.source)}</p>}
                                         {p.without && (
                                             <p className="text-xs text-[var(--text-muted)] mt-1">
                                                 {p.unchecked
