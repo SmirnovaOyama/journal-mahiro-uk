@@ -3,23 +3,26 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { QRCodeSVG } from 'qrcode.react';
 import { loadStructure } from '../components/Molecule';
+import { clockTimes, curvePieces, nightSpan, type CurveDose } from './curve';
 import { currentLang } from './i18n';
 import { molToSvg } from './molsvg';
 import { SITE } from './preview';
 
-/* A page kept as a picture: a substance, a mix, a night in the journal, at
-   1080 × 1440 (3:4), to save to a phone or send. Drawn on this device on a
-   canvas, so a night in the journal never leaves it.
+/* A night in the journal kept as a picture, 1080 × 1440 (3:4), to save
+   to a phone or send. Drawn on this device on a canvas: the night never
+   leaves it.
 
-   Behind it, a field of the page's own substances drawn as skeletal
+   Behind it, a field of the night's own substances drawn as skeletal
    formulas (lib/molsvg.ts) in the accent's terracotta: two large and faint,
-   then a lattice of small ones turned a little off the square, each at its
-   own angle and strength. Flat ink, no gradients. On it, a white panel with
-   round corners holding what the page says, and at the foot the logo, the
-   site and the page's address, with a QR code to it.
+   lines only, then a lattice of small ones turned a little off the square,
+   each at its own angle and strength. Flat ink, no gradients. On it, a
+   white panel with round corners: the date, then the night's curve, as
+   large as the room allows (the session chart's own shapes, lib/curve.ts),
+   then each dose and what didn't mix. At the foot, the logo and the site
+   on one card, a QR code to it on another.
 
    The page hands over its words already in the reader's language (Block);
-   nothing here translates. Loaded only when a picture is asked for. */
+   nothing here translates. Loaded only when a picture is first drawn. */
 
 export const SIZE = { w: 1080, h: 1440 };
 
@@ -40,34 +43,29 @@ const C = {
     positive: '#0f7c55',
 };
 
-export interface Row {
-    left: string;
-    leftInk?: Ink;
-    right?: string;
-    rightInk?: Ink;
-    /** A smaller line under it. */
-    sub?: string;
-    /** A clock time before it, in its own column. */
-    time?: string;
-    /** A substance whose structure is drawn before the words. */
-    mol?: string;
+/** One line of a grid: a time before it, a name in its own colour, and
+ *  a value after it. */
+export interface Cell {
+    lead?: string;
+    label: string;
+    /** Any CSS colour: a substance's own, as its curve is drawn. */
+    color?: string;
+    value?: string;
+    valueInk?: Ink;
 }
 
 export type Block =
-    /** What the page is about: a small line, its name, a line under, and its structure on the right. */
-    | { t: 'head'; eyebrow?: string; title: string; sub?: string; mol?: string }
+    /** What the picture is of: a small line over its title. */
+    | { t: 'head'; eyebrow?: string; title: string }
     /** A small heading over what follows. */
     | { t: 'heading'; text: string }
-    | { t: 'text'; text: string; size?: number; ink?: Ink; weight?: number }
-    /** One word, large: a mix's verdict. */
-    | { t: 'word'; text: string; ink: Ink }
-    | { t: 'rows'; rows: Row[]; more?: (n: number) => string }
-    /** A few figures side by side, each its label over its value; with
-     *  `bars`, a short bar in the label's colour over each, as the site's
-     *  dose rail colours its bands. */
-    | { t: 'cols'; items: { label: string; value: string; ink?: Ink }[]; bars?: boolean }
-    /** Substances side by side, each its structure over its name. */
-    | { t: 'mols'; items: { id: string; name: string }[] }
+    | { t: 'text'; text: string; size?: number; ink?: Ink }
+    /** A night's curve: each dose as the session chart draws it, in its
+     *  substance's colour. `h` is set when the picture is laid out. */
+    | { t: 'chart'; doses: (CurveDose & { color: string })[]; now?: { at: number; label: string }; h?: number }
+    /** Lines in one or two columns; with `more`, the last give way, when
+     *  there isn't room, to a line saying how many are left out. */
+    | { t: 'grid'; cells: Cell[]; cols: 1 | 2; more?: (n: number) => string }
     /** The small print. */
     | { t: 'note'; text: string };
 
@@ -294,49 +292,57 @@ interface Laid {
     draw: (x: number, y: number) => void;
 }
 
-type Pictures = Map<string, HTMLImageElement | null>;
-const key = (id: string, w: number, h: number) => `${id}@${w}x${h}`;
 
-function lay(ctx: CanvasRenderingContext2D, b: Block, first: boolean, pics: Pictures, inner: number): Laid {
-    const ink = (k?: Ink) => C[k ?? 'text'];
+/** A colour as the canvas is sure to read it: the journal keeps a
+ *  substance's as oklch(), which an older canvas doesn't know. */
+function colour(css: string): string {
+    const m = css.match(/oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\)/);
+    if (!m) return css;
+    const [l, c, h] = [Number(m[1]) / 100, Number(m[2]), Number(m[3])];
+    const a = c * Math.cos((h * Math.PI) / 180),
+        b = c * Math.sin((h * Math.PI) / 180);
+    const l_ = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3,
+        m_ = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3,
+        s_ = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    const to = (v: number) => {
+        const x = v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055;
+        return Math.round(Math.min(1, Math.max(0, x)) * 255)
+            .toString(16)
+            .padStart(2, '0');
+    };
+    return `#${to(4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_)}${to(-1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_)}${to(-0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_)}`;
+}
+
+/** The chart's height when there's room for nothing else, and at most. */
+const CHART_MIN = 380;
+const CHART_MAX = 660;
+
+function lay(ctx: CanvasRenderingContext2D, b: Block, first: boolean, inner: number): Laid {
     switch (b.t) {
         case 'head': {
-            const pic = b.mol ? pics.get(key(b.mol, 260, 220)) : null;
-            const width = pic ? inner - 284 : inner;
             ctx.font = font(28, 500);
-            const eyebrow = b.eyebrow ? wrap(ctx, b.eyebrow, width, 2) : [];
-            ctx.font = font(76, 650, true);
-            const title = wrap(ctx, b.title, width, 3);
-            ctx.font = font(28);
-            const sub = b.sub ? wrap(ctx, b.sub, width, 2) : [];
-            const textH = eyebrow.length * 28 * 1.4 + (eyebrow.length ? 10 : 0) + title.length * 76 * 1.1 + (sub.length ? 12 + sub.length * 28 * 1.4 : 0);
-            const h = Math.max(textH, pic ? 220 : 0);
+            const eyebrow = b.eyebrow ? wrap(ctx, b.eyebrow, inner, 2) : [];
+            ctx.font = font(68, 650, true);
+            const title = wrap(ctx, b.title, inner, 2);
+            const h = eyebrow.length * 28 * 1.4 + (eyebrow.length ? 8 : 0) + title.length * 68 * 1.12;
             return {
                 h,
                 gap: 0,
                 draw: (x, y) => {
-                    let at = y + (h - textH) / 2;
                     ctx.fillStyle = C.muted;
                     ctx.font = font(28, 500);
-                    lines(ctx, eyebrow, x, at, 28, 1.4);
-                    at += eyebrow.length * 28 * 1.4 + (eyebrow.length ? 10 : 0);
+                    lines(ctx, eyebrow, x, y, 28, 1.4);
                     ctx.fillStyle = C.text;
-                    ctx.font = font(76, 650, true);
-                    lines(ctx, title, x, at, 76, 1.1);
-                    at += title.length * 76 * 1.1 + 12;
-                    ctx.fillStyle = C.muted;
-                    ctx.font = font(28);
-                    lines(ctx, sub, x, at, 28, 1.4);
-                    if (pic) ctx.drawImage(pic, x + inner - 260, y + (h - 220) / 2);
+                    ctx.font = font(68, 650, true);
+                    lines(ctx, title, x, y + eyebrow.length * 28 * 1.4 + (eyebrow.length ? 8 : 0), 68, 1.12);
                 },
             };
         }
         case 'heading': {
             ctx.font = font(26, 600);
             const ls = wrap(ctx, b.text, inner, 2);
-            const h = ls.length * 26 * 1.4;
             return {
-                h,
+                h: ls.length * 26 * 1.4,
                 gap: first ? 0 : 40,
                 draw: (x, y) => {
                     ctx.fillStyle = C.muted;
@@ -347,149 +353,52 @@ function lay(ctx: CanvasRenderingContext2D, b: Block, first: boolean, pics: Pict
         }
         case 'text':
         case 'note': {
-            const size = b.t === 'note' ? 24 : (b.size ?? 32);
-            const weight = b.t === 'note' ? 400 : (b.weight ?? 400);
-            ctx.font = font(size, weight);
-            const ls = wrap(ctx, b.text, inner, b.t === 'note' ? 4 : 8);
-            const h = ls.length * size * 1.45;
+            const size = b.t === 'note' ? 24 : (b.size ?? 30);
+            ctx.font = font(size);
+            const ls = wrap(ctx, b.text, inner, b.t === 'note' ? 4 : 6);
             return {
-                h,
-                gap: first ? 0 : b.t === 'note' ? 44 : 20,
+                h: ls.length * size * 1.45,
+                gap: first ? 0 : b.t === 'note' ? 36 : 20,
                 draw: (x, y) => {
-                    ctx.fillStyle = b.t === 'note' ? C.muted : ink(b.ink);
-                    ctx.font = font(size, weight);
+                    ctx.fillStyle = b.t === 'note' ? C.muted : C[b.ink ?? 'text'];
+                    ctx.font = font(size);
                     lines(ctx, ls, x, y, size, 1.45);
                 },
             };
         }
-        case 'word': {
-            let size = 132;
-            ctx.font = font(size, 650, true);
-            while (size > 64 && ctx.measureText(b.text).width > inner) ctx.font = font((size -= 4), 650, true);
-            const h = size * 1.08;
-            return {
-                h,
-                gap: first ? 0 : 8,
-                draw: (x, y) => {
-                    ctx.fillStyle = ink(b.ink);
-                    ctx.font = font(size, 650, true);
-                    lines(ctx, [b.text], x, y, size, 1.08);
-                },
-            };
+        case 'chart': {
+            const h = b.h ?? CHART_MIN;
+            return { h, gap: first ? 0 : 36, draw: (x, y) => chart(ctx, b, x, y, inner, h) };
         }
-        case 'mols': {
-            const per = Math.min(b.items.length, 4) || 1;
-            const cell = inner / per;
-            // The pictures were drawn for the panel at full size (wanted()).
-            const box = { w: Math.round(PANEL_INNER / per - 24), h: 150 };
-            ctx.font = font(28, 500);
-            const names = b.items.map(i => wrap(ctx, i.name, cell - 16, 2));
-            const rows = Math.ceil(b.items.length / per);
-            const rowH = box.h + 14 + 2 * 28 * 1.3;
-            const h = rows * rowH + (rows - 1) * 16;
+        case 'grid': {
+            const gutter = 40;
+            const cell = (inner - (b.cols - 1) * gutter) / b.cols;
+            const size = 28;
+            const row = size * 1.7;
+            ctx.font = font(size, 500);
+            const leadW = Math.max(0, ...b.cells.map(c => (c.lead ? ctx.measureText(c.lead).width + 18 : 0)));
+            const rows = Math.ceil(b.cells.length / b.cols);
             return {
-                h,
-                gap: first ? 0 : 40,
+                h: rows * row,
+                gap: first ? 0 : 12,
                 draw: (x, y) => {
-                    b.items.forEach((item, k) => {
-                        const cx = x + (k % per) * cell;
-                        const cy = y + Math.floor(k / per) * (rowH + 16);
-                        const pic = pics.get(key(item.id, box.w, box.h));
-                        if (pic) ctx.drawImage(pic, cx + (cell - box.w) / 2, cy);
-                        ctx.fillStyle = C.text;
-                        ctx.font = font(28, 500);
-                        lines(ctx, names[k], cx + cell / 2, cy + box.h + 14, 28, 1.3, 'center');
-                    });
-                },
-            };
-        }
-        case 'cols': {
-            const n = b.items.length || 1;
-            const cell = inner / n;
-            const room = cell - 20;
-            ctx.font = font(26, 600);
-            const labels = b.items.map(i => wrap(ctx, i.label, room, 2));
-            ctx.font = font(32, 600);
-            const values = b.items.map(i => wrap(ctx, i.value, room, 2));
-            const labelH = Math.max(...labels.map(l => l.length)) * 26 * 1.35;
-            const valueH = Math.max(...values.map(v => v.length)) * 32 * 1.3;
-            const barH = b.bars ? 26 : 0;
-            const h = barH + labelH + 8 + valueH;
-            return {
-                h,
-                gap: first ? 0 : 8,
-                draw: (x, y) => {
-                    b.items.forEach((item, k) => {
-                        const cx = x + k * cell;
-                        if (b.bars) {
-                            ctx.fillStyle = C[item.ink ?? 'muted'];
-                            roundRect(ctx, cx, y, room, 8, 4);
-                            ctx.fill();
-                        }
-                        ctx.fillStyle = C[item.ink ?? 'muted'];
-                        ctx.font = font(26, 600);
-                        lines(ctx, labels[k], cx, y + barH, 26, 1.35);
-                        ctx.fillStyle = C.text;
-                        ctx.font = font(32, 600);
-                        lines(ctx, values[k], cx, y + barH + labelH + 8, 32, 1.3);
-                    });
-                },
-            };
-        }
-        case 'rows': {
-            const anyTime = b.rows.some(r => r.time);
-            const anyMol = b.rows.some(r => r.mol);
-            const lead = (anyTime ? 112 : 0) + (anyMol ? 76 : 0);
-            const laid = b.rows.map(r => {
-                ctx.font = font(32, 600);
-                const rightW = r.right ? Math.min(ctx.measureText(r.right).width, inner * 0.45) : 0;
-                const room = inner - lead - (r.right ? rightW + 28 : 0);
-                ctx.font = font(32, r.leftInk && r.leftInk !== 'text' ? 600 : 500);
-                const left = wrap(ctx, r.left, room, 2);
-                ctx.font = font(26);
-                const sub = r.sub ? wrap(ctx, r.sub, inner - lead, 3) : [];
-                const h = 18 + Math.max(left.length * 32 * 1.35, anyMol ? 56 : 0) + (sub.length ? 6 + sub.length * 26 * 1.45 : 0) + 18;
-                return { r, left, sub, h, room };
-            });
-            const h = laid.reduce((s, l) => s + l.h, 0);
-            return {
-                h,
-                gap: first ? 0 : 8,
-                draw: (x, y) => {
-                    let at = y;
-                    laid.forEach((l, k) => {
-                        if (k) {
-                            ctx.fillStyle = C.border;
-                            ctx.fillRect(x, at, inner, 2);
-                        }
-                        const top = at + 18;
-                        let lx = x;
-                        if (anyTime) {
+                    b.cells.forEach((c, k) => {
+                        const cx = x + (k % b.cols) * (cell + gutter);
+                        const cy = y + Math.floor(k / b.cols) * row + (row - size * 1.3) / 2;
+                        ctx.font = font(size, 500);
+                        if (c.lead) {
                             ctx.fillStyle = C.muted;
-                            ctx.font = font(30, 500);
-                            lines(ctx, [l.r.time ?? ''], lx, top, 32, 1.35);
-                            lx += 112;
+                            lines(ctx, [c.lead], cx, cy, size, 1.3);
                         }
-                        if (anyMol) {
-                            const pic = l.r.mol ? pics.get(key(l.r.mol, 56, 56)) : null;
-                            if (pic) ctx.drawImage(pic, lx, top + (Math.max(l.left.length * 32 * 1.35, 56) - 56) / 2);
-                            lx += 76;
+                        ctx.font = font(size, 500);
+                        const valueW = c.value ? Math.min(ctx.measureText(c.value).width, cell * 0.55) : 0;
+                        if (c.value) {
+                            ctx.fillStyle = C[c.valueInk ?? 'muted'];
+                            lines(ctx, wrap(ctx, c.value, cell * 0.55, 1), cx + cell, cy, size, 1.3, 'right');
                         }
-                        ctx.fillStyle = C[l.r.leftInk ?? 'text'];
-                        ctx.font = font(32, l.r.leftInk && l.r.leftInk !== 'text' ? 600 : 500);
-                        lines(ctx, l.left, lx, top, 32, 1.35);
-                        if (l.r.right) {
-                            ctx.fillStyle = C[l.r.rightInk ?? 'text'];
-                            ctx.font = font(32, 600);
-                            const fitted = wrap(ctx, l.r.right, inner * 0.45, 1);
-                            lines(ctx, fitted, x + inner, top, 32, 1.35, 'right');
-                        }
-                        if (l.sub.length) {
-                            ctx.fillStyle = C.muted;
-                            ctx.font = font(26);
-                            lines(ctx, l.sub, lx, top + Math.max(l.left.length * 32 * 1.35, anyMol ? 64 : 0) + 6, 26, 1.45);
-                        }
-                        at += l.h;
+                        ctx.font = font(size, 600);
+                        ctx.fillStyle = c.color ? colour(c.color) : C.text;
+                        lines(ctx, wrap(ctx, c.label, cell - leadW - valueW - 16, 1), cx + leadW, cy, size, 1.3);
                     });
                 },
             };
@@ -497,59 +406,133 @@ function lay(ctx: CanvasRenderingContext2D, b: Block, first: boolean, pics: Pict
     }
 }
 
+/** A night's curve in `w` × `h`: three gridlines, each dose's curve filled
+ *  faintly and drawn in its colour, a ring on the baseline where it was
+ *  taken, the clock times under, and "now" if the night is going on. */
+function chart(ctx: CanvasRenderingContext2D, b: Extract<Block, { t: 'chart' }>, x0: number, y0: number, w: number, h: number) {
+    if (!b.doses.length) return;
+    const span = nightSpan(b.doses, b.now?.at ?? null);
+    const top = y0 + 30;
+    const base = y0 + h - 58;
+    const x = (t: number) => x0 + ((t - span.start) / (span.end - span.start)) * w;
+    const y = (level: number) => base - level * (base - top);
+    ctx.fillStyle = C.border;
+    for (const l of [0, 0.5, 1]) ctx.fillRect(x0, Math.round(y(l)) - 1, w, 2);
+
+    const trace = (d: CurveDose) => {
+        ctx.beginPath();
+        curvePieces(d, x, y).forEach((p, k) => {
+            if ('line' in p) {
+                if (!k) ctx.moveTo(p.line[0][0], p.line[0][1]);
+                ctx.lineTo(p.line[1][0], p.line[1][1]);
+            } else {
+                const [, c1, c2, e] = p.cubic;
+                ctx.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], e[0], e[1]);
+            }
+        });
+    };
+    const order = [...b.doses].sort((p, q) => p.time - q.time);
+    // Every fill first, then every line over them, so no fill veils a line.
+    for (const d of order)
+        if (d.course) {
+            trace(d);
+            ctx.closePath();
+            ctx.fillStyle = colour(d.color);
+            ctx.globalAlpha = 0.12;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    ctx.lineWidth = 5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    for (const d of order)
+        if (d.course) {
+            trace(d);
+            ctx.strokeStyle = colour(d.color);
+            ctx.stroke();
+        }
+    for (const d of order) {
+        ctx.beginPath();
+        ctx.arc(x(d.time), y(0), 9, 0, Math.PI * 2);
+        ctx.fillStyle = C.panel;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = colour(d.color);
+        ctx.stroke();
+    }
+
+    // The clock times, as many as sit apart at this size.
+    ctx.fillStyle = C.muted;
+    ctx.font = font(26, 500);
+    const times = clockTimes(span, w, x, 150, 120).filter(t => t === span.first || (x(t) > x0 + 40 && x(t) < x0 + w - 40));
+    for (const t of times) {
+        const d = new Date(t);
+        const label = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        lines(ctx, [label], x(t), base + 20, 26, 1.3, t === span.first && x(t) < x0 + 50 ? 'left' : 'center');
+    }
+
+    if (b.now && b.now.at >= span.start && b.now.at <= span.end) {
+        const nx = x(b.now.at);
+        ctx.strokeStyle = C.text;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 8]);
+        ctx.beginPath();
+        ctx.moveTo(nx, top);
+        ctx.lineTo(nx, base);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = C.muted;
+        ctx.font = font(24, 500);
+        lines(ctx, [b.now.label], nx, top - 30, 24, 1.2, nx > x0 + w - 40 ? 'right' : 'center');
+    }
+}
+
 /** The blocks laid out in `width`, to fit `room`. With `cut`, the longest
- *  list that may be cut (one that says how many it leaves out) gives up its
- *  last rows until they fit; a dose ladder or a timing never does. */
-function layAll(ctx: CanvasRenderingContext2D, blocks: Block[], pics: Pictures, width: number, room: number, cut: boolean) {
+ *  grid that may be cut (one that says how many it leaves out) gives up its
+ *  last lines until they fit. */
+function layAll(ctx: CanvasRenderingContext2D, blocks: Block[], width: number, room: number, cut: boolean) {
     const hidden = blocks.map(() => 0);
     for (;;) {
         const shown = blocks.map((b, k): Block => {
-            if (b.t !== 'rows' || !hidden[k]) return b;
-            const kept = b.rows.slice(0, b.rows.length - hidden[k]);
-            return { ...b, rows: [...kept, { left: b.more!(hidden[k]), leftInk: 'muted' }] };
+            if (b.t !== 'grid' || !hidden[k]) return b;
+            return { ...b, cells: [...b.cells.slice(0, b.cells.length - hidden[k]), { label: b.more!(hidden[k]), color: C.muted }] };
         });
-        const laid = shown.map((b, k) => lay(ctx, b, k === 0, pics, width));
+        const laid = shown.map((b, k) => lay(ctx, b, k === 0, width));
         const h = laid.reduce((s, l) => s + l.gap + l.h, 0);
         if (h <= room || !cut) return { laid, h, fits: h <= room };
         let at = -1;
         let most = 2;
         blocks.forEach((b, k) => {
-            if (b.t === 'rows' && b.more && b.rows.length - hidden[k] > most) {
-                most = b.rows.length - hidden[k];
+            if (b.t === 'grid' && b.more && b.cells.length - hidden[k] > most) {
+                most = b.cells.length - hidden[k];
                 at = k;
             }
         });
         // Nothing left to cut: the panel takes all the room, and clips.
         if (at < 0) return { laid, h: room, fits: false };
-        hidden[at]++;
+        // A whole line of the grid at a time.
+        const b = blocks[at];
+        hidden[at] += b.t === 'grid' ? b.cols : 1;
     }
 }
 
-/** The panel's words at the largest size that lets them fit, down to
- *  SMALLEST; past that, cut. */
-function fit(ctx: CanvasRenderingContext2D, blocks: Block[], pics: Pictures) {
+/** The chart as tall as the room left lets it be; then the words at the
+ *  largest size that fits, down to SMALLEST; past that, cut. */
+function fit(ctx: CanvasRenderingContext2D, given: Block[]) {
+    const room = ROOM - 2 * PAD;
+    const withChart = (h: number) => given.map(b => (b.t === 'chart' ? { ...b, h } : b));
+    const rest = layAll(ctx, withChart(0), PANEL_INNER, Infinity, false).h;
+    const blocks = withChart(Math.round(Math.max(CHART_MIN, Math.min(CHART_MAX, room - rest))));
     for (let k = 1; k > SMALLEST - 0.001; k -= 0.03) {
-        const r = layAll(ctx, blocks, pics, PANEL_INNER / k, (ROOM - 2 * PAD) / k, false);
+        const r = layAll(ctx, blocks, PANEL_INNER / k, room / k, false);
         if (r.fits) return { ...r, k };
     }
-    return { ...layAll(ctx, blocks, pics, PANEL_INNER / SMALLEST, (ROOM - 2 * PAD) / SMALLEST, true), k: SMALLEST };
+    return { ...layAll(ctx, blocks, PANEL_INNER / SMALLEST, room / SMALLEST, true), k: SMALLEST };
 }
 
 /* ── the whole ────────────────────────────────────────────────────────── */
-
-/** Every structure the panel draws, at the sizes it draws them. */
-function wanted(blocks: Block[]): [string, number, number, number][] {
-    const out: [string, number, number, number][] = [];
-    for (const b of blocks) {
-        if (b.t === 'head' && b.mol) out.push([b.mol, 260, 220, 3]);
-        if (b.t === 'rows') for (const r of b.rows) if (r.mol) out.push([r.mol, 56, 56, 1.6]);
-        if (b.t === 'mols') {
-            const per = Math.min(b.items.length, 4) || 1;
-            for (const i of b.items) out.push([i.id, Math.round(PANEL_INNER / per - 24), 150, 2.4]);
-        }
-    }
-    return out;
-}
 
 export async function draw(p: Picture): Promise<Blob> {
     const canvas = document.createElement('canvas');
@@ -559,20 +542,14 @@ export async function draw(p: Picture): Promise<Blob> {
     if (!ctx) throw new Error('No canvas');
 
     const url = `${SITE.origin}${p.path ?? '/'}`;
-    const [pics, logo, code] = await Promise.all([
-        Promise.all(wanted(p.blocks).map(async ([id, w, h, stroke]) => [key(id, w, h), await molecule(id, C.accent, w, h, stroke)] as const)).then(
-            all => new Map(all) as Pictures,
-        ),
-        loadImage('/logo.png'),
-        qr(url),
-    ]);
+    const [logo, code] = await Promise.all([loadImage('/logo.png'), qr(url)]);
 
     ctx.fillStyle = C.page;
     ctx.fillRect(0, 0, SIZE.w, SIZE.h);
     await field(ctx, p.field);
 
     // The panel, its words as large as fit, a little above the middle of the room it has.
-    const { laid, h: inner, k } = fit(ctx, p.blocks, pics);
+    const { laid, h: inner, k } = fit(ctx, p.blocks);
     const h = Math.round(inner * k + 2 * PAD);
     const top = Math.max(TOP, Math.round((SIZE.h - FOOT - h) * 0.45));
     roundRect(ctx, MARGIN, top, PANEL_W, h, 40);

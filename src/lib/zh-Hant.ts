@@ -1412,19 +1412,12 @@ const zh: Record<string, string> = {
     'Measuring in a liquid': '溶成液體來量',
     'Where a dose is too small for a milligram scale, the page works out how strong a liquid is and how much of it each dose is.': '劑量小到毫克秤秤不準時，頁面會算出液體的濃度，以及每一劑是多少液體。',
     // components/PictureExport.tsx, lib/picture.ts
-    'Picture': '圖片',
-    'Drawing the picture…': '正在畫圖片…',
     'The picture couldn’t be drawn on this device.': '這台裝置畫不出這張圖片。',
-    'The picture': '圖片',
-    'Drawn on this device, from what this page shows. It goes nowhere until it is shared.': '在這台裝置上依本頁內容畫成，分享之前哪裡都不去。',
-    'Share': '分享',
-    'Threshold': '閾值',
-    'Doses from {0}. Information, not medical advice.': '劑量資料來源：{0}。僅供參考，並非醫療建議。',
-    'Until it’s checked, don’t take it as safe.': '確認之前，別當它是安全的。',
     'And {0} more': '另有 {0} 項',
     'Pictures': '圖片',
+    'The picture is saved.': '圖片已存好。',
     'Save as a picture': '存成圖片',
-    'A substance, a mix and a night in the journal can be drawn as a picture to keep or send. It is drawn on this device.': '物質、混用結果和日誌裡的一夜，可以畫成圖片保存或傳送。圖片在這台裝置上畫成。',
+    'A night in the journal is saved as a picture in one tap, its curve filling most of it. It is drawn on this device.': '一夜日誌一按就存成圖片，曲線佔去大半。圖片在這台裝置上畫成。',
 };
 
 export default zh;

@@ -76,7 +76,7 @@ export const FEATURES: { group: string; items: { id: Feature; label: string; say
             {
                 id: 'picture',
                 label: 'Save as a picture',
-                says: 'A substance, a mix and a night in the journal can be drawn as a picture to keep or send. It is drawn on this device.',
+                says: 'A night in the journal is saved as a picture in one tap, its curve filling most of it. It is drawn on this device.',
             },
         ],
     },
