@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from '../lib/eggs';
 import { useFeature } from '../lib/features';
 import { tr } from '../lib/i18n';
-import type { NightPicture as Picture } from '../lib/picture';
+import type { NightPicture as Picture, PictureStyle } from '../lib/picture';
 import { ImagePlus } from './icons';
 import { headerAction } from './PageHeader';
 import { WaitMark } from './Waiting';
@@ -19,6 +19,39 @@ import { WaitMark } from './Waiting';
 
 /** Whether pictures are on (Settings, Features). */
 export const usePictures = () => useFeature('picture');
+
+/* How the night is drawn: round a dial, or along a line. Chosen once in
+   Settings, Features, under the switch, and kept on this device, so the
+   button stays one tap. */
+const STYLE_KEY = 'journal.picture-style.v1';
+const readStyle = (): PictureStyle => {
+    try {
+        return localStorage.getItem(STYLE_KEY) === 'lines' ? 'lines' : 'dial';
+    } catch {
+        return 'dial';
+    }
+};
+let style = readStyle();
+const styleSubs = new Set<() => void>();
+export function setPictureStyle(next: PictureStyle) {
+    style = next;
+    try {
+        localStorage.setItem(STYLE_KEY, next);
+    } catch {
+        /* for this visit only */
+    }
+    styleSubs.forEach(f => f());
+}
+export const usePictureStyle = () =>
+    useSyncExternalStore(
+        f => {
+            styleSubs.add(f);
+            return () => {
+                styleSubs.delete(f);
+            };
+        },
+        () => style,
+    );
 
 async function drawn(make: () => Picture): Promise<File> {
     const picture = make();

@@ -3,6 +3,8 @@ import { Link } from '../components/Link';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import { settingsSection } from '../components/SettingsListItem';
 import Switch from '../components/Switch';
+import Segmented from '../components/Segmented';
+import { setPictureStyle, usePictureStyle } from '../components/PictureExport';
 import { FEATURES, useFeatures, type Feature } from '../lib/features';
 import { tr } from '../lib/i18n';
 import { stopShare } from '../lib/watch';
@@ -24,6 +26,25 @@ function Row({ id, label, says, checked, onChange }: { id: Feature; label: strin
                 </span>
             </label>
             <Switch id={key} checked={checked} onChange={onChange} label={label} describedBy={`${key}-says`} key={id} />
+        </div>
+    );
+}
+
+/** How a night's picture is drawn: round a dial, or along a line. */
+function PictureStyleRow() {
+    const style = usePictureStyle();
+    return (
+        <div className="w-full min-h-14 flex items-center justify-between gap-4 py-3.5">
+            <span className="text-sm text-[var(--text)]">{tr('The night drawn')}</span>
+            <Segmented
+                options={[
+                    { id: 'dial', label: tr('Clock') },
+                    { id: 'lines', label: tr('Timeline') },
+                ]}
+                value={style}
+                onChange={setPictureStyle}
+                aria-label={tr('The night drawn')}
+            />
         </div>
     );
 }
@@ -50,7 +71,10 @@ export function FeaturesPage() {
                         <h2 className="group-heading mb-1">{tr(g.group)}</h2>
                         <div className={settingsSection}>
                             {g.items.map(f => (
-                                <Row key={f.id} id={f.id} label={tr(f.label)} says={tr(f.says)} checked={features.on(f.id)} onChange={v => change(f.id, v)} />
+                                <React.Fragment key={f.id}>
+                                    <Row id={f.id} label={tr(f.label)} says={tr(f.says)} checked={features.on(f.id)} onChange={v => change(f.id, v)} />
+                                    {f.id === 'picture' && features.on('picture') && <PictureStyleRow />}
+                                </React.Fragment>
                             ))}
                         </div>
                     </section>

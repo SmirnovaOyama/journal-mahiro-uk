@@ -1420,7 +1420,10 @@ const zh: Record<string, string> = {
     'Pictures': '图片',
     'The picture is saved.': '图片已存好。',
     'Save as a picture': '存成图片',
-    'A night in the journal is saved as a picture in one tap, its curve filling most of it. It is drawn on this device.': '一夜日志一按就存成图片，曲线占去大半。图片在这台装置上画成。',
+    'A night in the journal is saved as a picture in one tap, drawn round a clock or along a line. It is drawn on this device.': '一夜日志一按就存成图片，可画成时钟或时间轴。图片在这台装置上画成。',
+    'The night drawn': '一夜的画法',
+    'Clock': '时钟',
+    'Timeline': '时间轴',
 };
 
 export default zh;

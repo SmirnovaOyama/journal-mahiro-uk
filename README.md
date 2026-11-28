@@ -170,16 +170,25 @@ picture is one tap: on a phone the share sheet opens with it (to keep it
 in Photos or send it), elsewhere it's saved as a file. It is 1080 by 1440,
 drawn on the device, in the reader's language (`src/lib/picture.ts`), in
 the design system's dark theme, its tokens at twice their size. The night
-is drawn on its own dial, running from its start at the top round to its
-end: each dose has its own ring, the first innermost, and along it from
-the time it was taken a ribbon in its substance's colour as wide as the
-effect is strong (the session chart's curve, `src/lib/curve.ts`), with its
-name, time and amount beside the dial; the date sits in the middle. Under
-the dial, each substance drawn as its structure in the brand's terracotta
-with what it came to; what didn't mix, each status in words; the rating;
-and at the foot the logo and the site. Never the notes. The night isn't
-uploaded to draw it: the picture is drawn quietly while the page is open,
-so the tap can hand it over at once.
+is drawn one of two ways, chosen in Settings, Features:
+
+- **Clock.** A dial that runs through the night alone, from its start at
+  the top round to its end. Each dose has its own ring, the first
+  innermost, and along it from the time it was taken a ribbon in its
+  substance's colour as wide as the effect is strong. Each dose's name,
+  time and amount stand in one of two columns beside the dial, a hairline
+  from where it was taken. The date is in the middle.
+- **Timeline.** The session chart's own curves, left to right, under the
+  date as a reading. Each dose's name, time and amount stand in rows over
+  the chart, a hairline straight down to where its curve levels out, laid
+  out so no hairline crosses any words.
+
+Both shapes are the session chart's curve (`src/lib/curve.ts`). Under the
+night, each substance is drawn as its structure in the brand's terracotta
+with what it came to; then what didn't mix, each status in words; the
+rating; and at the foot the logo and the site. Never the notes. The night
+isn't uploaded to draw it: the picture is drawn quietly while the page is
+open, so the tap can hand it over at once.
 
 ## Pages
 

@@ -1,5 +1,5 @@
 import { loadStructure } from '../components/Molecule';
-import { curvePieces, nightSpan, type CurveDose } from './curve';
+import { clockTimes, curvePieces, nightSpan, type CurveDose } from './curve';
 import { currentLang } from './i18n';
 import { molToSvg } from './molsvg';
 import { SITE } from './preview';
@@ -58,7 +58,11 @@ export interface ChartDose extends CurveDose {
     detail: string;
 }
 
+/** The night round a dial, or along a line from left to right. */
+export type PictureStyle = 'dial' | 'lines';
+
 export interface NightPicture {
+    style: PictureStyle;
     /** The night's own name, if it was given one. */
     title?: string;
     /** In the middle of the dial: the month over the day, the weekday and the times under it. */
@@ -355,59 +359,216 @@ function dial(ctx: CanvasRenderingContext2D, p: NightPicture, cx: number, cy: nu
     ctx.font = font(24);
     lines(ctx, [p.span], cx, y, 24, 1.3, 'center');
 
-    // Each dose's name, time and amount outside the dial, level with where
-    // it was taken, a hairline from its ring to it; one that would lie over
-    // another, or off the page, moves along a little.
-    type Box = { x: number; y: number; w: number; h: number };
-    const placed: Box[] = [];
-    const overlap = (b: Box) =>
-        placed.reduce((sum, o) => sum + Math.max(0, Math.min(b.x + b.w, o.x + o.w) - Math.max(b.x, o.x) + 12) * Math.max(0, Math.min(b.y + b.h, o.y + o.h) - Math.max(b.y, o.y) + 8), 0);
+    // Each dose's name, time and amount in one of two columns beside the
+    // dial, the right for those taken on its right half, the left for the
+    // rest, in the order they come down the page. A hairline runs straight
+    // out from where each was taken, then level to its words.
     const NAME = 26,
         DETAIL = 24;
     const boxH = NAME * 1.3 + DETAIL * 1.3;
-    order.forEach((d, k) => {
-        ctx.font = font(NAME, 500);
-        const nameW = ctx.measureText(d.name).width;
-        ctx.font = font(DETAIL);
-        const w = Math.max(nameW, ctx.measureText(d.detail).width);
-        const a0 = angle(d.time);
-        const spots: (Box & { cost: number; a: number; r: number })[] = [];
-        for (const turn of [0, 0.08, -0.08, 0.16, -0.16, 0.26, -0.26, 0.38, -0.38])
-            for (const lift of [0, 28, 56]) {
-                const a = a0 + turn;
-                const r = outer + 40 + lift;
-                const px = cx + r * Math.cos(a),
-                    py = cy + r * Math.sin(a);
-                const c = Math.cos(a),
-                    s = Math.sin(a);
-                const x = c > 0.2 ? px : c < -0.2 ? px - w : px - w / 2;
-                const yy = s > 0.35 ? py : s < -0.35 ? py - boxH : py - boxH / 2;
-                const box = { x: Math.min(Math.max(x, 24), SIZE.w - 24 - w), y: yy, w, h: boxH };
-                if (box.y < bounds.top || box.y + box.h > bounds.bottom) continue;
-                spots.push({ ...box, cost: Math.abs(turn) * 300 + lift * 2, a, r });
-            }
-        if (!spots.length) return;
-        const best = spots.reduce((b, c) => (overlap(c) * 100 + c.cost < overlap(b) * 100 + b.cost ? c : b));
-        placed.push(best);
+    const items = order.map((d, k) => {
+        const a = angle(d.time);
+        return { d, a, r: radius(k), want: cy + (outer + 30) * Math.sin(a) - boxH / 2 };
+    });
+    for (const side of [1, -1] as const) {
+        const col = items.filter(it => (side === 1 ? Math.cos(it.a) >= 0 : Math.cos(it.a) < 0)).sort((a, b) => a.want - b.want);
+        // Spread down the page so none lies over another, then back up if the last runs out of room.
+        const ys = col.map(it => it.want);
+        for (let i = 0; i < ys.length; i++) ys[i] = Math.max(ys[i], bounds.top, i ? ys[i - 1] + boxH + 16 : -Infinity);
+        for (let i = ys.length - 1; i >= 0; i--) ys[i] = Math.min(ys[i], bounds.bottom - boxH, i < ys.length - 1 ? ys[i + 1] - boxH - 16 : Infinity);
+        const colX = cx + side * (outer + 64);
+        col.forEach((it, i) => {
+            const y0 = ys[i];
+            const mid = y0 + boxH / 2;
+            const px = cx + (outer + 18) * Math.cos(it.a),
+                py = cy + (outer + 18) * Math.sin(it.a);
+            ctx.strokeStyle = C.border;
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(cx + (it.r + 10) * Math.cos(it.a), cy + (it.r + 10) * Math.sin(it.a));
+            ctx.lineTo(px, py);
+            ctx.lineTo(px + side * 16, mid);
+            ctx.lineTo(colX - side * 12, mid);
+            ctx.stroke();
+            ctx.textAlign = side === 1 ? 'left' : 'right';
+            ctx.textBaseline = 'middle';
+            ctx.font = font(NAME, 500);
+            ctx.fillStyle = colour(it.d.color);
+            ctx.fillText(it.d.name, colX, y0 + (NAME * 1.3) / 2);
+            ctx.font = font(DETAIL);
+            ctx.fillStyle = C.muted;
+            ctx.fillText(it.d.detail, colX, y0 + NAME * 1.3 + (DETAIL * 1.3) / 2);
+        });
+    }
+}
 
-        // The hairline: out from where it was taken, to beside its words.
-        const r0 = radius(k);
+/** The widest of the doses' words, so the dial leaves room for its columns. */
+function labelWidth(ctx: CanvasRenderingContext2D, doses: ChartDose[]) {
+    let w = 0;
+    for (const d of doses) {
+        ctx.font = font(26, 500);
+        w = Math.max(w, ctx.measureText(d.name).width);
+        ctx.font = font(24);
+        w = Math.max(w, ctx.measureText(d.detail).width);
+    }
+    return w;
+}
+
+/* ── the line ─────────────────────────────────────────────────────────── */
+
+/** The night along a line, as the session chart draws it at 2x: the
+ *  chart's gridlines, each dose's curve in its colour over a flat fill, a
+ *  hollow ring where it was taken, the clock times under, "now" a dotted
+ *  upright. Over it, in rows, each dose's name, time and amount, a
+ *  hairline straight down from them to where its curve levels out. */
+function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0: number, w: number, h: number) {
+    const span = nightSpan(p.doses, p.now?.at ?? null);
+    const x = (t: number) => x0 + ((t - span.start) / (span.end - span.start)) * w;
+    const order = [...p.doses].sort((a, b) => a.time - b.time);
+    const levelOf = (d: CurveDose) => Math.min(1.15, Math.max(0.35, d.strength)) / 1.15;
+
+    // The rows of words over the chart. Each dose's words sit over its
+    // hairline, which starts just under them and runs straight down to
+    // where its curve levels out (anywhere along that stretch). They may
+    // slide left or right over it, and go in the row (the nearest first) and
+    // at the place where they lie over no other words and cross the fewest
+    // hairlines: their own through words below, or others' from above
+    // through them. A fresh row on top always has room, so every one finds
+    // a place. Laid out in a few orders, the tidiest wins.
+    const NAME = 26,
+        DETAIL = 24;
+    const boxH = NAME * 1.3 + DETAIL * 1.3;
+    type Placed = { from: number; to: number; at: number };
+    const sized = order.map(d => {
+        ctx.font = font(NAME, 500);
+        const nw = ctx.measureText(d.name).width;
+        ctx.font = font(DETAIL);
+        const bw = Math.max(nw, ctx.measureText(d.detail).width);
+        const ats = d.course
+            ? [0, 0.33, 0.66, 1].map(k => x(d.time + (d.course!.peakStart + (d.course!.peakEnd - d.course!.peakStart) * k) * 60_000))
+            : [x(d.time)];
+        return { d, bw, ats };
+    });
+    const layout = (seq: typeof sized) => {
+        const rows: Placed[][] = [];
+        let total = 0;
+        const out = new Map<ChartDose, { at: number; from: number; row: number }>();
+        for (const { d, bw, ats } of seq) {
+            let best = { row: rows.length, from: Math.min(Math.max(ats[0], x0), x0 + w - bw), at: ats[0], cost: Infinity, cross: 0 };
+            for (let r = 0; r <= rows.length; r++)
+                ats.forEach((at, ai) => {
+                    for (const f of [0, 0.25, 0.5, 0.75, 1]) {
+                        const from = Math.min(Math.max(at - f * bw, x0), x0 + w - bw),
+                            to = from + bw;
+                        if (at < from - 4 || at > to + 4) continue;
+                        if (!(rows[r] ?? []).every(o => to + 24 < o.from || from > o.to + 24)) continue;
+                        const through = rows.slice(r + 1).reduce((n, row) => n + row.filter(o => o.at > from - 10 && o.at < to + 10).length, 0);
+                        const across = rows.slice(0, r).reduce((n, row) => n + row.filter(o => at > o.from - 10 && at < o.to + 10).length, 0);
+                        const cost = (through + across) * 10 + r + ai * 0.2 + f * 0.3;
+                        if (cost < best.cost) best = { row: r, from, at, cost, cross: through + across };
+                    }
+                });
+            while (rows.length <= best.row) rows.push([]);
+            rows[best.row].push({ from: best.from, to: best.from + bw, at: best.at });
+            total += best.cross;
+            out.set(d, { at: best.at, from: best.from, row: best.row });
+        }
+        return { rows, out, score: total * 10 + rows.length };
+    };
+    const orders = [sized, [...sized].sort((a, b) => a.ats[0] - b.ats[0]), [...sized].sort((a, b) => levelOf(b.d) - levelOf(a.d)), [...sized].reverse()];
+    const chosen = orders.map(layout).reduce((a, b) => (b.score < a.score ? b : a));
+    const rows = chosen.rows;
+    const set = order.map(d => ({ d, ...chosen.out.get(d)! }));
+    const head = rows.length * (boxH + 14) + 24;
+    const top = y0 + head;
+    const base = y0 + h - 56;
+    const y = (level: number) => base - level * (base - top);
+
+    ctx.fillStyle = C.grid;
+    for (const l of [0, 0.5, 1]) ctx.fillRect(x0, Math.round(y(l)) - 1, w, 2);
+    const trace = (d: CurveDose) => {
+        ctx.beginPath();
+        curvePieces(d, x, y).forEach((piece, k) => {
+            if ('line' in piece) {
+                if (!k) ctx.moveTo(piece.line[0][0], piece.line[0][1]);
+                ctx.lineTo(piece.line[1][0], piece.line[1][1]);
+            } else {
+                const [, c1, c2, e] = piece.cubic;
+                ctx.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], e[0], e[1]);
+            }
+        });
+    };
+    for (const d of order)
+        if (d.course) {
+            trace(d);
+            ctx.closePath();
+            ctx.fillStyle = colour(d.color);
+            ctx.globalAlpha = 0.16;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    for (const d of order)
+        if (d.course) {
+            trace(d);
+            ctx.strokeStyle = colour(d.color);
+            ctx.stroke();
+        }
+    for (const d of order) {
+        ctx.beginPath();
+        ctx.arc(x(d.time), y(0), 8, 0, Math.PI * 2);
+        ctx.fillStyle = C.bg;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = colour(d.color);
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = C.muted;
+    ctx.font = font(24);
+    for (const t of clockTimes(span, w, x, 150, 120).filter(t => t === span.first || (x(t) > x0 + 40 && x(t) < x0 + w - 40))) {
+        const d = new Date(t);
+        const label = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        lines(ctx, [label], x(t), base + 18, 24, 1.3, t === span.first && x(t) < x0 + 50 ? 'left' : 'center');
+    }
+    if (p.now && p.now.at >= span.start && p.now.at <= span.end) {
+        const nx = x(p.now.at);
+        ctx.strokeStyle = C.text;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([2, 6]);
+        ctx.beginPath();
+        ctx.moveTo(nx, top - 8);
+        ctx.lineTo(nx, base);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = C.muted;
+        ctx.font = font(24);
+        lines(ctx, [p.now.label], nx, base + 18 + 24 * 1.3, 24, 1.3, 'center');
+    }
+
+    // The words in their rows, and from just under each a hairline straight down to its curve.
+    for (const it of set) {
+        const rowTop = top - 24 - (it.row + 1) * (boxH + 14) + 14;
+        const tip = it.d.course ? y(levelOf(it.d)) : y(0);
         ctx.strokeStyle = C.border;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(cx + (r0 + 10) * Math.cos(a0), cy + (r0 + 10) * Math.sin(a0));
-        ctx.lineTo(cx + (outer + 28) * Math.cos(best.a), cy + (outer + 28) * Math.sin(best.a));
+        ctx.moveTo(it.at, rowTop + boxH + 4);
+        ctx.lineTo(it.at, tip - 10);
         ctx.stroke();
-
+        const tx = it.from;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.font = font(NAME, 500);
-        ctx.fillStyle = colour(d.color);
-        ctx.fillText(d.name, best.x, best.y + (NAME * 1.3) / 2);
+        ctx.fillStyle = colour(it.d.color);
+        ctx.fillText(it.d.name, tx, rowTop + (NAME * 1.3) / 2);
         ctx.font = font(DETAIL);
         ctx.fillStyle = C.muted;
-        ctx.fillText(d.detail, best.x, best.y + NAME * 1.3 + (DETAIL * 1.3) / 2);
-    });
+        ctx.fillText(it.d.detail, tx, rowTop + NAME * 1.3 + (DETAIL * 1.3) / 2);
+    }
 }
 
 /* ── the page ─────────────────────────────────────────────────────────── */
@@ -484,11 +645,36 @@ export async function draw(p: NightPicture): Promise<Blob> {
     }
     const rowTop = bottom + 40;
 
-    // The dial, as large as the room between the name and the structures lets it be.
-    const room = bottom - y;
-    const outer = Math.max(200, Math.min(320, (room - 2 * MARGIN) / 2));
-    const cy = y + room / 2;
-    dial(ctx, p, SIZE.w / 2, cy, outer, { top: y + 8, bottom: bottom - 8 });
+    if (p.style === 'dial') {
+        // The dial, as large as the room between the name and the structures
+        // lets it be, and narrow enough for its columns of words either side.
+        const room = bottom - y;
+        const sideways = (SIZE.w - 2 * 40) / 2 - 64 - labelWidth(ctx, p.doses);
+        const outer = Math.max(180, Math.min(320, (room - 2 * MARGIN) / 2, sideways));
+        dial(ctx, p, SIZE.w / 2, y + room / 2, outer, { top: y + 8, bottom: bottom - 8 });
+    } else {
+        // The date as a reading on the left, the month, the weekday and the
+        // times beside it; then the line over the rest of the room.
+        y += 24;
+        const size = 152;
+        ctx.font = font(size, 300, true);
+        track_(ctx, -0.035, size);
+        const dayW = ctx.measureText(p.day).width;
+        ctx.fillStyle = C.text;
+        lines(ctx, [p.day], LEFT - 6, y, size, 0.96);
+        track_(ctx, 0, 1);
+        const sx = LEFT + dayW + 28;
+        const stackH = 26 * 1.3 * 2 + 24 * 1.3;
+        let sy = y + (size * 0.96 - stackH) / 2;
+        ctx.fillStyle = C.muted;
+        ctx.font = font(26);
+        lines(ctx, [p.month, p.weekday], sx, sy, 26, 1.3);
+        sy += 26 * 1.3 * 2;
+        ctx.font = font(24);
+        lines(ctx, [p.span], sx, sy, 24, 1.3);
+        y += size * 0.96 + 40;
+        timeline(ctx, p, LEFT, y, ACROSS, bottom - y);
+    }
 
     if (known.length) {
         const images = await Promise.all(known.map(s => structureImage(s.d, scale, 3, C.brand)));

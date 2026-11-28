@@ -38,7 +38,7 @@ import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
 import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
 import { currentLang, dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
-import { SavePicture, usePictures } from '../components/PictureExport';
+import { SavePicture, usePictureStyle, usePictures } from '../components/PictureExport';
 import type { NightPicture as Picture, Status } from '../lib/picture';
 
 /* The journal, as PsychonautWiki Journal lays its own out, in Oyama's hand:
@@ -612,6 +612,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const [adding, setAdding] = useState(false);
     const [openRow, setOpenRow] = useState<string | null>(null);
     const picturesOn = usePictures();
+    const pictureStyle = usePictureStyle();
     useEffect(() => {
         loadCombos()
             .then(setMatrix)
@@ -645,8 +646,9 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const live = now < sessionEnd(s, details) + 60 * 60_000;
 
     /* The night as a picture (lib/picture.ts), drawn on this device: its
-       doses round a 24-hour dial, each written at its tip, the date in the
-       middle; its substances' structures; what didn't mix, and the rating. Not the notes, which
+       doses round a dial or along a line (Settings, Features), each with
+       its name, time and amount; the date; its substances' structures; what
+       didn't mix, and the rating. Not the notes, which
        are written for oneself. The picture names the site, but not this
        page: its address is of no use to anyone else. */
     const picture = (): Picture => {
@@ -667,6 +669,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
         const bad = pairsOf(s, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution);
         const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
         return {
+            style: pictureStyle,
             title: meta.title || undefined,
             month: day.toLocaleDateString(dateLocale(), { year: 'numeric', month: 'long' }),
             day: String(day.getDate()),
@@ -688,6 +691,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     };
     // What the picture is drawn from: it's drawn again when any of it changes.
     const pictureSignature = JSON.stringify([
+        pictureStyle,
         s.ingestions.map(i => [i.id, i.substance, i.time, i.dose, i.unit, i.route, i.estimate]),
         meta.title,
         meta.rating,
