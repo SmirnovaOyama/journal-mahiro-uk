@@ -57,6 +57,11 @@ def small(img):
 
 circle(whole, 64).save(OUT / 'favicon.png', optimize=True)
 circle(whole, 32).save(OUT / 'favicon-32.png', optimize=True)
+# The same cut as one .ico, for whatever asks for /favicon.ico by name
+# without reading the page (some crawlers and chat apps): 16 to 64 pixels,
+# each drawn from the picture itself.
+ICO = [64, 48, 32, 16]
+circle(whole, ICO[0]).save(OUT / 'favicon.ico', format='ICO', sizes=[(s, s) for s in ICO], append_images=[circle(whole, s) for s in ICO[1:]])
 small(circle(whole, 192)).save(OUT / 'icon-192.png', optimize=True)
 small(circle(whole, 512)).save(OUT / 'app-icon-512.png', optimize=True)
 small(rounded(whole, 192)).save(OUT / 'pwa-192x192.png', optimize=True)
