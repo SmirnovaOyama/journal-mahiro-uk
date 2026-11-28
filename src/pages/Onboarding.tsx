@@ -11,22 +11,42 @@ import { VERDICT, type Verdict } from '../lib/mix';
 import type { Course } from '../lib/time';
 import type { DosageForm } from '../components/doodles';
 import { tr } from '../lib/i18n';
+import { LANG_NAMES, useLang } from '../lib/lang';
+import type { Lang } from '../lib/i18n';
 
 /* The intro: a short story told with the app itself. Each screen is a
    stage (a live piece of the site: the dose rail rolling through its bands,
    the mix checker answering, a night on the journal's clock) over a few
    words. Swipe, tap Next or use the arrow keys; the bars at the foot say
-   how far along it is. Shown once; Settings can bring it back. */
+   how far along it is. Shown once; Settings can bring it back.
+
+   It opens on the language, so the rest is read in the reader's own, and
+   closes on the disclaimer, which has to be agreed to before the site
+   opens: Skip and Escape go to it rather than past it. Someone who saw the
+   intro before the disclaimer was part of it is shown just that screen. */
 
 const SEEN_KEY = 'journal-onboarding-seen';
+/** Bumped when the disclaimer's words change enough to be read again. */
+const AGREED_KEY = 'journal-disclaimer-agreed-v1';
 
-let showing = (() => {
+const stored = (key: string) => {
     try {
-        return localStorage.getItem(SEEN_KEY) !== 'true';
+        return localStorage.getItem(key) === 'true';
     } catch {
-        return false;
+        return null;
     }
+};
+
+// Storage that can't be read at all (some private windows) shows nothing,
+// as before, rather than the intro on every page load.
+let showing = (() => {
+    const seen = stored(SEEN_KEY);
+    const agreed = stored(AGREED_KEY);
+    if (seen === null || agreed === null) return false;
+    return !seen || !agreed;
 })();
+/** Straight to the disclaimer: the intro was seen before it was added. */
+let onlyDisclaimer = stored(SEEN_KEY) === true && stored(AGREED_KEY) === false;
 const subs = new Set<() => void>();
 
 function setShowing(v: boolean) {
@@ -53,9 +73,11 @@ export function showOnboardingAgain() {
 function finish() {
     try {
         localStorage.setItem(SEEN_KEY, 'true');
+        localStorage.setItem(AGREED_KEY, 'true');
     } catch {
         /* fine: it just shows again next time */
     }
+    onlyDisclaimer = false;
     setShowing(false);
 }
 
@@ -425,6 +447,77 @@ function PrivateStage() {
     );
 }
 
+/** The three languages, each under its own name. */
+function LanguageStage() {
+    const { lang, setChoice } = useLang();
+    const langs: Lang[] = ['zh-Hans', 'zh-Hant', 'en'];
+    return (
+        <div className="flex w-full max-w-[18rem] flex-col gap-2.5" role="radiogroup" aria-label={tr('Language')}>
+            {langs.map(l => {
+                const on = l === lang;
+                return (
+                    <button
+                        key={l}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        lang={l === 'en' ? 'en' : l}
+                        onClick={() => void setChoice(l)}
+                        className={`flex items-center justify-between rounded-2xl border px-4 py-3.5 text-start text-base transition-colors ${
+                            on
+                                ? 'border-[var(--accent)] bg-[var(--accent-subtle)] font-semibold text-[var(--accent-ink)]'
+                                : 'border-[var(--border)] bg-[var(--bg)] text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                        }`}
+                    >
+                        {LANG_NAMES[l]}
+                        {on && <Check size={16} strokeWidth={2.4} />}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+/** What the reader agrees to before the site opens. The same ground as
+ *  Settings › Disclaimer, said shortly. */
+const DISCLAIMER_POINTS = [
+    'This site is harm-reduction and educational information only. It is not medical advice and not legal advice.',
+    'Nothing here encourages, promotes or helps anyone to get or use an illegal drug, and it is not a reason to take anything.',
+    'Many of these substances are controlled by law, including in mainland China, Hong Kong and Taiwan. You are responsible for following the law where you are.',
+    'Doses, durations and mix warnings come from public sources such as TripSit and PsychonautWiki, and some are AI’s estimates. Any of them can be wrong.',
+    'Your journal is your own record. It stays on this device unless you turn on encrypted sync, and what you log is your own responsibility.',
+];
+
+function DisclaimerStage() {
+    return (
+        <div className="h-full w-full self-stretch overflow-y-auto overscroll-contain" style={{ touchAction: 'pan-y' }}>
+            <ul className="flex flex-col gap-3 text-[0.875rem] leading-relaxed text-[var(--text)]">
+                {DISCLAIMER_POINTS.map(t => (
+                    <li key={t} className="flex gap-2.5">
+                        <span className="mt-[0.5em] size-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+                        <span>{tr(t)}</span>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+/** The box that has to be ticked before the site opens. */
+function Agree({ agreed, onChange }: { agreed: boolean; onChange: (v: boolean) => void }) {
+    return (
+        <label className="flex cursor-pointer items-start gap-3 text-[0.9375rem] leading-snug text-[var(--text)]">
+            <input
+                type="checkbox"
+                checked={agreed}
+                onChange={e => onChange(e.target.checked)}
+                className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]"
+            />
+            <span>{tr('I have read and understood this, and I will follow the law where I am.')}</span>
+        </label>
+    );
+}
+
 /* ── the story ──────────────────────────────────────────────────────── */
 
 interface Screen {
@@ -432,6 +525,9 @@ interface Screen {
     title: string;
     body: ReactNode;
     stage: (active: boolean) => ReactNode;
+    /** Only the stage, no words under it: the language screen, whose
+     *  choices say what it is in every language at once. */
+    bare?: boolean;
 }
 
 /** The last screen's line, with its warning in red. */
@@ -445,6 +541,13 @@ function LastWords() {
 }
 
 const SCREENS: Screen[] = [
+    {
+        kicker: 'Language',
+        title: 'Language',
+        body: null,
+        stage: () => <LanguageStage />,
+        bare: true,
+    },
     {
         kicker: 'Oyama Journal',
         title: 'Know what you take.',
@@ -475,23 +578,31 @@ const SCREENS: Screen[] = [
         body: <LastWords />,
         stage: () => <PrivateStage />,
     },
+    {
+        kicker: 'Before you start',
+        title: 'Please read this.',
+        body: null, // the box to tick, drawn by Onboarding
+        stage: () => <DisclaimerStage />,
+    },
 ];
 
 export function Onboarding() {
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useState(onlyDisclaimer ? SCREENS.length - 1 : 0);
+    const [agreed, setAgreed] = useState(false);
     const [drag, setDrag] = useState(0);
     const press = useRef<{ x: number; y: number; t: number; id: number; axis?: 'x' | 'y' } | null>(null);
     const frame = useRef<HTMLDivElement>(null);
     const last = SCREENS.length - 1;
 
     const go = (n: number) => setStep(Math.max(0, Math.min(last, n)));
-    const next = () => (step === last ? finish() : go(step + 1));
+    const next = () => (step !== last ? go(step + 1) : agreed && finish());
+    const skip = () => go(last);
 
     useEffect(() => {
         const on = (e: KeyboardEvent) => {
             if (e.key === 'ArrowRight') go(step + 1);
             else if (e.key === 'ArrowLeft') go(step - 1);
-            else if (e.key === 'Escape') finish();
+            else if (e.key === 'Escape') skip();
         };
         window.addEventListener('keydown', on);
         return () => window.removeEventListener('keydown', on);
@@ -543,7 +654,7 @@ export function Onboarding() {
                 </span>
                 <button
                     type="button"
-                    onClick={finish}
+                    onClick={skip}
                     className={`ms-auto rounded-full px-3 py-1.5 text-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] ${step === last ? 'invisible' : ''}`}
                     tabIndex={step === last ? -1 : 0}
                 >
@@ -574,7 +685,7 @@ export function Onboarding() {
                     {SCREENS.map((s, k) => (
                         <section
                             key={s.kicker}
-                            className="ob-screen flex h-full w-full shrink-0 flex-col px-6 pt-5"
+                            className={`ob-screen flex h-full w-full shrink-0 flex-col px-6 pt-5 ${s.bare ? 'justify-center pb-5' : ''}`}
                             data-active={k === step}
                             aria-hidden={k !== step}
                             {...(k === step ? {} : { inert: '' })}
@@ -582,17 +693,24 @@ export function Onboarding() {
                             <div className="ob-stage relative grid min-h-[15rem] flex-1 max-h-[24rem] place-items-center overflow-hidden rounded-[1.75rem] bg-[var(--surface-muted)] px-6 py-6">
                                 {s.stage(k === step)}
                             </div>
-                            <div className="pt-7 pb-4">
+                            {!s.bare && <div className="pt-7 pb-4">
                                 <p className="ob-rise text-sm font-semibold text-[var(--accent-ink)]" style={{ '--i': 0 } as CSSProperties}>
                                     {tr(s.kicker)}
                                 </p>
                                 <h1 className="ob-rise mt-2 font-display text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em]" style={{ '--i': 1 } as CSSProperties}>
                                     {tr(s.title)}
                                 </h1>
-                                <p className="ob-rise mt-3 text-[0.9375rem] leading-relaxed text-[var(--text-muted)]" style={{ '--i': 2 } as CSSProperties}>
-                                    {typeof s.body === 'string' ? tr(s.body) : s.body}
-                                </p>
-                            </div>
+                                {s.body && (
+                                    <p className="ob-rise mt-3 text-[0.9375rem] leading-relaxed text-[var(--text-muted)]" style={{ '--i': 2 } as CSSProperties}>
+                                        {typeof s.body === 'string' ? tr(s.body) : s.body}
+                                    </p>
+                                )}
+                                {k === last && (
+                                    <div className="ob-rise mt-4" style={{ '--i': 2 } as CSSProperties}>
+                                        <Agree agreed={agreed} onChange={setAgreed} />
+                                    </div>
+                                )}
+                            </div>}
                         </section>
                     ))}
                 </div>
@@ -622,8 +740,13 @@ export function Onboarding() {
                             <ChevronLeft size={18} />
                         </button>
                     )}
-                    <button type="button" onClick={next} className="btn-primary flex-1">
-                        {step === last ? tr('Get started') : tr('Next')}
+                    <button
+                        type="button"
+                        onClick={next}
+                        disabled={step === last && !agreed}
+                        className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {step === last ? tr('Agree and start') : tr('Next')}
                     </button>
                 </div>
             </div>
