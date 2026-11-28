@@ -796,6 +796,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     </div>
                                 );
                             })}
+                            {/* Pairs AI worked out where no source speaks (metformin's). */}
+                            {combos.some(c => c.ai) && <AiNote />}
                         </div>
                     )}
                 </section>

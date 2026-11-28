@@ -1159,7 +1159,16 @@ const OTHER_ENTRIES = [
       { name: 'Appetite suppression' },
       { name: 'Weight loss' },
     ],
-    combinations: [],
+    // AI's, the same as lib/mix.ts works out from what each one does, so
+    // the page can name them; the mix checker labels them as AI's.
+    combinations: [
+      { substance: 'Alcohol', status: 'Caution', ai: true, note: 'Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. A drink or two with a meal is usually fine: don’t binge, and skip metformin if you’ve been sick.' },
+      { substance: 'MDMA', status: 'Caution', ai: true, note: 'A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.' },
+      { substance: 'Amphetamine', status: 'Caution', ai: true, note: 'A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.' },
+      { substance: 'Methamphetamine', status: 'Caution', ai: true, note: 'A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.' },
+      { substance: 'Topiramate', status: 'Caution', ai: true, note: 'Both can make the blood more acidic, and together that adds up. Watch for fast deep breathing, unusual tiredness or stomach pain.' },
+      { substance: 'Zonisamide', status: 'Caution', ai: true, note: 'Both can make the blood more acidic, and together that adds up. Watch for fast deep breathing, unusual tiredness or stomach pain.' },
+    ],
     formula: 'C4H11N5',
     molarMass: 129.16,
     helpfulLinks: [

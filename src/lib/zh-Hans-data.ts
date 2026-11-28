@@ -1181,6 +1181,9 @@ const passages: Record<string, string> = {
     'Antidiabetic': '降血糖药',
     'Metallic taste': '金属味',
     'From the MHRA.': '出自英国药品和保健产品管理局（MHRA）。',
+    'Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. A drink or two with a meal is usually fine: don’t binge, and skip metformin if you’ve been sick.': '酒精会让二甲双胍引起乳酸酸中毒更容易发生，空腹喝很多还可能让血糖降低。随餐喝一两杯通常没问题：不要狂饮，喝到吐的话先停用二甲双胍。',
+    'A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.': '用了它玩一整晚，又热又没喝多少水，身体会脱水、加重肾脏负担，而肾脏一慢下来，二甲双胍就会蓄积。记得吃东西、稳定地小口喝水，呕吐的话先停用二甲双胍。',
+    'Both can make the blood more acidic, and together that adds up. Watch for fast deep breathing, unusual tiredness or stomach pain.': '两者都可能让血液变得更酸，一起用会叠加。留意呼吸又快又深、异常疲倦或腹痛。',
 };
 
 const zhData: Record<string, string> = { ...effects, ...combos, ...families, ...phrases, ...advice, ...passages };

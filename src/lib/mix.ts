@@ -346,7 +346,7 @@ export function checkPair(
           b,
           verdict: c.status,
           note: isBoilerplate(c.note) ? undefined : c.note,
-          source: c.note?.startsWith('TripSit') ? 'TripSit' : c.note?.includes('on Wikidata') ? 'Wikidata' : 'PsychonautWiki',
+          source: c.ai ? 'AI' : c.note?.startsWith('TripSit') ? 'TripSit' : c.note?.includes('on Wikidata') ? 'Wikidata' : 'PsychonautWiki',
         });
     }
   };

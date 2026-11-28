@@ -108,6 +108,9 @@ export interface Combination {
   substance: string;
   status: ComboStatus;
   note?: string;
+  /** AI's estimate from what each one does (lib/traits.ts), not a source's:
+   *  written by hand for an entry no source covers (metformin). */
+  ai?: true;
 }
 
 /** A few sentences quoted from an article, and where they are in it. */
