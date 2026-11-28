@@ -295,6 +295,28 @@ const RULES: { when: (x: Set<Trait>, y: Set<Trait>) => boolean; verdict: ComboSt
     verdict: 'Caution',
     note: () => tr('Both are hard on the liver.'),
   },
+  // Metformin, which touches little but the kidneys and the blood's acid:
+  // the few things that push the same way, and for the rest, what to watch.
+  {
+    when: (x, y) => (x.has('lactic') && y.has('ethanol')) || (y.has('lactic') && x.has('ethanol')),
+    verdict: 'Caution',
+    note: () => tr('Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. A drink or two with a meal is usually fine: don’t binge, and skip metformin if you’ve been sick.'),
+  },
+  {
+    when: (x, y) => (x.has('lactic') && y.has('acidosis')) || (y.has('lactic') && x.has('acidosis')),
+    verdict: 'Caution',
+    note: () => tr('Both can make the blood more acidic, and together that adds up. Watch for fast deep breathing, unusual tiredness or stomach pain.'),
+  },
+  {
+    when: (x, y) => (x.has('lactic') && y.has('overheat')) || (y.has('lactic') && x.has('overheat')),
+    verdict: 'Caution',
+    note: () => tr('A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.'),
+  },
+  {
+    when: (x, y) => x.has('lactic') || y.has('lactic'),
+    verdict: 'Low risk',
+    note: () => tr('Metformin doesn’t act on the brain and isn’t broken down by the liver, so it isn’t known to change how this one works. If either makes you vomit or stop eating and drinking, skip metformin until you’re eating again.'),
+  },
 ];
 
 export function inferred(a: IndexEntry, b: IndexEntry): PairResult | null {
@@ -324,7 +346,7 @@ export function checkPair(
           b,
           verdict: c.status,
           note: isBoilerplate(c.note) ? undefined : c.note,
-          source: c.note?.startsWith('TripSit') ? 'TripSit' : c.note?.includes('on Wikidata') ? 'Wikidata' : 'PsychonautWiki',
+          source: c.ai ? 'AI' : c.note?.startsWith('TripSit') ? 'TripSit' : c.note?.includes('on Wikidata') ? 'Wikidata' : 'PsychonautWiki',
         });
     }
   };

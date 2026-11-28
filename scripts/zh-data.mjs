@@ -56,6 +56,7 @@ const TAIWAN = {
     water: '水',
     oxygen: '氧氣',
     air: '空氣',
+    metformin: '二甲雙胍',
 };
 
 /* And what the mainland calls them, where the same holds: Wikidata's label
@@ -71,6 +72,7 @@ const MAINLAND = {
     water: '水',
     oxygen: '氧气',
     air: '空气',
+    metformin: '二甲双胍',
 };
 
 /* The other names, by hand, of an entry Wikidata isn't asked about (one
@@ -86,6 +88,11 @@ const HAND_OTHER = {
         search: '大氣, 大气, 新鮮空氣, 新鲜空气',
         hant: '大氣',
         hans: '大气',
+    },
+    metformin: {
+        search: '甲福明, 格華止, 格华止, 庫魯化, 库鲁化, 鹽酸二甲雙胍, 盐酸二甲双胍, 二甲雙胍緩釋片, 二甲双胍缓释片, 降糖藥, 降糖药',
+        hant: '甲福明, 庫魯化, 格華止',
+        hans: '甲福明, 格华止',
     },
 };
 

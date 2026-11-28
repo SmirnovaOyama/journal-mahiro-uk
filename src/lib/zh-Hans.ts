@@ -372,6 +372,11 @@ const zh: Record<string, string> = {
     'Both lower blood pressure. Standing up quickly can make you dizzy or faint.': '两者都会降低血压，突然站起来可能头晕或昏倒。',
     'Both make bleeding more likely. Watch for easy bruising, nosebleeds or black stools.': '两者都会增加出血风险，留意容易瘀青、流鼻血或黑便。',
     'Both are hard on the liver.': '两者都会加重肝脏负担。',
+    'Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. A drink or two with a meal is usually fine: don’t binge, and skip metformin if you’ve been sick.': '酒精会让二甲双胍引起乳酸酸中毒更容易发生，空腹喝很多还可能让血糖降低。随餐喝一两杯通常没问题：不要狂饮，喝到吐的话先停用二甲双胍。',
+    'Both can make the blood more acidic, and together that adds up. Watch for fast deep breathing, unusual tiredness or stomach pain.': '两者都可能让血液变得更酸，一起用会叠加。留意呼吸又快又深、异常疲倦或腹痛。',
+    'A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.': '用了它玩一整晚，又热又没喝多少水，身体会脱水、加重肾脏负担，而肾脏一慢下来，二甲双胍就会蓄积。记得吃东西、稳定地小口喝水，呕吐的话先停用二甲双胍。',
+    'Metformin doesn’t act on the brain and isn’t broken down by the liver, so it isn’t known to change how this one works. If either makes you vomit or stop eating and drinking, skip metformin until you’re eating again.': '二甲双胍不作用于大脑，也不经肝脏代谢，所以目前不知道它会改变另一种的作用。如果任何一种让你呕吐或吃不下、喝不下，先停用二甲双胍，等能正常吃东西再恢复。',
+    'extended release': '缓释',
 
     // lib/time.ts
     '{0} seconds': '{0} 秒',
