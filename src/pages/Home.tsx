@@ -119,7 +119,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                             // After the check-in, "nothing called that" would only be cold.
                             !care && !n55 && !help && <div className="py-8">
                                 <p className="text-sm font-semibold">
-                                    {tr('Nothing called “{0}”', { 0: q.trim() })}
+                                    {tr('No results for “{0}”', { 0: q.trim() })}
                                 </p>
                                 <p className="text-sm text-[var(--text-muted)] mt-1">
                                     {tr('Try another spelling, a street name, or the family it belongs to, like “tryptamine”.')}

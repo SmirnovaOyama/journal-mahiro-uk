@@ -109,7 +109,7 @@ const ClearRow: React.FC<{ label: string; count: number; countText: string; onCl
             </button>
             {asking && count > 0 && (
                 <div className="m-appear flex items-center justify-between gap-3 pb-3.5">
-                    <span className="text-sm">{warn ?? tr('This can’t be undone.')}</span>
+                    <span className="text-sm">{warn ?? tr('This action can’t be undone.')}</span>
                     <span className="flex gap-2">
                         <button className="btn-secondary btn-sm" onClick={() => setAsking(false)} autoFocus>
                             {tr('Keep it')}
@@ -176,7 +176,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             return e ? { id: e.id, name: e.name } : undefined;
         });
         if (!parsed) {
-            setImportNote(tr('That file isn’t a journal from here or from PsychonautWiki Journal.'));
+            setImportNote(tr('This file isn’t a journal exported from here or from PsychonautWiki Journal.'));
             return;
         }
         const { next, added, addedWeights } = merge(journal.data, parsed);
@@ -336,14 +336,14 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         count={count}
                         countText={count === 1 ? tr('1 dose') : tr('{0} doses', { 0: count })}
                         onClear={journal.clear}
-                        warn={account ? tr('From every device signed in to your account too. This can’t be undone.') : undefined}
+                        warn={account ? tr('It will also be deleted from every device signed in to your account. This action can’t be undone.') : undefined}
                     />
                     <ClearRow
                         label={tr('Delete body weight')}
                         count={wCount}
                         countText={wCount === 1 ? tr('1 weight') : tr('{0} weights', { 0: wCount })}
                         onClear={weights.clear}
-                        warn={account ? tr('From every device signed in to your account too. This can’t be undone.') : undefined}
+                        warn={account ? tr('It will also be deleted from every device signed in to your account. This action can’t be undone.') : undefined}
                     />
                 </div>
                 {importNote && (

@@ -89,7 +89,7 @@ export function MedicinesPage() {
                                 <SubstanceRow key={h.entry.id} id={`med-${h.entry.id}`} entry={h.entry} sub={h.via ? tr('Also called {0}', { 0: h.via }) : undefined} active={i === active} onPick={add} />
                             ))
                         ) : (
-                            <p className={`text-sm ${muted} py-3`}>{tr('Nothing called “{0}”.', { 0: q.trim() })}</p>
+                            <p className={`text-sm ${muted} py-3`}>{tr('No results for “{0}”.', { 0: q.trim() })}</p>
                         )}
                     </div>
                 )}

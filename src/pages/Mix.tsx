@@ -275,7 +275,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                             ))
                         ) : (
                             <p className="text-sm text-[var(--text-muted)] py-3">
-                                {tr('Nothing called “{0}”.', { 0: q.trim() })}
+                                {tr('No results for “{0}”.', { 0: q.trim() })}
                             </p>
                         )}
                     </div>

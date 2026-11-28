@@ -17,7 +17,7 @@ export const inputCls = 'input-base text-sm w-full';
 export const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 export const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
-export const message = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : tr('Something went wrong. Try again.'));
+export const message = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : tr('An error occurred. Please try again.'));
 
 /** "just now", "5 min ago", "3 h ago", "on 4 Nov". */
 export function ago(t: number, now = Date.now()): string {

@@ -140,7 +140,7 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                             : state === 'key'
                               ? tr('This link is incomplete.')
                               : state === 'offline'
-                                ? tr('Couldn’t reach the server.')
+                                ? tr('Couldn’t connect to the server.')
                                 : tr('Opening…')}
                     </p>
                     <p className={`mt-1 text-sm ${muted}`}>

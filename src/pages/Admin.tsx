@@ -33,7 +33,7 @@ const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 
-const message = (e: unknown) => (e instanceof Error ? e.message : tr('Something went wrong. Try again.'));
+const message = (e: unknown) => (e instanceof Error ? e.message : tr('An error occurred. Please try again.'));
 
 export function formatBytes(n: number): string {
     if (n < 1024) return `${n} B`;

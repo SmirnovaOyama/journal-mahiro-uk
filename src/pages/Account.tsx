@@ -244,7 +244,7 @@ function SecurityPart({ info }: { info: AccountInfo | null }) {
     const tf = info?.twoFactor;
     return (
         <div className={settingsSection}>
-            <SettingsListItem icon={Password} title={tr('Change password')} description={tr('Signs out your other devices')} onClick={() => go({ page: 'settings', sub: 'password' })} />
+            <SettingsListItem icon={Password} title={tr('Change password')} description={tr('Signs out all devices except this one')} onClick={() => go({ page: 'settings', sub: 'password' })} />
             <SettingsListItem
                 icon={Shield}
                 title={tr('Two-step sign-in')}
@@ -303,7 +303,7 @@ function DevicesPart({ info, reload }: { info: AccountInfo | null; reload: () =>
             )}
             {sessions.length > 1 && (
                 <button className="btn-secondary w-full" disabled={!!busy} onClick={() => void run('all', signOutOtherDevices)}>
-                    {busy === 'all' ? tr('Signing them out…') : tr('Sign out every other device')}
+                    {busy === 'all' ? tr('Signing them out…') : tr('Sign out all other devices')}
                 </button>
             )}
         </div>

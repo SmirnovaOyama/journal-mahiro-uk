@@ -60,7 +60,7 @@ export function Report({ id }: { id: string }) {
             <PageHeader title={report ? report.title.replace(/[:：].*$/, '') : tr('Report')} backTo={fromLink} subtitle={report?.title.replace(/^[^:：]*[:：]\s*/, '')} />
             <div className={`${PAGE_COLUMN} pb-10`}>
                 {report === null ? (
-                    <p className="pt-8 text-sm text-[var(--text-muted)]">{tr('There’s no report here.')}</p>
+                    <p className="pt-8 text-sm text-[var(--text-muted)]">{tr('Report not found.')}</p>
                 ) : report ? (
                     <article className="space-y-6 text-sm leading-relaxed max-w-prose">
                         {report.picture && (

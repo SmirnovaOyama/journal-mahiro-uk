@@ -75,7 +75,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
             setError(
                 e instanceof WatchError && e.code === 'OFFLINE'
                     ? tr('Sharing needs an internet connection.')
-                    : tr('Couldn’t start sharing. Try again in a moment.'),
+                    : tr('Couldn’t start sharing. Please try again later.'),
             );
         } finally {
             setBusy(false);

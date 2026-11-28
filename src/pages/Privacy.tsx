@@ -53,8 +53,8 @@ function NewCode({ submit, onDone, busyText, doText }: { submit: (code: string) 
                             err instanceof Error && /^Same/.test(err.message)
                                 ? tr('The two codes have to differ.')
                                 : err instanceof Error && err.message === 'No room'
-                                  ? tr('There’s no room left in this browser’s storage.')
-                                  : tr('That didn’t work. Nothing was changed.'),
+                                  ? tr('This browser’s storage is full.')
+                                  : tr('An error occurred. No changes were made.'),
                         ),
                     )
                     .finally(() => setBusy(false));
@@ -282,7 +282,7 @@ export function PrivacyPage() {
                         </button>
                         {erasing && (
                             <div className="m-appear flex flex-wrap items-center justify-between gap-3 pb-3.5">
-                                <span className="text-sm">{tr('This can’t be undone from here.')}</span>
+                                <span className="text-sm">{tr('This action can’t be undone from here.')}</span>
                                 <span className="flex gap-2">
                                     <button className="btn-secondary btn-sm" onClick={() => setErasing(false)} autoFocus>
                                         {tr('Keep it')}

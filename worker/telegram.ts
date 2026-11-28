@@ -137,7 +137,7 @@ async function answer(tools: TelegramTools, index: IndexEntry[], names: string[]
     }
     tools.speak(lang);
     if (missing.length) {
-        const text = tr('Nothing called “{0}”.', { 0: missing.join(', ') });
+        const text = tr('No results for “{0}”.', { 0: missing.join(', ') });
         return { text: esc(text), title: text, says: '' };
     }
     if (mix) {

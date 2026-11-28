@@ -513,7 +513,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                         adding ? null : (
                             <div className="flex flex-col items-center text-center pt-6 pb-10">
                                 <Doodle name="notebook" size={4.5} />
-                                <p className={`mt-4 text-sm font-medium ${on}`}>{tr('Nothing logged yet')}</p>
+                                <p className={`mt-4 text-sm font-medium ${on}`}>{tr('No doses logged yet')}</p>
                                 <p className={`mt-1 text-sm ${muted} max-w-xs`}>
                                     {tr('Log what you take and when. You’ll be warned if you redose too soon or take things that don’t mix. Your journal stays on this device unless you sign up to sync it.')}
                                 </p>
@@ -585,7 +585,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     </section>
                                 ))
                             ) : onlyStarred ? (
-                                <p className={`text-sm ${muted}`}>{tr('No favourites yet. Open a session and tap its heart.')}</p>
+                                <p className={`text-sm ${muted}`}>{tr('No favourites yet. Tap the heart on a session to add it here.')}</p>
                             ) : null}
                         </>
                     )}

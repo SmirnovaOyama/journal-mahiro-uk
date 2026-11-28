@@ -79,7 +79,7 @@ test('in a group it speaks only when spoken to by a command', async () => {
 
 test('what isn’t in the catalogue is said so, and text is escaped', async () => {
     const { body } = await ask(message('/mix mdma <script>'));
-    assert.match(body!.text, /Nothing called/);
+    assert.match(body!.text, /No results for/);
     assert.ok(!body!.text.includes('<script>'));
 });
 
