@@ -837,7 +837,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     !how || aiHow
                                         ? firstSentence(how?.text || aiHow)
                                         : how.text
-                                        ? firstSentence(how.text)
+                                        ? firstSentence(dataWhole(how.text) || how.text)
                                         : how.acts
                                           ? how.acts.map(a => `${tr(ACTS[a.how][0])} ${targetNames(a.on.slice(0, 3)).join(', ')}`).join('; ')
                                           : (termText(how.kind ?? '') || how.body?.map(r => tr('{0}: {1}', { 0: tr(BODY[r.what][0]), 1: termText(r.says) })).join(tr('. ')))
@@ -845,7 +845,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             >
                                 {aiHow && <p className="text-sm max-w-prose">{aiHow}</p>}
                                 {how && (<>
-                                {how.text && <p className="text-sm max-w-prose">{how.text}</p>}
+                                {how.text && <p className="text-sm max-w-prose">{dataWhole(how.text) || how.text}</p>}
                                 {(how.kind || how.acts) && (
                                     <dl className={how.text || aiHow ? 'mt-2' : undefined}>
                                         {how.kind && <Fact about={tr('Kind of drug')}>{termText(how.kind)}</Fact>}

@@ -100,6 +100,14 @@ const BY_AI: [string, string, Verdict][] = [
     ['diphenhydramine', 'trihexyphenidyl', 'Caution'],
     ['risperidone', 'pramipexole', 'Decrease'],
     ['aspirin', 'fluoxetine', 'Caution'],
+    // Metformin, taken every day: a binge, a hot night on MDMA, or a drug
+    // that turns the blood acidic too all make lactic acidosis more likely.
+    ['metformin', 'alcohol', 'Caution'],
+    ['metformin', 'mdma', 'Caution'],
+    ['metformin', 'topiramate', 'Caution'],
+    // And with what it isn't known to touch, low risk, with what to watch.
+    ['metformin', 'cannabis', 'Low risk'],
+    ['metformin', 'sertraline', 'Low risk'],
 ];
 
 test('a pair no source covers gets AI’s estimate, labelled as AI’s', () => {

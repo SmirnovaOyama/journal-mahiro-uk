@@ -53,6 +53,14 @@ export type Trait =
     | 'ethanol'
     /** Hard on the liver. */
     | 'liver'
+    /** Metformin: builds up and turns the blood acidic (lactic acidosis)
+     *  when the kidneys slow or the body runs short of water or oxygen. */
+    | 'lactic'
+    /** Makes the blood more acidic itself (topiramate, zonisamide). */
+    | 'acidosis'
+    /** Can overheat and dry the body out over a long night (MDMA, the
+     *  amphetamines and cathinones), which strains the kidneys. */
+    | 'overheat'
     /** What kind of drug it is, for the pairs nothing above covers. */
     | 'psychedelic'
     | 'dissociative'
@@ -176,7 +184,10 @@ export const AI_TRAITS: Record<string, Trait[]> = {
     cyanamide: T('antabuse'),
     // Anticonvulsants filed as depressants
     lamotrigine: T('dizzy'),
-    topiramate: T('dizzy sedating'),
+    topiramate: T('dizzy sedating acidosis'),
+    zonisamide: T('dizzy sedating acidosis'),
+    // Diabetes
+    metformin: T('lactic'),
     'valproic-acid': T('sedating liver bleeding'),
 };
 
@@ -220,5 +231,6 @@ export function traitsOf(e: IndexEntry): Set<Trait> {
     if (/SSRI/.test(e.chemicalClass)) out.add('serotonin').add('bleeding');
     if (/Tricyclic/.test(e.chemicalClass)) out.add('serotonin').add('anticholinergic').add('qt').add('seizure');
     if (/Phenothiazine/.test(e.chemicalClass)) out.add('antidopamine').add('sedating');
+    if (e.category === 'Empathogen' || /MDxx|amphetamine|cathinone/i.test(e.chemicalClass)) out.add('overheat');
     return out;
 }
