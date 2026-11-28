@@ -72,6 +72,10 @@ const WORDS = {
     // The iPhone's Shortcuts app goes by another name there.
     捷径: '快捷指令',
     程式码: '代码',
+    萤幕: '屏幕',
+    // The words the user chose for the link to the Now screen.
+    大屏幕显示: '大屏显示',
+    大萤幕显示: '大屏显示',
 };
 
 const HAN = /[㐀-鿿]/;

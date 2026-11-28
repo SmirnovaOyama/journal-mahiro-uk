@@ -23,6 +23,8 @@ import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
 import { DoseLink } from '../components/DoseLink';
 import { useFeature } from '../lib/features';
+import { useShare } from '../lib/watch';
+import { shareTonight } from '../components/ShareNight';
 import { ProductForm } from '../components/ProductForm';
 import { LimitEditor, ParacetamolLine, PatternNotes } from '../components/JournalNotes';
 import { Link } from '../components/Link';
@@ -390,6 +392,8 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     const [product, setProduct] = useState<boolean | string>(false);
     const [onlyStarred, setOnlyStarred] = useState(false);
     const nowOn = useFeature('now');
+    const shareOn = useFeature('watch');
+    const shared = useShare();
     const [matrix, setMatrix] = useState<ComboMatrix>();
     useEffect(() => {
         document.title = tr('Journal');
@@ -551,13 +555,22 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         {tr('See the risks of mixing with {0}', { 0: andList(substancesOf(live).map(x => nameOf(x, live, byId))) })}
                                         <ChevronRight size={15} />
                                     </Link>
-                                    {/* The same night on one calm screen, for the hours it lasts. */}
+                                    {/* The same night on one calm screen, large, for the hours it lasts. */}
                                     {nowOn && (
                                         <p className="mt-1">
                                             <Link to={{ page: 'now' }} className={`${headerActionAccent} tap-target -ms-2.5 no-underline`}>
-                                                {tr('Keep tonight on one screen')}
+                                                {tr('Show this session full screen, for others to see or to do more')}
                                                 <ChevronRight size={15} />
                                             </Link>
+                                        </p>
+                                    )}
+                                    {/* Tonight with someone trusted, in one tap: the share sheet opens with the link. */}
+                                    {shareOn && (
+                                        <p className="mt-1">
+                                            <button type="button" className={`${headerActionAccent} tap-target -ms-2.5`} onClick={() => shareTonight(shared)}>
+                                                {shared ? tr('Shared until {0}: send the link again', { 0: clock(shared.expires) }) : tr('Share tonight with someone you trust')}
+                                                <ChevronRight size={15} />
+                                            </button>
                                         </p>
                                     )}
                                     {/* And if it goes wrong tonight, the way there is one tap from here. */}

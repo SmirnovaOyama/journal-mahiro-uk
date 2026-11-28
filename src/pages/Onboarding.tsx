@@ -551,9 +551,13 @@ export function Onboarding() {
                 </button>
             </div>
 
+            {/* The screens and the button under them, as one group: on a
+                tall screen it stands in the middle, the button close under
+                the words, not pinned to the foot with an empty field between. */}
+            <div className="flex min-h-0 flex-1 flex-col justify-center">
             <div
                 ref={frame}
-                className="relative mx-auto w-full max-w-lg flex-1 overflow-hidden"
+                className="relative mx-auto w-full max-w-lg flex-1 max-h-[40rem] overflow-hidden"
                 style={{ touchAction: 'pan-y' }}
                 onPointerDown={onDown}
                 onPointerMove={onMove}
@@ -622,6 +626,7 @@ export function Onboarding() {
                         {step === last ? tr('Get started') : tr('Next')}
                     </button>
                 </div>
+            </div>
             </div>
         </div>
     );

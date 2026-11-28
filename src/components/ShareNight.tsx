@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { IndexEntry } from '../lib/data';
 import { tr } from '../lib/i18n';
-import { WatchError, checkIn, dueAt, shareLink, startShare, stopShare, useShare } from '../lib/watch';
+import { checkIn, dueAt, setCheckInEvery, shareLink, startShare, stopShare, useShare, type Share } from '../lib/watch';
 import Segmented from './Segmented';
 import { useFeature } from '../lib/features';
+import { toast } from '../lib/eggs';
 
 /* On the Now screen: sharing tonight with someone trusted (lib/watch.ts),
-   and answering their check-ins. */
+   and answering their check-ins.
+
+   Sharing is one tap: the link is made on this device, so the share sheet
+   opens with it straight away (on a computer it's copied), and the copy
+   follows it to the server. A check-in is asked for every 30 minutes to
+   begin with; that, and stopping, are there once it's shared. */
 
 const muted = 'text-[var(--text-muted)]';
 const clock = (t: number) => {
@@ -56,31 +62,38 @@ const EVERY = [
     { id: '60', label: '1 h' },
 ] as const;
 
+/** Hands the link over, called straight from the tap: the share sheet on a
+ *  phone, else the link is copied. */
+async function handOver(link: string) {
+    if (typeof navigator.share === 'function' && window.matchMedia('(pointer: coarse)').matches) {
+        try {
+            await navigator.share({ url: link });
+            return;
+        } catch (e) {
+            if ((e as Error).name === 'AbortError') return;
+        }
+    }
+    try {
+        await navigator.clipboard.writeText(link);
+        toast(tr('Link copied.'));
+    } catch {
+        /* the link is on the Now screen, to copy by hand */
+    }
+}
+
+/** Shares tonight, or hands the link over again if it's shared already. */
+export function shareTonight(current: Share | null) {
+    if (!current && !navigator.onLine) {
+        toast(tr('Sharing needs an internet connection.'));
+        return;
+    }
+    void handOver(shareLink(current ?? startShare({ hours: 12, every: 30 })));
+}
+
 export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
     const share = useShare();
-    const [every, setEvery] = useState<'0' | '30' | '60'>('30');
-    const [name, setName] = useState('');
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [copied, setCopied] = useState(false);
     const wanted = useFeature('watch');
     useTick(60_000);
-
-    const begin = async () => {
-        setBusy(true);
-        setError(null);
-        try {
-            await startShare({ hours: 12, every: Number(every), name });
-        } catch (e) {
-            setError(
-                e instanceof WatchError && e.code === 'OFFLINE'
-                    ? tr('Sharing needs an internet connection.')
-                    : tr('Couldn’t start sharing. Please try again later.'),
-            );
-        } finally {
-            setBusy(false);
-        }
-    };
 
     if (!wanted) return null;
     if (!share)
@@ -92,32 +105,13 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                 <p className={`text-sm ${muted}`}>
                     {tr('A link for someone you trust. They’ll see what you log tonight, how far along each dose is, and whether you’ve checked in. It’s encrypted on this device, and the key is in the link: the server keeps a copy it can’t read for 12 hours.')}
                 </p>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                    <span className="text-sm text-[var(--text)]">{tr('Ask me to check in')}</span>
-                    <Segmented aria-label={tr('Ask me to check in')} options={EVERY.map(o => ({ id: o.id, label: tr(o.label, undefined, 'every') }))} value={every} onChange={setEvery} />
-                </div>
-                <input
-                    className={`input-base mt-3 w-full ${name ? 'is-inked' : ''}`}
-                    placeholder={tr('What they call you (optional)')}
-                    aria-label={tr('What they call you (optional)')}
-                    autoComplete="off"
-                    maxLength={40}
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                />
-                <button type="button" className="btn-secondary mt-4" onClick={() => void begin()} disabled={busy}>
-                    {busy ? tr('Creating link…') : tr('Create link')}
+                <button type="button" className="btn-primary mt-4" onClick={() => shareTonight(null)}>
+                    {tr('Share tonight')}
                 </button>
-                {error && (
-                    <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
-                        {error}
-                    </p>
-                )}
             </section>
         );
 
     const link = shareLink(share);
-    const canShare = typeof navigator.share === 'function';
     return (
         <section className="mt-10" aria-labelledby="share-night">
             <h2 id="share-night" className="group-heading mb-1">
@@ -126,36 +120,30 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
             <p className={`text-sm ${muted}`}>
                 {tr('Anyone with this link can see tonight’s doses until then, so it’s meant only for the person watching. They’ll see updates while this site is open on your device.')}
             </p>
+            <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-sm text-[var(--text)]">{tr('Ask me to check in')}</span>
+                <Segmented
+                    aria-label={tr('Ask me to check in')}
+                    options={EVERY.map(o => ({ id: o.id, label: tr(o.label, undefined, 'every') }))}
+                    value={String(share.every) as (typeof EVERY)[number]['id']}
+                    onChange={v => setCheckInEvery(Number(v))}
+                />
+            </div>
             <div className="mt-4 flex justify-center rounded-[var(--radius-lg)] bg-white p-4">
                 <QRCodeSVG value={link} size={176} level="M" />
             </div>
             <input className="input-base is-inked mt-3 w-full text-xs" readOnly value={link} aria-label={tr('The link')} onFocus={e => e.currentTarget.select()} />
             <div className="mt-3 flex flex-wrap gap-2">
-                {canShare && (
-                    <button type="button" className="btn-primary btn-sm" onClick={() => void navigator.share({ url: link }).catch(() => {})}>
-                        {tr('Send it')}
-                    </button>
-                )}
-                <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() => {
-                        void navigator.clipboard
-                            ?.writeText(link)
-                            .then(() => {
-                                setCopied(true);
-                                window.setTimeout(() => setCopied(false), 2000);
-                            })
-                            .catch(() => {});
-                    }}
-                >
-                    {copied ? tr('Copied') : tr('Copy the link')}
+                <button type="button" className="btn-primary btn-sm" onClick={() => shareTonight(share)}>
+                    {tr('Send again')}
                 </button>
                 <button type="button" className="btn-danger btn-sm" onClick={() => void stopShare()}>
                     {tr('Stop sharing')}
                 </button>
             </div>
-            {share.sent && <p className={`mt-3 text-xs ${muted}`}>{tr('Last sent at {0}.', { 0: clock(share.sent) })}</p>}
+            <p className={`mt-3 text-xs ${muted}`}>
+                {share.pending ? tr('Not sent yet. It will be sent once there’s a connection.') : share.sent ? tr('Last sent at {0}.', { 0: clock(share.sent) }) : null}
+            </p>
         </section>
     );
 }
