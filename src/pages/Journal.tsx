@@ -38,6 +38,7 @@ import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
 import { ChevronDown, ChevronRight, Close, Heart, Plus } from '../components/icons';
 import { currentLang, dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
+import { toPageTop } from '../lib/scroll';
 import { SavePicture, usePictureStyle, usePictures } from '../components/PictureExport';
 import type { NightPicture as Picture, Status } from '../lib/picture';
 
@@ -473,6 +474,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         doses.forEach(d => add(d));
                                         setAdding(false);
                                         setProduct(false);
+                                        toPageTop();
                                     }}
                                     onCancel={() => setProduct(false)}
                                 />
@@ -492,6 +494,8 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                             toast(tr('Dose logged.'));
                                         }
                                         setAdding(false);
+                                        // Up to where the night is, to see it there.
+                                        toPageTop();
                                     }}
                                     onCancel={() => setAdding(false)}
                                 />
@@ -745,6 +749,8 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                                             toast(tr('Dose logged.'));
                                         }
                                         setAdding(false);
+                                        // Up to where the night is, to see it there.
+                                        toPageTop();
                                     }}
                                     onCancel={() => setAdding(false)}
                                 />

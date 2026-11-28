@@ -20,16 +20,16 @@ import { WaitMark } from './Waiting';
 /** Whether pictures are on (Settings, Features). */
 export const usePictures = () => useFeature('picture');
 
-/* How the night is drawn: round a dial, or along a line. Chosen once in
-   Settings, Features, under the switch, and kept on this device, so the
-   button stays one tap. */
+/* How the night is drawn: along a line, as the session chart draws it (the
+   default), or round a dial. Chosen once in Settings, Features, under the
+   switch, and kept on this device, so the button stays one tap. */
 const STYLE_KEY = 'journal.picture-style.v1';
 const readStyle = (): PictureStyle => {
     try {
         const kept = localStorage.getItem(STYLE_KEY);
-        return kept === 'lines' ? kept : 'dial';
+        return kept === 'dial' ? kept : 'lines';
     } catch {
-        return 'dial';
+        return 'lines';
     }
 };
 let style = readStyle();

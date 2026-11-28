@@ -172,23 +172,23 @@ drawn on the device, in the reader's language (`src/lib/picture.ts`), in
 the design system's tokens at twice their size. The night is drawn one of
 two ways, chosen in Settings, Features:
 
+- **Timeline**, the default. The session chart just as the app draws it,
+  in the light theme and as flat as on a phone, under the date as a
+  reading: each dose's curve in its colour over a faint fill, a hollow ring
+  where it was taken, the clock times under, "now" a dotted upright.
 - **Clock.** In the dark theme, a dial that runs through the night alone,
   from its start at the top round to its end. Each dose has its own ring,
   the first innermost, and along it from the time it was taken a ribbon in
   its substance's colour as wide as the effect is strong. Each dose's name,
   time and amount stand in one of two columns beside the dial, a hairline
   from where it was taken. The date is in the middle.
-- **Timeline.** The session chart just as the app draws it, in the light
-  theme and as flat as on a phone, under the date as a reading: each dose's curve in its colour over
-  a faint fill, a hollow ring where it was taken, the clock times under,
-  "now" a dotted upright.
 
 Both are the session chart's curve (`src/lib/curve.ts`). Under the night,
 each substance is drawn as its structure in the brand's terracotta, its
 name in its curve's colour and what it came to; then what didn't mix, each
-status in words; the rating; and at the foot the logo and the site. Never the notes. The night
-isn't uploaded to draw it: the picture is drawn quietly while the page is
-open, so the tap can hand it over at once.
+status in words; the rating; and at the foot the logo and the site.
+Never the notes. The night isn't uploaded to draw it: the picture is drawn
+quietly while the page is open, so the tap can hand it over at once.
 
 ## Pages
 

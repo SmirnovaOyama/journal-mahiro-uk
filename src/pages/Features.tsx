@@ -30,7 +30,7 @@ function Row({ id, label, says, checked, onChange }: { id: Feature; label: strin
     );
 }
 
-/** How a night's picture is drawn: round a dial, or along a line. */
+/** How a night's picture is drawn: along a line (the default), or round a dial. */
 function PictureStyleRow() {
     const style = usePictureStyle();
     return (
@@ -38,8 +38,8 @@ function PictureStyleRow() {
             <span className="text-sm text-[var(--text)]">{tr('The night drawn')}</span>
             <Segmented
                 options={[
-                    { id: 'dial', label: tr('Clock') },
                     { id: 'lines', label: tr('Timeline') },
+                    { id: 'dial', label: tr('Clock') },
                 ]}
                 value={style}
                 onChange={setPictureStyle}
