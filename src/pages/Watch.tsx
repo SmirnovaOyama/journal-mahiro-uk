@@ -214,7 +214,7 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                             ))}
                         </ul>
                     ) : (
-                        <p className={`text-sm ${muted}`}>{tr('Nothing logged yet tonight.')}</p>
+                        <p className={`text-sm ${muted}`}>{tr('Nothing logged in this session yet.')}</p>
                     )}
                     {night.medicines.length > 0 && (
                         <div className="mt-3 text-sm">

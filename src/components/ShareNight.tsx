@@ -100,13 +100,13 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
         return (
             <section className="mt-10" aria-labelledby="share-night">
                 <h2 id="share-night" className="group-heading mb-1">
-                    {tr('Someone to watch over tonight')}
+                    {tr('Someone to watch over this session')}
                 </h2>
                 <p className={`text-sm ${muted}`}>
-                    {tr('A link for someone you trust. They’ll see what you log tonight, how far along each dose is, and whether you’ve checked in. It’s encrypted on this device, and the key is in the link: the server keeps a copy it can’t read for 12 hours.')}
+                    {tr('A link for someone you trust. They’ll see what you log in this session, how far along each dose is, and whether you’ve checked in. It’s encrypted on this device, and the key is in the link: the server keeps a copy it can’t read for 12 hours.')}
                 </p>
                 <button type="button" className="btn-primary mt-4" onClick={() => shareTonight(null)}>
-                    {tr('Share tonight')}
+                    {tr('Share this session')}
                 </button>
             </section>
         );
@@ -118,7 +118,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                 {tr('Shared until {0}', { 0: clock(share.expires) })}
             </h2>
             <p className={`text-sm ${muted}`}>
-                {tr('Anyone with this link can see tonight’s doses until then, so it’s meant only for the person watching. They’ll see updates while this site is open on your device.')}
+                {tr('Anyone with this link can see this session’s doses until then, so it’s meant only for the person watching. They’ll see updates while this site is open on your device.')}
             </p>
             <div className="mt-4 flex items-center justify-between gap-3">
                 <span className="text-sm text-[var(--text)]">{tr('Ask me to check in')}</span>

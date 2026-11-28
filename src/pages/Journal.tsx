@@ -568,7 +568,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     {shareOn && (
                                         <p className="mt-1">
                                             <button type="button" className={`${headerActionAccent} tap-target -ms-2.5`} onClick={() => shareTonight(shared)}>
-                                                {shared ? tr('Shared until {0}: send the link again', { 0: clock(shared.expires) }) : tr('Share tonight with someone you trust')}
+                                                {shared ? tr('Shared until {0}: send the link again', { 0: clock(shared.expires) }) : tr('Share this session with someone you trust')}
                                                 <ChevronRight size={15} />
                                             </button>
                                         </p>
