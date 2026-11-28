@@ -273,7 +273,7 @@ export function site(d) {
     let lines = [d.name];
     if (size < 76) {
         size = 56;
-        lines = greedy(words(d.name), col, s => measure(s) * size);
+        lines = d.name.split(/\s+/).flatMap(word => greedy(words(word), col, s => measure(s) * size));
     }
     const name = block(lines, { x: LEFT, top: 72, size, leading: lines.length > 1 ? 1.08 : 1.02, face: FACE.title, fill: INK.text, tracking: NAME_TRACKING });
     const kindLines = paragraph(d.kind, col, 30, FACE.text);

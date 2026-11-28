@@ -398,8 +398,7 @@ npm run dev
 | `node scripts/sync-wikidata.mjs --write` | Rebuild the reference entries from the cache in `scripts/.cache/`, without fetching |
 | `npm run og` | Draw the link preview cards into `public/og/`, one per substance, and list any whose name doesn't fit its card (`-- --out=<folder>` draws them elsewhere to look at first). About half a minute |
 | `npm run sitemap` | Write `public/sitemap.xml` |
-| `npm run deploy` | Cards, sitemap, build, and deploy to Cloudflare |
-| `scripts/local/install.sh` | Have a Mac run that on its own after each push to main; no longer needed (see [Who deploys](#who-deploys)) |
+| `npm run deploy` | Cards, sitemap, build, and deploy to Cloudflare, by hand: a push to main does all of it (see [Who deploys](#who-deploys)) |
 | `python3 scripts/icons.py` | Cut the favicon and app icons from `design/logo.jpg` |
 
 The cards need nothing of the machine: each is an SVG (`scripts/og/card.mjs`)
@@ -436,23 +435,13 @@ runs `scripts/og/render.mjs` and `scripts/sitemap.mjs` before the files are
 gathered), which it can because the cards are drawn from fonts kept in the
 repository rather than a machine's own.
 
-Until the cards could be drawn anywhere they were drawn on a Mac, and a Mac
-that was left on followed every push with a full deploy
-(`scripts/local/deploy.sh`): every two minutes it looks at origin/main, and
-once that has moved and then stood still for three minutes, it runs
-`npm run deploy` on it, from a checkout of its own under
-`~/Library/Application Support/journal-mahiro-uk`, never from the folder the
-site is worked on in. Nothing needs it now. It still works, and
-`scripts/local/deploy.sh --now` is still a way to deploy main by hand.
+That build takes about three minutes, two of them drawing the cards. Until
+it has finished the site is as it was, cards and all; if it fails, nothing
+is deployed. No machine of ours follows a push: for a while a Mac that was
+left on did, because the cards were drawn in its own fonts and Cloudflare's
+build went without them.
 
-```bash
-scripts/local/install.sh            # this Mac deploys main on its own (launchd)
-scripts/local/install.sh --remove   # no more
-scripts/local/deploy.sh --now       # deploy origin/main at once, by hand
-```
-
-It deploys with that account's `wrangler login`. Tables are still changed by
-hand, before the push that needs them.
+Tables are still changed by hand, before the push that needs them.
 
 Cloudflare also builds every other branch, as a preview
 (`npx wrangler preview`). A preview has none of production's bindings

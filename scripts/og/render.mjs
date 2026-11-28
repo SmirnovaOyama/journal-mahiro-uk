@@ -130,7 +130,8 @@ async function embed(file) {
     }
     return `data:image/${kind(bytes)};base64,${bytes.toString('base64')}`;
 }
-const logo = await embed(path.join(ROOT, 'public/logo.png'));
+// The logo as scripts/icons.py cuts it for the cards: at the size it is drawn.
+const logo = await embed(path.join(ROOT, 'scripts/og/pictures/logo.png'));
 
 /** Draws a card and writes its picture; gives back how its name was set. */
 async function shoot(kind, data, file) {
