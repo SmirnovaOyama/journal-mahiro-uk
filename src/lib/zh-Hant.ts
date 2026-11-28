@@ -1421,7 +1421,6 @@ const zh: Record<string, string> = {
     'The night drawn': '一夜的畫法',
     'Clock': '時鐘',
     'Timeline': '時間軸',
-    'One line': '一條線',
 };
 
 export default zh;

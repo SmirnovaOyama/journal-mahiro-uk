@@ -28,14 +28,19 @@ import { SITE } from './preview';
      what didn't mix, each status in its colour and in words; the rating;
      and at the foot the logo and the host.
 
+   Or, chosen in Settings, the night along a line, as the session chart
+   draws it in the app, and so in the light theme: the date as a reading
+   over it, and under it the same structures, what didn't mix and the
+   rating.
+
    Flat throughout: no gradient, glow or shadow. The page hands over its
    words already in the reader's language; nothing here translates.
    Loaded only when a picture is first drawn. */
 
 export const SIZE = { w: 1080, h: 1440 };
 
-/** The dark theme's tokens, as hex. */
-const C = {
+/** The dark theme's tokens, as hex: the dial's. */
+const DARK = {
     bg: '#181714',
     text: '#fbfbf9',
     muted: '#a7a49e',
@@ -48,6 +53,24 @@ const C = {
     info: '#80bdfb',
 };
 
+/** The light theme's (oyama-tokens.css), as the canvas reads them: the
+ *  line's, so it is the session chart as the app shows it. */
+const LIGHT: typeof DARK = {
+    bg: '#ffffff',
+    text: colour('oklch(20.5% 0.006 90)'),
+    muted: colour('oklch(51.7% 0.013 90)'),
+    border: colour('oklch(91% 0.007 89)'),
+    grid: colour('oklch(94.5% 0.004 88)'),
+    brand: colour('oklch(65.8% 0.1131 39.15)'),
+    warning: colour('oklch(53% 0.13 55)'),
+    danger: colour('oklch(53% 0.19 27)'),
+    positive: colour('oklch(52% 0.11 162)'),
+    info: colour('oklch(52% 0.17 255)'),
+};
+
+/** The tokens of the picture being drawn. */
+let C = DARK;
+
 export type Status = 'danger' | 'warning' | 'info' | 'positive' | 'muted';
 
 /** A dose round the dial, and what's written at its tip. */
@@ -58,9 +81,8 @@ export interface ChartDose extends CurveDose {
     detail: string;
 }
 
-/** The night round a dial, along a line as the session chart draws it,
- *  or as one line that swells where the night is strong. */
-export type PictureStyle = 'dial' | 'lines' | 'line';
+/** The night round a dial, or along a line as the session chart draws it. */
+export type PictureStyle = 'dial' | 'lines';
 
 export interface NightPicture {
     style: PictureStyle;
@@ -418,104 +440,22 @@ function labelWidth(ctx: CanvasRenderingContext2D, doses: ChartDose[]) {
 
 /* ── the line ─────────────────────────────────────────────────────────── */
 
-/** Each dose's words in rows over a chart drawn along `x`, the nearest row
- *  first. */
-function rowsOver(ctx: CanvasRenderingContext2D, order: ChartDose[], x: (t: number) => number, x0: number, w: number) {
-    const levelOf = (d: CurveDose) => Math.min(1.15, Math.max(0.35, d.strength)) / 1.15;
-    // The rows of words over the chart. Each dose's words sit over its
-    // hairline, which starts just under them and runs straight down to
-    // where its curve levels out (anywhere along that stretch). They may
-    // slide left or right over it, and go in the row (the nearest first) and
-    // at the place where they lie over no other words and cross the fewest
-    // hairlines: their own through words below, or others' from above
-    // through them. A fresh row on top always has room, so every one finds
-    // a place. Laid out in a few orders, the tidiest wins.
-    const NAME = 26,
-        DETAIL = 24;
-    const boxH = NAME * 1.3 + DETAIL * 1.3;
-    type Placed = { from: number; to: number; at: number };
-    const sized = order.map(d => {
-        ctx.font = font(NAME, 500);
-        const nw = ctx.measureText(d.name).width;
-        ctx.font = font(DETAIL);
-        const bw = Math.max(nw, ctx.measureText(d.detail).width);
-        const ats = d.course
-            ? [0, 0.33, 0.66, 1].map(k => x(d.time + (d.course!.peakStart + (d.course!.peakEnd - d.course!.peakStart) * k) * 60_000))
-            : [x(d.time)];
-        return { d, bw, ats };
-    });
-    const layout = (seq: typeof sized) => {
-        const rows: Placed[][] = [];
-        let total = 0;
-        const out = new Map<ChartDose, { at: number; from: number; row: number }>();
-        for (const { d, bw, ats } of seq) {
-            let best = { row: rows.length, from: Math.min(Math.max(ats[0], x0), x0 + w - bw), at: ats[0], cost: Infinity, cross: 0 };
-            for (let r = 0; r <= rows.length; r++)
-                ats.forEach((at, ai) => {
-                    for (const f of [0, 0.25, 0.5, 0.75, 1]) {
-                        const from = Math.min(Math.max(at - f * bw, x0), x0 + w - bw),
-                            to = from + bw;
-                        if (at < from - 4 || at > to + 4) continue;
-                        if (!(rows[r] ?? []).every(o => to + 24 < o.from || from > o.to + 24)) continue;
-                        const through = rows.slice(r + 1).reduce((n, row) => n + row.filter(o => o.at > from - 10 && o.at < to + 10).length, 0);
-                        const across = rows.slice(0, r).reduce((n, row) => n + row.filter(o => at > o.from - 10 && at < o.to + 10).length, 0);
-                        const cost = (through + across) * 10 + r + ai * 0.2 + f * 0.3;
-                        if (cost < best.cost) best = { row: r, from, at, cost, cross: through + across };
-                    }
-                });
-            while (rows.length <= best.row) rows.push([]);
-            rows[best.row].push({ from: best.from, to: best.from + bw, at: best.at });
-            total += best.cross;
-            out.set(d, { at: best.at, from: best.from, row: best.row });
-        }
-        return { rows, out, score: total * 10 + rows.length };
-    };
-    const orders = [sized, [...sized].sort((a, b) => a.ats[0] - b.ats[0]), [...sized].sort((a, b) => levelOf(b.d) - levelOf(a.d)), [...sized].reverse()];
-    const chosen = orders.map(layout).reduce((a, b) => (b.score < a.score ? b : a));
-    return { rows: chosen.rows.length, set: order.map(d => ({ d, ...chosen.out.get(d)! })), boxH };
-}
-
-/** The words in their rows over `top`, and from just under each a
- *  hairline straight down to `tip` of it. */
-function sayRows(ctx: CanvasRenderingContext2D, rows: ReturnType<typeof rowsOver>, top: number, tip: (it: ReturnType<typeof rowsOver>['set'][number]) => number) {
-    const NAME = 26,
-        DETAIL = 24;
-    const boxH = rows.boxH;
-    for (const it of rows.set) {
-        const rowTop = top - 24 - (it.row + 1) * (boxH + 14) + 14;
-        ctx.strokeStyle = C.border;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(it.at, rowTop + boxH + 4);
-        ctx.lineTo(it.at, tip(it) - 10);
-        ctx.stroke();
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.font = font(NAME, 500);
-        ctx.fillStyle = colour(it.d.color);
-        ctx.fillText(it.d.name, it.from, rowTop + (NAME * 1.3) / 2);
-        ctx.font = font(DETAIL);
-        ctx.fillStyle = C.muted;
-        ctx.fillText(it.d.detail, it.from, rowTop + NAME * 1.3 + (DETAIL * 1.3) / 2);
-    }
-}
-
-/** The night along a line, as the session chart draws it at 2x: the
- *  chart's gridlines, each dose's curve in its colour over a flat fill, a
- *  hollow ring where it was taken, the clock times under, "now" a dotted
- *  upright. Over it, in rows, each dose's name, time and amount, a
- *  hairline straight down from them to where its curve levels out. */
+/** The night along a line, just as the session chart draws it
+ *  (SessionChart), at twice its size, in the app's light theme: three
+ *  gridlines, each dose's curve in its colour over a faint fill of it, a
+ *  hollow ring on the baseline where it was taken, the clock times under,
+ *  and "now" a dotted upright with the word over it. Which curve is which
+ *  is said under the chart, each substance's name in its colour. */
 function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0: number, w: number, h: number) {
     const span = nightSpan(p.doses, p.now?.at ?? null);
     const x = (t: number) => x0 + ((t - span.start) / (span.end - span.start)) * w;
     const order = [...p.doses].sort((a, b) => a.time - b.time);
-    const levelOf = (d: CurveDose) => Math.min(1.15, Math.max(0.35, d.strength)) / 1.15;
+    const now = p.now && p.now.at >= span.start && p.now.at <= span.end ? p.now : null;
 
-    const rows = rowsOver(ctx, order, x, x0, w);
-    const head = rows.rows * (rows.boxH + 14) + 24;
-    const top = y0 + head;
-    const base = y0 + h - 56;
-    const y = (level: number) => base - level * (base - top);
+    // The chart's own measures (TOP, BASE, its times' line) at 2x.
+    const nowTop = y0 + (now ? 24 * 1.3 + 4 : 0);
+    const base = y0 + h - 52;
+    const y = (level: number) => base - level * (base - nowTop - 16);
 
     ctx.fillStyle = C.grid;
     for (const l of [0, 0.5, 1]) ctx.fillRect(x0, Math.round(y(l)) - 1, w, 2);
@@ -536,7 +476,7 @@ function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0
             trace(d);
             ctx.closePath();
             ctx.fillStyle = colour(d.color);
-            ctx.globalAlpha = 0.16;
+            ctx.globalAlpha = 0.1;
             ctx.fill();
             ctx.globalAlpha = 1;
         }
@@ -561,137 +501,29 @@ function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0
 
     ctx.fillStyle = C.muted;
     ctx.font = font(24);
-    for (const t of clockTimes(span, w, x, 150, 120).filter(t => t === span.first || (x(t) > x0 + 40 && x(t) < x0 + w - 40))) {
+    ctx.textBaseline = 'alphabetic';
+    for (const t of clockTimes(span, w, x, 150, 120).filter(t => t === span.first || (x(t) > x0 + 36 && x(t) < x0 + w - 36))) {
         const d = new Date(t);
-        const label = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        lines(ctx, [label], x(t), base + 18, 24, 1.3, t === span.first && x(t) < x0 + 50 ? 'left' : 'center');
+        ctx.textAlign = t === span.first && x(t) < x0 + 40 ? 'left' : 'center';
+        ctx.fillText(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`, x(t), base + 44);
     }
-    if (p.now && p.now.at >= span.start && p.now.at <= span.end) {
-        const nx = x(p.now.at);
+    if (now) {
+        const nx = x(now.at);
         ctx.strokeStyle = C.text;
+        ctx.globalAlpha = 0.7;
         ctx.lineWidth = 2;
+        ctx.lineCap = 'butt';
         ctx.setLineDash([2, 6]);
         ctx.beginPath();
-        ctx.moveTo(nx, top - 8);
+        ctx.moveTo(nx, nowTop);
         ctx.lineTo(nx, base);
         ctx.stroke();
         ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
         ctx.fillStyle = C.muted;
-        ctx.font = font(24);
-        lines(ctx, [p.now.label], nx, base + 18 + 24 * 1.3, 24, 1.3, 'center');
+        ctx.textAlign = nx > x0 + w - 60 ? 'right' : 'center';
+        ctx.fillText(now.label, nx, nowTop - 8);
     }
-
-    // The words in their rows, and from just under each a hairline straight down to its curve.
-    sayRows(ctx, rows, top, it => (it.d.course ? y(levelOf(it.d)) : y(0)));
-}
-
-/* ── one line ───────────────────────────────────────────────────────── */
-
-/** The night as one line, left to right: a fine line where nothing is at
- *  work, swelling into a band where something is, as thick as all of it
- *  together. Each dose is its own layer in its colour, the first at the
- *  bottom, a seam of the page's colour between one and the next. A
- *  hollow ring on the line where each was taken, the clock times under,
- *  "now" a dotted upright; over it, in rows, each dose's words with a
- *  hairline straight down to the band where it levels out. */
-function oneLine(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0: number, w: number, h: number) {
-    const span = nightSpan(p.doses, p.now?.at ?? null);
-    const x = (t: number) => x0 + ((t - span.start) / (span.end - span.start)) * w;
-    const order = [...p.doses].sort((a, b) => a.time - b.time);
-    const rows = rowsOver(ctx, order, x, x0, w);
-    const top = y0 + rows.rows * (rows.boxH + 14) + 24;
-    const bottom = y0 + h - 64;
-    const mid = (top + bottom) / 2;
-
-    // Each dose's level, column by column across the night.
-    const N = Math.ceil(w / 3);
-    const ts = Array.from({ length: N + 1 }, (_, j) => span.start + ((span.end - span.start) * j) / N);
-    const xs = ts.map(x);
-    const levels = order.map(d => {
-        if (!d.course) return ts.map(() => 0);
-        const pts = samples(d);
-        let k = 0;
-        return ts.map(t => {
-            if (t <= pts[0][0] || t >= pts[pts.length - 1][0]) return 0;
-            while (k < pts.length - 2 && pts[k + 1][0] < t) k++;
-            const [ta, la] = pts[k],
-                [tb, lb] = pts[k + 1];
-            return Math.max(0, la + (lb - la) * ((t - ta) / (tb - ta || 1)));
-        });
-    });
-    const sums = ts.map((_, j) => levels.reduce((a, l) => a + l[j], 0));
-    const k = Math.min(150, (bottom - top) / Math.max(...sums, 0.001));
-    const edge = (j: number) => mid - (sums[j] * k) / 2;
-
-    // The line, then the layers over it.
-    ctx.fillStyle = C.muted;
-    ctx.fillRect(x0, mid - 1, w, 2);
-    const below = ts.map(() => 0);
-    order.forEach((d, i) => {
-        const lower = ts.map((_, j) => mid + (sums[j] * k) / 2 - below[j] * k);
-        const upper = ts.map((_, j) => lower[j] - levels[i][j] * k);
-        if (levels[i].some(l => l > 0.001)) {
-            ctx.beginPath();
-            ctx.moveTo(xs[0], lower[0]);
-            for (let j = 1; j <= N; j++) ctx.lineTo(xs[j], lower[j]);
-            for (let j = N; j >= 0; j--) ctx.lineTo(xs[j], upper[j]);
-            ctx.closePath();
-            ctx.fillStyle = colour(d.color);
-            ctx.fill();
-            // The seam over it, only where it is.
-            ctx.strokeStyle = C.bg;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            let on = false;
-            for (let j = 0; j <= N; j++) {
-                if (levels[i][j] > 0.002) {
-                    if (!on) ctx.moveTo(xs[j], upper[j]);
-                    else ctx.lineTo(xs[j], upper[j]);
-                    on = true;
-                } else on = false;
-            }
-            ctx.stroke();
-        }
-        levels[i].forEach((l, j) => (below[j] += l));
-    });
-    // The rings sit on the line, often inside another dose's band: each
-    // has an edge of the page's colour, so it reads on any of them.
-    for (const d of order) {
-        ctx.beginPath();
-        ctx.arc(x(d.time), mid, 12, 0, Math.PI * 2);
-        ctx.fillStyle = C.bg;
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x(d.time), mid, 7, 0, Math.PI * 2);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = colour(d.color);
-        ctx.stroke();
-    }
-
-    ctx.fillStyle = C.muted;
-    ctx.font = font(24);
-    for (const t of clockTimes(span, w, x, 150, 120).filter(t => t === span.first || (x(t) > x0 + 40 && x(t) < x0 + w - 40))) {
-        const d = new Date(t);
-        const label = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        lines(ctx, [label], x(t), bottom + 18, 24, 1.3, t === span.first && x(t) < x0 + 50 ? 'left' : 'center');
-    }
-    if (p.now && p.now.at >= span.start && p.now.at <= span.end) {
-        const nx = x(p.now.at);
-        ctx.strokeStyle = C.text;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([2, 6]);
-        ctx.beginPath();
-        ctx.moveTo(nx, top);
-        ctx.lineTo(nx, bottom);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = C.muted;
-        ctx.font = font(24);
-        lines(ctx, [p.now.label], nx, bottom + 18 + 24 * 1.3, 24, 1.3, 'center');
-    }
-
-    const column = (at: number) => Math.max(0, Math.min(N, Math.round(((at - x0) / w) * N)));
-    sayRows(ctx, rows, top, it => edge(column(it.at)));
 }
 
 /* ── the page ─────────────────────────────────────────────────────────── */
@@ -714,6 +546,7 @@ export async function draw(p: NightPicture): Promise<Blob> {
     canvas.height = SIZE.h;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('No canvas');
+    C = p.style === 'dial' ? DARK : LIGHT;
 
     const [logo, drawn] = await Promise.all([loadImage('/logo.png'), Promise.all(p.substances.map(s => structureOf(s.id)))]);
 
@@ -764,7 +597,9 @@ export async function draw(p: NightPicture): Promise<Blob> {
     if (known.length) {
         const wide = known.reduce((sum, s) => sum + s.d.w, 0);
         scale = Math.min(0.5, (ACROSS - (known.length - 1) * 64) / wide, SPECIMEN / Math.max(...known.map(s => s.d.h)));
-        bottom -= Math.max(...known.map(s => s.d.h)) * scale + 8 + 12 + 26 * 1.3 + (known.some(s => s.total) ? 24 * 1.3 : 0) + 40;
+        // Room over the structures, and under them before what didn't mix.
+        const under = pairLines.length || p.rating ? 28 : 0;
+        bottom -= Math.max(...known.map(s => s.d.h)) * scale + 8 + 12 + 26 * 1.3 + (known.some(s => s.total) ? 24 * 1.3 : 0) + 40 + under;
     }
     const rowTop = bottom + 40;
 
@@ -796,8 +631,7 @@ export async function draw(p: NightPicture): Promise<Blob> {
         ctx.font = font(24);
         lines(ctx, [p.span], sx, sy, 24, 1.3);
         y += size * 0.96 + 40;
-        if (p.style === 'lines') timeline(ctx, p, LEFT, y, ACROSS, bottom - y);
-        else oneLine(ctx, p, LEFT, y, ACROSS, bottom - y);
+        timeline(ctx, p, LEFT, y, ACROSS, bottom - y);
     }
 
     if (known.length) {

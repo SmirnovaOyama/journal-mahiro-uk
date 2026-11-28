@@ -30,7 +30,7 @@ function Row({ id, label, says, checked, onChange }: { id: Feature; label: strin
     );
 }
 
-/** How a night's picture is drawn: round a dial, along a line, or as one line. */
+/** How a night's picture is drawn: round a dial, or along a line. */
 function PictureStyleRow() {
     const style = usePictureStyle();
     return (
@@ -40,7 +40,6 @@ function PictureStyleRow() {
                 options={[
                     { id: 'dial', label: tr('Clock') },
                     { id: 'lines', label: tr('Timeline') },
-                    { id: 'line', label: tr('One line') },
                 ]}
                 value={style}
                 onChange={setPictureStyle}
