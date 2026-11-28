@@ -57,6 +57,7 @@ const TAIWAN = {
     oxygen: '氧氣',
     air: '空氣',
     metformin: '二甲雙胍',
+    hydroxybupropion: '羥基安非他酮',
 };
 
 /* And what the mainland calls them, where the same holds: Wikidata's label
@@ -73,7 +74,13 @@ const MAINLAND = {
     oxygen: '氧气',
     air: '空气',
     metformin: '二甲双胍',
+    hydroxybupropion: '羟基安非他酮',
 };
+
+/* Names Wikidata has that are simply wrong, which are neither shown nor
+   searched by: 枪机安非他酮 ("gun bolt" bupropion) is a mistranslation of
+   hydroxy (羟基), issue #29. */
+const WRONG = new Set(['枪机安非他酮', '槍機安非他酮']);
 
 /* The other names, by hand, of an entry Wikidata isn't asked about (one
    written by hand in scripts/sync-substances.mjs): what a search finds it
@@ -103,9 +110,9 @@ const bare = t => t?.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim();
 
 /** A name worth showing: mostly Chinese and short. A systematic name a
  *  line long ("3,4-亞甲二氧基甲基苯丙胺") reads worse than the catalogue's own. */
-const showable = n => n && cjkShare(n) >= 0.5 && [...n].length <= 10 && !/[,，]/.test(n);
+const showable = n => n && !WRONG.has(n) && cjkShare(n) >= 0.5 && [...n].length <= 10 && !/[,，]/.test(n);
 /** A name worth searching by: has Chinese in it at all. */
-const searchable = n => n && CJK.test(n) && [...n].length <= 40;
+const searchable = n => n && !WRONG.has(n) && CJK.test(n) && [...n].length <= 40;
 
 /** An opening of up to about 160 characters, cut after a full sentence. */
 function opening(text) {
