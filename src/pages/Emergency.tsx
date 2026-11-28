@@ -152,7 +152,7 @@ export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
         tr('If they’re awake, keep them calm and sitting up, and keep talking to them. Don’t shout at them or shake them.'),
         tr('If they can’t be woken but are breathing, lay them on their side, as below.'),
         pressing,
-        tr('Tell the crew what was taken, how much and when, and hand over whatever is left. If it’s in your journal, show them the session.'),
+        tr('Tell paramedics what was taken, how much and when, and give them whatever is left. If it’s in your journal, show them the session.'),
     ];
     const onSide = [
         tr('Kneel beside them and straighten their legs. Take off their glasses.'),
@@ -178,7 +178,7 @@ export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
                         <li>{tr('is very hot and confused, or hot with dry skin')}</li>
                         <li>{tr('has hurt themselves badly or taken an overdose on purpose, or is about to')}</li>
                     </ul>
-                    <p className="mt-3">{tr('Don’t wait to see whether it passes. Say what was taken: the crew is there to treat, and what you tell them decides how.')}</p>
+                    <p className="mt-3">{tr('Don’t wait to see if it passes. Tell them what was taken: paramedics are there to help, and what you tell them shapes the treatment.')}</p>
                 </section>
 
                 <section aria-labelledby="emergency-numbers">
@@ -197,7 +197,7 @@ export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
                             </a>
                         ))}
                     </div>
-                    <p className="footnote">{tr('Somewhere else, try 112: many mobile networks pass it on to the local emergency line.')}</p>
+                    <p className="footnote">{tr('Elsewhere, try 112: many mobile networks connect it to the local emergency number.')}</p>
                     <Position />
                 </section>
 
@@ -254,7 +254,7 @@ export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
                         lines={[
                             tr('Signs: breathing very slow or stopped, blue or grey lips or fingertips, pinpoint pupils, can’t be woken.'),
                             tr('Call, and start pressing on the chest if they aren’t breathing.'),
-                            tr('If you have naloxone, use it now and tell the crew. It reverses opioids, and does almost nothing to someone who hasn’t taken any.'),
+                            tr('If you have naloxone, use it now and tell paramedics. It reverses opioids and does almost nothing to someone who hasn’t taken any.'),
                             tr('Naloxone works only for a short time. Stay with them: they may need it again.'),
                         ]}
                     />
@@ -273,7 +273,7 @@ export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
                         who={tr('From drugs that raise serotonin, taken together: MDMA and other stimulants, antidepressants (MAOIs and SSRIs among them), tramadol, DXM.')}
                         lines={[
                             tr('Signs: agitation, confusion, shivering, twitching or tremors, heavy sweating, a high temperature, a fast heartbeat, diarrhoea. It usually comes on fast, often within minutes.'),
-                            tr('It is a medical emergency: call. If they are very hot, cool them as for stimulants while you wait.'),
+                            tr('This is a medical emergency: call for help. If they’re very hot, cool them down as described for stimulants while you wait.'),
                         ]}
                     />
                     <Kind
@@ -284,7 +284,7 @@ export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
                             tr('Put nothing in their mouth, not even your fingers.'),
                             tr('Note the time it starts and the time it stops.'),
                             tr('When the jerking stops, turn them onto their side, stay, and talk to them calmly.'),
-                            tr('After a drug, call for any seizure. Call in any case if it lasts more than 5 minutes, if another follows, or if they don’t come round.'),
+                            tr('Call for any seizure after taking a drug. Always call if it lasts more than 5 minutes, another one follows, or they don’t come round.'),
                         ]}
                     />
                     <Kind
@@ -319,7 +319,7 @@ export function Emergency({ byId }: { byId?: Map<string, IndexEntry> }) {
                         {tr('Where this comes from')}
                     </h2>
                     <p className={`text-sm ${muted} mt-1`}>
-                        {tr('This page puts into plain words what the pages below say. It is not medical advice, and whatever the person on the emergency line tells you comes first.')}
+                        {tr('This page summarises the sources below in plain language. It isn’t medical advice: always follow what the emergency operator tells you.')}
                     </p>
                     <div className={`${settingsSection} mt-2`}>
                         {SOURCES.map(s => (

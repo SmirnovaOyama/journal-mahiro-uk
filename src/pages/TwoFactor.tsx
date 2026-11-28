@@ -106,7 +106,7 @@ export function TwoFactorPage() {
                         </p>
                     </div>
                 </div>
-                {tf.backupCodes <= 3 && <p className="callout">{tr('You’re running low on backup codes. Make new ones while your phone is to hand.')}</p>}
+                {tf.backupCodes <= 3 && <p className="callout">{tr('You’re running low on backup codes. Create new ones while you have your phone.')}</p>}
                 <div className="flex flex-wrap gap-2">
                     <button type="button" className="btn-secondary btn-sm" aria-expanded={acting === 'renew'} onClick={() => setActing(a => (a === 'renew' ? null : 'renew'))}>
                         {tr('New backup codes')}
@@ -132,14 +132,14 @@ export function TwoFactorPage() {
                     >
                         <p className="text-sm leading-relaxed">
                             {acting === 'renew'
-                                ? tr('Ten new backup codes, and the ones you have now stop working.')
+                                ? tr('Get ten new backup codes. Your current ones will stop working.')
                                 : tr('Signing in will ask for your password only. Your backup codes stop working.')}
                         </p>
                         <ErrorLine error={error} />
                         <Field label={tr('Password')} type="password" value={password} onChange={setPassword} autoComplete="current-password" autoFocus />
                         <CodeField value={code} onChange={setCode} autoFocus={false} />
-                        <Submit busy={busy} busyLabel={acting === 'renew' ? tr('Making them…') : tr('Turning it off…')} danger={acting === 'off'} disabled={!password || !code}>
-                            {acting === 'renew' ? tr('Make new backup codes') : tr('Turn two-step sign-in off')}
+                        <Submit busy={busy} busyLabel={acting === 'renew' ? tr('Creating…') : tr('Turning it off…')} danger={acting === 'off'} disabled={!password || !code}>
+                            {acting === 'renew' ? tr('Create new backup codes') : tr('Turn two-step sign-in off')}
                         </Submit>
                     </form>
                 )}
@@ -150,7 +150,7 @@ export function TwoFactorPage() {
             <div className="space-y-6">
                 <div className="flex flex-col items-center text-center">
                     <Doodle name="lock" size={4} />
-                    <p className={`mt-4 text-base font-semibold ${on}`}>{tr('A second lock on the door')}</p>
+                    <p className={`mt-4 text-base font-semibold ${on}`}>{tr('Extra protection for your account')}</p>
                     <p className={`mt-1.5 text-sm leading-relaxed ${muted}`}>
                         {tr('With two-step sign-in, a new device needs a six-digit code from an app on your phone as well as your password. Someone who learns your password still can’t get in.')}
                     </p>
@@ -179,7 +179,7 @@ export function TwoFactorPage() {
         body = (
             <div className="space-y-5">
                 <Steps step="scan" />
-                <p className="text-sm leading-relaxed">{tr('Scan this with your authenticator app, or on this phone, open it in the app.')}</p>
+                <p className="text-sm leading-relaxed">{tr('Scan this with your authenticator app, or if you’re on your phone, open it in the app.')}</p>
                 {/* Dark on white whatever the theme: some cameras won't read a light-on-dark code. */}
                 <div className="mx-auto w-fit rounded-[var(--radius-md)] bg-white p-3 shadow-[inset_0_0_0_var(--hairline)_var(--border)]">
                     <QRCodeSVG value={setup.uri} size={176} bgColor="#ffffff" fgColor="#1a1714" level="M" marginSize={0} />
@@ -246,7 +246,7 @@ export function TwoFactorPage() {
                     {tr('Turn it on')}
                 </Submit>
                 <button type="button" className="link-button w-full text-center text-sm" onClick={() => setStep('scan')}>
-                    {tr('Back to the code to scan')}
+                    {tr('Back to the QR code')}
                 </button>
             </form>
         );

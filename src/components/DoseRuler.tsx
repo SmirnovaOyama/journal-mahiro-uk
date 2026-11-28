@@ -16,7 +16,7 @@ const BANDS: Record<Band, { label: string; says: string;}> = {
   },
   light: {
     label: 'Light',
-    says: 'Noticeable but easy to manage. The sensible place to start, and always with a new batch.',
+    says: 'Noticeable but easy to manage. A good place to start, especially with a new batch.',
   },
   common: {
     label: 'Common',

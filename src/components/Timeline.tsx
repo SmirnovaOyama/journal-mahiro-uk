@@ -361,8 +361,8 @@ export function Timeline({ row }: { row: DurationRow }) {
             )}
             <p className="footnote">
                 {relative
-                    ? tr('It’s over in minutes, which makes it easy to take again and again. Repeated doses add up even when each one wears off.')
-                    : tr('Times use the middle of each range, {0} from start to finish. Yours can run faster or slower, and redosing before the peak is a common way to take too much.', { 0: formatMinutes(course.over) })}
+                    ? tr('It wears off within minutes, which makes it easy to keep redosing. Repeated doses add up, even though each one fades quickly.')
+                    : tr('Times use the middle of each range: about {0} from start to finish. It may be faster or slower for you. Redosing before the peak is a common way to take too much.', { 0: formatMinutes(course.over) })}
             </p>
         </div>
     );

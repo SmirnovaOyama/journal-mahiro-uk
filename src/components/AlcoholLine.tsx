@@ -40,10 +40,10 @@ export function AlcoholLine({ s, now }: { s: Session; now: number }) {
             <p className="text-[var(--text)]">
                 {tr('Blood alcohol, roughly: at most {0}, around {1}', { 0: formatBac(est.peak), 1: clock(est.peakAt) })}
                 {nowRange ? tr(', and {0} now. ', { 0: formatBac(nowRange) }) : tr('. ')}
-                {est.clearAt > t ? tr('Back to none by about {0}.', { 0: clock(est.clearAt) }) : ''}
+                {est.clearAt > t ? tr('Back to zero by about {0}.', { 0: clock(est.clearAt) }) : ''}
             </p>
             <p className="text-xs">
-                {tr('By Widmark’s formula, from {0}. Food, sex and how fast you drink all change it, and it’s no guide to whether you can drive.', { 0: formatWeight(weight.kg, weight.unit) })}
+                {tr('Estimated with the Widmark formula, using {0}. Food, sex and how fast you drink all affect it. Don’t use it to decide whether you can drive.', { 0: formatWeight(weight.kg, weight.unit) })}
             </p>
         </div>
     );

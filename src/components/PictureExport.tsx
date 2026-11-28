@@ -70,7 +70,7 @@ function save(file: File) {
     a.click();
     a.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    toast(tr('The picture is saved.'));
+    toast(tr('Image saved.'));
 }
 
 /** Shared on a phone that can, saved anywhere else. Called straight from
@@ -119,7 +119,7 @@ export function SavePicture({ make, signature }: { make: () => Picture; signatur
                 ready.current = { signature, file };
                 return handOver(file);
             })
-            .catch(() => toast(tr('The picture couldn’t be drawn on this device.')))
+            .catch(() => toast(tr('Couldn’t create the image.')))
             .finally(() => setBusy(false));
     };
 
@@ -127,12 +127,12 @@ export function SavePicture({ make, signature }: { make: () => Picture; signatur
         <button
             type="button"
             className={`${headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
-            aria-label={tr('Save as a picture')}
+            aria-label={tr('Save as image')}
             aria-busy={busy}
             onClick={onClick}
         >
             {busy ? <WaitMark size={18} /> : <ImagePlus size={18} />}
-            <span className="max-sm:hidden">{tr('Save as a picture')}</span>
+            <span className="max-sm:hidden">{tr('Save as image')}</span>
         </button>
     );
 }

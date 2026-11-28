@@ -58,7 +58,7 @@ export const VERDICT: Record<
   Unknown: {
     label: 'Not documented',
     tone: 'neutral',
-    meaning: 'No source covers this pair. That doesn’t make it safe: start low and don’t be alone.',
+    meaning: 'No source covers this combination. That doesn’t mean it’s safe: start low and don’t use alone.',
   },
 };
 

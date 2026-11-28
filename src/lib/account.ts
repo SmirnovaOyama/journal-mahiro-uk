@@ -269,7 +269,7 @@ export async function signIn(username: string, password: string, code?: string):
     try {
         key = await unwrap(res.key, pk.kek);
     } catch {
-        throw new ApiError('KEY', tr('Signed in, but the journal key wouldn’t open. Try again.'));
+        throw new ApiError('KEY', tr('Signed in, but couldn’t unlock your journal. Try again.'));
     }
     await begin(res.token, res.user, key);
 }
@@ -349,7 +349,7 @@ export async function recover(username: string, code: string, password: string, 
     try {
         journalKey = await unwrap(start.key, rk.kek, true);
     } catch {
-        throw new ApiError('INVALID_RECOVERY', tr('That username and recovery key don’t go together.'));
+        throw new ApiError('INVALID_RECOVERY', tr('That username and recovery key don’t match.'));
     }
     const pk = await passwordKeys(username, password);
     const next = newRecoveryCode();
@@ -641,7 +641,7 @@ async function syncOnce() {
                 throw e;
             }
         }
-        throw new ApiError('BUSY', tr('Another device kept syncing at the same time. Trying again soon.'));
+        throw new ApiError('BUSY', tr('Another device was syncing at the same time. Retrying soon.'));
     } catch (e) {
         const err = e instanceof ApiError ? e : new ApiError('ERROR', tr('Sync failed.'));
         if (err.code === 'SIGNED_OUT') return;

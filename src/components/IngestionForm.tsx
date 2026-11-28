@@ -213,7 +213,7 @@ export function IngestionForm({
                 out.push({
                     key: 'limit-max',
                     tone: 'warning',
-                    text: tr('You set {0} {1} of {2} as the most for one night. With this dose it comes to {3} {1}.', { 0: fmtAmount(limit.max), 1: limit.unit, 2: shown, 3: fmtAmount(total) }),
+                    text: tr('Your limit for {2} is {0} {1} per night. With this dose, you’d be at {3} {1}.', { 0: fmtAmount(limit.max), 1: limit.unit, 2: shown, 3: fmtAmount(total) }),
                 });
         }
         if (key && limit?.gap) {
@@ -229,7 +229,7 @@ export function IngestionForm({
             out.push({
                 key: 'paracetamol',
                 tone: 'danger',
-                text: tr('With this dose, {0} of paracetamol in 24 hours: more than the 4 g an adult should take. Too much can damage the liver: get medical advice now.', { 0: gramsText(paracetamol.mg) }),
+                text: tr('With this dose, you’d have {0} of paracetamol in 24 hours, more than the 4 g limit for adults. Too much can damage your liver. Get medical advice now.', { 0: gramsText(paracetamol.mg) }),
                 link: { label: PARACETAMOL_SOURCE.name, href: PARACETAMOL_SOURCE.href },
             });
         if (!entry) return out;
@@ -247,9 +247,9 @@ export function IngestionForm({
                 tone: 'warning',
                 text: still
                     ? c!.exact
-                        ? tr('You logged {0}{1} {2} ago, and it usually lasts {3}. A redose adds to what’s still working.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
-                        : tr('You logged {0}{1} {2} ago. How long it lasts taken that way isn’t documented; other ways, up to {3}. A redose may add to what’s still working.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
-                    : tr('You logged {0}{1} {2} ago.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago) }),
+                        ? tr('You took {0}{1} {2} ago. It usually lasts {3}, so another dose adds to what’s still active.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
+                        : tr('You took {0}{1} {2} ago. There’s no data on how long it lasts by this route; by other routes, up to {3}. Another dose may add to what’s still active.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago), 3: formatMinutes(c!.course.over) })
+                    : tr('You took {0}{1} {2} ago.', { 0: nameOf(entry), 1: amount, 2: formatMinutes(ago) }),
             });
         }
         // Anything else from the last day it mixes badly with.
@@ -269,7 +269,7 @@ export function IngestionForm({
                 out.push({
                     key: p.b.id,
                     tone: v.tone === 'danger' ? 'danger' : 'warning',
-                    text: tr('{0} with {1}, logged in the last day. {2}', { 0: tr(v.label), 1: nameOf(p.b), 2: tr(v.meaning) }),
+                    text: tr('{0} with {1}, taken in the last 24 hours. {2}', { 0: tr(v.label), 1: nameOf(p.b), 2: tr(v.meaning) }),
                 });
             });
         // A medicine taken every day counts as taken today. Then what was
@@ -298,7 +298,7 @@ export function IngestionForm({
                     text:
                         ago == null
                             ? tr('{0} with {1}, which you take every day. {2}', { 0: tr(v.label), 1: nameOf(p.b), 2: tr(v.meaning) })
-                            : tr('{0} with {1}, logged {2} ago and likely still at work. {3}', { 0: tr(v.label), 1: nameOf(p.b), 2: formatMinutes(ago), 3: tr(v.meaning) }),
+                            : tr('{0} with {1}, taken {2} ago and probably still active. {3}', { 0: tr(v.label), 1: nameOf(p.b), 2: formatMinutes(ago), 3: tr(v.meaning) }),
                 });
             });
         return out;
@@ -525,11 +525,11 @@ export function IngestionForm({
                         )}
                         {perKgLine && <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">{perKgLine}</p>}
                         {row && isPerKg(row.unit) && !weight.kg && (
-                            <p className="mt-2 text-xs text-[var(--text-muted)]">{tr('Its doses are given per kilogram: set your body weight in Settings to see where this amount falls.')}</p>
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">{tr('Doses for this are per kilogram. Add your body weight in Settings to see how this amount compares.')}</p>
                         )}
                         {paracetamol && paracetamol.mg > 0 && paracetamol.mg <= PARACETAMOL_DAY_MG && (
                             <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">
-                                {tr('With this dose, {0} of paracetamol in 24 hours. The limit for an adult is 4 g.', { 0: gramsText(paracetamol.mg) })}
+                                {tr('With this dose: {0} of paracetamol in 24 hours. The adult limit is 4 g.', { 0: gramsText(paracetamol.mg) })}
                             </p>
                         )}
                         {row?.absorbed && (

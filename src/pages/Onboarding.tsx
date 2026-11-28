@@ -412,7 +412,7 @@ function PrivateStage() {
                 <Doodle name="lock" size={5.5} />
             </span>
             <ul className="mt-5 flex w-full flex-col gap-2.5">
-                {[tr('No account needed'), tr('Kept on this device'), tr('Encrypted sync, if you want it')].map(t => (
+                {[tr('No account needed'), tr('Kept on this device'), tr('Optional encrypted sync')].map(t => (
                     <li key={t} className="flex items-center gap-2.5 text-sm text-[var(--text)]">
                         <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-ink)]">
                             <Check size={13} strokeWidth={2.4} />
@@ -438,7 +438,7 @@ interface Screen {
 function LastWords() {
     return (
         <>
-            {tr('Information, not advice: start low, test what you have, don’t use alone. ')}
+            {tr('For information only, not advice. Start low, test what you have, and don’t use alone. ')}
             <span className="text-[var(--danger)]">{tr('If someone is unresponsive or breathing slowly, call emergency services.')}</span>
         </>
     );
@@ -448,25 +448,25 @@ const SCREENS: Screen[] = [
     {
         kicker: 'Oyama Journal',
         title: 'Know what you take.',
-        body: 'Look up over 3,000 substances, check what doesn’t mix, and keep a journal. Free, and kept on this device.',
+        body: 'Look up over 3,000 substances, check combinations, and keep a journal. Free, and stored on your device.',
         stage: () => <WelcomeStage />,
     },
     {
         kicker: 'Look it up',
-        title: 'How much, and how long.',
-        body: 'Doses by route on a rail from light to heavy, and when it starts, peaks and ends.',
+        title: 'Doses and durations.',
+        body: 'Doses for each route, from light to heavy, and when effects start, peak and end.',
         stage: active => <DoseStage active={active} />,
     },
     {
         kicker: 'Mix',
-        title: 'One answer for any mix.',
-        body: 'Put two or more together, alcohol and medicines too. The most serious risk comes first.',
+        title: 'Check any combination.',
+        body: 'Check two or more substances together, including alcohol and medicines. The most serious risk is shown first.',
         stage: active => <MixStage active={active} />,
     },
     {
         kicker: 'Journal',
-        title: 'Remember your nights.',
-        body: 'Log what you take. It warns before a redose or a bad mix, and keeps your stats.',
+        title: 'Keep a journal.',
+        body: 'Log what you take. You’ll be warned before redosing or a risky mix, and you can see your stats.',
         stage: active => <JournalStage active={active} />,
     },
     {

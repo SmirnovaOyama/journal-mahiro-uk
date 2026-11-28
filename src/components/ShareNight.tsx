@@ -43,7 +43,7 @@ export function CheckIn() {
             </button>
             <p className={`mt-2 text-sm ${late ? 'text-[var(--danger)]' : muted}`} role="status">
                 {late
-                    ? tr('A check-in was due at {0}. Whoever is watching sees it as missed until you tap.', { 0: clock(due) })
+                    ? tr('A check-in was due at {0}. The person watching sees it as missed until you tap.', { 0: clock(due) })
                     : tr('Checked in at {0}. The next is due by {1}.', { 0: clock(share.checked), 1: clock(due) })}
             </p>
         </div>
@@ -74,7 +74,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
         } catch (e) {
             setError(
                 e instanceof WatchError && e.code === 'OFFLINE'
-                    ? tr('Sharing needs a connection, and there is none.')
+                    ? tr('Sharing needs an internet connection.')
                     : tr('Couldn’t start sharing. Try again in a moment.'),
             );
         } finally {
@@ -90,7 +90,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                     {tr('Someone to watch over tonight')}
                 </h2>
                 <p className={`text-sm ${muted}`}>
-                    {tr('A link for someone you trust. They see what you log tonight, where it is on its course, and whether you’ve checked in. It’s encrypted on this device and the key is in the link itself: the server keeps a copy it can’t read, for 12 hours.')}
+                    {tr('A link for someone you trust. They’ll see what you log tonight, how far along each dose is, and whether you’ve checked in. It’s encrypted on this device, and the key is in the link: the server keeps a copy it can’t read for 12 hours.')}
                 </p>
                 <div className="mt-4 flex items-center justify-between gap-3">
                     <span className="text-sm text-[var(--text)]">{tr('Ask me to check in')}</span>
@@ -106,7 +106,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                     onChange={e => setName(e.target.value)}
                 />
                 <button type="button" className="btn-secondary mt-4" onClick={() => void begin()} disabled={busy}>
-                    {busy ? tr('Making the link…') : tr('Make the link')}
+                    {busy ? tr('Creating link…') : tr('Create link')}
                 </button>
                 {error && (
                     <p className="mt-2 text-sm text-[var(--danger)]" role="alert">
@@ -124,7 +124,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                 {tr('Shared until {0}', { 0: clock(share.expires) })}
             </h2>
             <p className={`text-sm ${muted}`}>
-                {tr('Anyone with this link can read tonight’s doses until then, so it is for the person watching and no one else. They see changes while this site is open on your device.')}
+                {tr('Anyone with this link can see tonight’s doses until then, so only share it with the person watching. They’ll see updates while this site is open on your device.')}
             </p>
             <div className="mt-4 flex justify-center rounded-[var(--radius-lg)] bg-white p-4">
                 <QRCodeSVG value={link} size={176} level="M" />

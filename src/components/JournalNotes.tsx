@@ -76,8 +76,8 @@ export function ParacetamolLine({ doses, now }: { doses: Ingestion[]; now: numbe
     return (
         <p className={`mt-2 text-sm ${over ? 'text-[var(--danger)]' : on}`}>
             {tr('Paracetamol: {0} in 24 hours.', { 0: gramsText(mg) })}{' '}
-            {over ? tr('That is more than the 4 g an adult should take in 24 hours. Too much can damage the liver: get medical advice now.') : tr('The limit for an adult is 4 g.')}{' '}
-            {unknown > 0 && tr('A dose with no amount isn’t counted.')}{' '}
+            {over ? tr('That’s more than the 4 g limit for adults in 24 hours. Too much can damage your liver. Get medical advice now.') : tr('The adult limit is 4 g.')}{' '}
+            {unknown > 0 && tr('Doses without an amount aren’t counted.')}{' '}
             <a href={PARACETAMOL_SOURCE.href} target="_blank" rel="noopener noreferrer" className={`text-xs ${muted} underline underline-offset-[3px]`}>
                 {PARACETAMOL_SOURCE.name}
             </a>
@@ -91,10 +91,10 @@ const SEEN = 'journal.patterns.seen.v1';
 
 const STOP_WORDS: Record<StopKind, string> = {
     gabapentinoid:
-        'Stopping it suddenly after taking it every day can cause severe withdrawal symptoms, and seizures. They can be prevented by bringing the dose down gradually, with a doctor.',
-    benzodiazepine: 'Stopping it suddenly after taking it every day can cause withdrawal symptoms such as confusion or seizures. A doctor brings the dose down gradually.',
-    opioid: 'Stopping it suddenly after taking it every day can cause withdrawal symptoms. A doctor brings the dose down gradually, over weeks or months.',
-    'z-drug': 'Stopping it suddenly after taking it every day can cause withdrawal symptoms. A doctor brings the dose down gradually.',
+        'If you’ve taken it daily, stopping suddenly can cause severe withdrawal and seizures. Tapering off gradually with a doctor prevents this.',
+    benzodiazepine: 'If you’ve taken it daily, stopping suddenly can cause withdrawal symptoms such as confusion or seizures. A doctor can help you taper off gradually.',
+    opioid: 'If you’ve taken it daily, stopping suddenly can cause withdrawal symptoms. A doctor can help you taper off over weeks or months.',
+    'z-drug': 'If you’ve taken it daily, stopping suddenly can cause withdrawal symptoms. A doctor can help you taper off gradually.',
 };
 
 /** On the journal's first page: a drug that can't safely be stopped all at
@@ -186,11 +186,11 @@ export function LimitEditor({ id, unit: usual }: { id: string; unit?: string }) 
     return (
         <section className="mb-9">
             <h2 className="group-heading mb-1">{tr('Limits')}</h2>
-            <p className={`text-xs ${muted} mb-4`}>{tr('Limits are for setting while sober. When a dose would cross one, the dose form says so.')}</p>
+            <p className={`text-xs ${muted} mb-4`}>{tr('Set limits while you’re sober. The dose form warns you when a dose would go over one.')}</p>
             <div className="flex flex-col gap-5">
                 <div>
                     <label className={label} htmlFor="limit-max">
-                        {tr('The most in one night')}
+                        {tr('Maximum per night')}
                     </label>
                     <div className="flex flex-wrap items-end gap-x-3">
                         <input

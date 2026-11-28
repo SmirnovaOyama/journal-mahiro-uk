@@ -195,7 +195,7 @@ function AiNote({ fact }: { fact?: boolean }) {
             <span className="ai-tag">AI</span>
             {fact
                 ? tr('Written by AI. It may be wrong.')
-                : tr('Written by AI, as no source had this. It may be wrong: check it before you rely on it.')}
+                : tr('Written by AI because no source had this. It may be wrong, so check before relying on it.')}
         </p>
     );
 }
@@ -340,7 +340,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                 <div className={`${PAGE_COLUMN} py-8`}>
                     <p className="text-sm font-semibold">{tr('Couldn’t load this page')}</p>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
-                        {tr('Without a connection, a substance opens if it was opened, saved or logged on this device before. Check your connection and try again.')}
+                        {tr('Offline, you can only open substances you’ve opened, saved or logged on this device before. Check your connection and try again.')}
                     </p>
                 </div>
             </>
@@ -528,18 +528,18 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     ))}
                                     <span className={`block text-xs ${muted}`}>
                                         <span className="ai-tag">AI</span>
-                                        {tr('Which compounds, by AI; their formulas from PubChem.')}
+                                        {tr('Compounds listed by AI; formulas from PubChem.')}
                                     </span>
                                 </p>
                             )}
                             {structure && (
                                 <p className={`text-xs ${muted} mt-1`}>
                                     {structure.role === 'active'
-                                        ? tr('Drawn: its main active compound, {0}. ', { 0: structure.name })
+                                        ? tr('Shown: its main active compound, {0}. ', { 0: structure.name })
                                         : structure.role === 'core'
-                                          ? tr('Drawn: the family\'s parent structure, {0}. ', { 0: structure.name })
+                                          ? tr('Shown: the family’s parent structure, {0}. ', { 0: structure.name })
                                           : structure.role === 'example'
-                                            ? tr('Drawn: the family\'s best-known member, {0}. ', { 0: structure.name })
+                                            ? tr('Shown: the family’s best-known member, {0}. ', { 0: structure.name })
                                             : ''}
                                     <a
                                         href={`https://pubchem.ncbi.nlm.nih.gov/compound/${structure.cid}`}
@@ -562,8 +562,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <span>
                                 {stillOn
                                     ? lastC!.exact
-                                        ? tr('Still working: you logged {0} {1} ago, and it lasts about {2}.', { 0: lastAmount, 1: formatMinutes(sinceLast), 2: formatMinutes(lastCourse!.over) })
-                                        : tr('May still be working: you logged {0} {1} ago. Its timing taken that way isn’t documented; other ways, up to {2}.', { 0: lastAmount, 1: formatMinutes(sinceLast), 2: formatMinutes(lastCourse!.over) })
+                                        ? tr('Still active: you took {0} {1} ago, and it lasts about {2}.', { 0: lastAmount, 1: formatMinutes(sinceLast), 2: formatMinutes(lastCourse!.over) })
+                                        : tr('May still be active: you took {0} {1} ago. There’s no timing data for this route; by other routes, it lasts up to {2}.', { 0: lastAmount, 1: formatMinutes(sinceLast), 2: formatMinutes(lastCourse!.over) })
                                     : tr('You last logged {0} {1}.', { 0: lastAmount, 1: sinceLast < 2880 ? tr('{0} ago', { 0: formatMinutes(sinceLast) }) : tr('on {0}', { 0: new Date(last.time).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) }) })}
                                 {baselineText}
                             </span>
@@ -580,7 +580,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             {detail.advisory && <Advisory><Linked text={dataText(detail.advisory)} /></Advisory>}
                             {unchecked && (
                                 <Advisory>
-                                    {tr('These doses and timings are from FreeODwiki, a community wiki, and no second source here confirms them. Treat them as rough, and start lower than they say.')}
+                                    {tr('These doses and timings come from FreeODwiki, a community wiki, and no other source here confirms them. Treat them as rough guides and start lower.')}
                                 </Advisory>
                             )}
                             {detail.warnings?.map(w => (
@@ -605,7 +605,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
                     {reference && (
                         <p className={`mt-5 text-sm leading-relaxed ${muted} max-w-prose`}>
-                            {tr('A reference entry: what it is, how it works, what it’s used for and what it’s known to interact with, from Wikidata and Wikipedia. No doses are given for it here; for a prescribed medicine, follow the prescription.')}
+                            {tr('Reference entry from Wikidata and Wikipedia: what it is, how it works, what it’s used for and known interactions. No doses are given here. If it’s prescribed to you, follow your prescription.')}
                         </p>
                     )}
 
@@ -641,8 +641,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                 )}
                                 <p>
                                     {tooSmall
-                                        ? tr('A milligram scale is accurate to a few milligrams, too coarse for a dose of this: it is measured in a liquid. Start at the light end, and with any new batch.')
-                                        : tr('Weigh with a milligram scale; eyeballing powder is how people get hurt. Start at the light end, and with any new batch.')}
+                                        ? tr('A milligram scale is too coarse for a dose of this, so it’s measured as a liquid. Start with a light dose, especially with a new batch.')
+                                        : tr('Use a milligram scale. Eyeballing powder is how people get hurt. Start with a light dose, especially with a new batch.')}
                                 </p>
                                 <p className="text-xs">
                                     {tr('Doses from ')}

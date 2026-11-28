@@ -73,10 +73,10 @@ export function Volumetric({ row, substance, name, benzo }: { row: DoseRow; subs
             </h3>
             <p className="text-sm leading-relaxed max-w-prose">
                 {common
-                    ? tr('A milligram scale is accurate to a few milligrams, and a common dose of this is {0}: too little to weigh. So more than one dose is weighed, dissolved in a measured amount of liquid, and a dose is measured out as liquid.', {
+                    ? tr('A milligram scale is only accurate to a few milligrams, and a common dose of this is {0}, too little to weigh. So you weigh out several doses, dissolve them in a measured amount of liquid, and measure each dose as liquid.', {
                           0: `${fmtAmount(common[0])}–${fmtAmount(common[1])} ${unit}`,
                       })
-                    : tr('A milligram scale is accurate to a few milligrams, too coarse for a dose of this. So more than one dose is weighed, dissolved in a measured amount of liquid, and a dose is measured out as liquid.')}
+                    : tr('A milligram scale is only accurate to a few milligrams, too coarse for a dose of this. So you weigh out several doses, dissolve them in a measured amount of liquid, and measure each dose as liquid.')}
             </p>
 
             <div className="mt-4 flex flex-col gap-4 max-w-md">
@@ -146,7 +146,7 @@ export function Volumetric({ row, substance, name, benzo }: { row: DoseRow; subs
                     </div>
                     {tooFine && (
                         <p className="mt-3 text-sm leading-relaxed text-[var(--warning)] max-w-prose">
-                            {tr('At this strength a light dose is less than 0.1 mL, finer than the marks on a 1 mL oral syringe. The same amount in more liquid makes each mL weaker.')}
+                            {tr('At this strength, a light dose is under 0.1 mL, smaller than the marks on a 1 mL oral syringe. Using more liquid makes each mL weaker.')}
                         </p>
                     )}
 
@@ -178,7 +178,7 @@ export function Volumetric({ row, substance, name, benzo }: { row: DoseRow; subs
                     {productsOn && (
                         <div className="mt-5">
                             {kept ? (
-                                <p className={`text-sm ${muted}`}>{tr('Kept in the journal as “{0}”. A dose of {1} logged in the journal can be measured from it in mL.', { 0: kept.name, 1: name })}</p>
+                                <p className={`text-sm ${muted}`}>{tr('Saved to your journal as “{0}”. When you log {1}, you can enter it from this liquid in mL.', { 0: kept.name, 1: name })}</p>
                             ) : (
                                 <button
                                     type="button"
@@ -193,7 +193,7 @@ export function Volumetric({ row, substance, name, benzo }: { row: DoseRow; subs
                                         })
                                     }
                                 >
-                                    {tr('Keep this liquid in the journal')}
+                                    {tr('Save this liquid to the journal')}
                                 </button>
                             )}
                         </div>
@@ -204,15 +204,15 @@ export function Volumetric({ row, substance, name, benzo }: { row: DoseRow; subs
             <div className="settings-section mt-5">
                 <Fold title={tr('How it’s made')} icon="vial">
                     <ul className="text-sm leading-relaxed max-w-prose list-disc ps-5 space-y-2">
-                        <li>{tr('The powder is weighed on the scale, not taken at the amount on its bag: a seller can send more than it says, and the liquid is then that much stronger.')}</li>
+                        <li>{tr('Use the weight from your scale, not the amount on the bag: a seller may send more than it says, which makes the liquid stronger.')}</li>
                         <li>
-                            {tr('What it dissolves in depends on the substance: water, alcohol (vodka, for one), propylene glycol or glycerine.')}
+                            {tr('What to dissolve it in depends on the substance: water, alcohol (such as vodka), propylene glycol or glycerine.')}
                             {/* Chinese sets no space after a full stop. */}
-                            {benzo && `${isZh() ? '' : ' '}${tr('Benzodiazepines hardly dissolve in water, and do in the other three.')}`}
+                            {benzo && `${isZh() ? '' : ' '}${tr('Benzodiazepines barely dissolve in water but do dissolve in the other three.')}`}
                         </li>
-                        <li>{tr('It is dissolved when nothing floats in it or has settled. Warm water helps; boiling can break some compounds down. A liquid with something settled in it gives doses that differ.')}</li>
-                        <li>{tr('It is shaken before each dose, and a dose is measured with an oral syringe, which measures most accurately.')}</li>
-                        <li>{tr('The bottle is labelled with what is in it and how strong it is, and kept out of light and heat and out of children’s reach: one bottle holds many doses.')}</li>
+                        <li>{tr('It’s fully dissolved when nothing is floating or settled at the bottom. Warm water helps, but boiling can break some compounds down. If anything has settled, the doses won’t be even.')}</li>
+                        <li>{tr('Shake it before each dose and measure with an oral syringe, which is the most accurate.')}</li>
+                        <li>{tr('Label the bottle with what’s in it and how strong it is, and keep it away from light, heat and children: one bottle holds many doses.')}</li>
                     </ul>
                     <p className="footnote">
                         {fromBefore}

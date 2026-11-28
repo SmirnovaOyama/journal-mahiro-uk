@@ -68,7 +68,7 @@ function NewCode({ submit, onDone, busyText, doText }: { submit: (code: string) 
             </div>
             <div>
                 <label className={label} htmlFor="new-code-again">
-                    {tr('The same code again')}
+                    {tr('Confirm the code')}
                 </label>
                 <input
                     id="new-code-again"
@@ -122,7 +122,7 @@ export function PrivacyPage() {
                         <div className={row}>
                             <span>
                                 <span className="block text-sm text-[var(--text)]">{tr('Lock the journal with a code')}</span>
-                                <span className={`block text-xs ${muted} mt-0.5`}>{locked ? tr('On: the code is asked for when the site is opened.') : tr('Off')}</span>
+                                <span className={`block text-xs ${muted} mt-0.5`}>{locked ? tr('On: you’ll be asked for the code when you open the site.') : tr('Off')}</span>
                             </span>
                             {!other && (
                                 <Switch
@@ -151,7 +151,7 @@ export function PrivacyPage() {
                         {locked && (
                             <>
                                 <div className="py-3.5">
-                                    <span className={label}>{tr('Ask for the code')}</span>
+                                    <span className={label}>{tr('Require the code')}</span>
                                     <div className="flex flex-col">
                                         <Choice
                                             options={AFTER.map(o => ({ id: o.id, label: tr(o.label) }))}
@@ -160,7 +160,7 @@ export function PrivacyPage() {
                                                 setLockAfter(Number(v));
                                                 again();
                                             }}
-                                            label={tr('Ask for the code')}
+                                            label={tr('Require the code')}
                                         />
                                     </div>
                                 </div>
@@ -179,14 +179,14 @@ export function PrivacyPage() {
                                         <div>
                                             <div className={row}>
                                                 <span>
-                                                    <span className="block text-sm text-[var(--text)]">{tr('An other code, for an empty journal')}</span>
+                                                    <span className="block text-sm text-[var(--text)]">{tr('A second code that opens an empty journal')}</span>
                                                     <span className={`block text-xs ${muted} mt-0.5`}>
-                                                        {tr('Typed in place of yours, it opens a journal with nothing in it. For when you’re made to open the site.')}
+                                                        {tr('Enter it instead of your code to open an empty journal, for when someone makes you open the site.')}
                                                     </span>
                                                 </span>
                                                 <Switch
                                                     checked={withOther}
-                                                    label={tr('An other code, for an empty journal')}
+                                                    label={tr('A second code that opens an empty journal')}
                                                     onChange={next => {
                                                         if (next) setOpen(o => (o === 'other' ? null : 'other'));
                                                         else void setOtherCode(null).then(again);
@@ -202,7 +202,7 @@ export function PrivacyPage() {
                                                             again();
                                                         }}
                                                         busyText={tr('Setting…')}
-                                                        doText={tr('Set the other code')}
+                                                        doText={tr('Set the second code')}
                                                     />
                                                 </div>
                                             )}
@@ -217,28 +217,28 @@ export function PrivacyPage() {
                     </div>
                     <div className={`mt-3 space-y-2 text-xs ${muted}`}>
                         <p>
-                            {tr('With the lock on, the journal, the saved list, your medicines and limits, and the account’s sign-in are encrypted on this device, and nothing of them can be read until the code is typed.')}
+                            {tr('With the lock on, your journal, saved list, medicines, limits and account sign-in are encrypted on this device and can’t be read until the code is entered.')}
                         </p>
-                        <p>{tr('There is no way to reset the code. Forgotten, what’s on this device is lost; an account’s copy is not, and signing in brings it back.')}</p>
+                        <p>{tr('The code can’t be reset. If you forget it, the data on this device is lost, but your account’s copy isn’t: sign in to get it back.')}</p>
                         <p>
-                            {tr('A short code keeps out someone who picks the phone up, not someone with time and tools: a longer one is harder to guess. What the browser keeps so pages open offline, which names the substances you’ve opened, is not locked.')}
+                            {tr('A short code stops someone who picks up your phone, not someone with time and tools; a longer one is harder to guess. The browser’s offline copies of pages aren’t locked, and they show which substances you’ve opened.')}
                         </p>
-                        {locked && !other && <p>{tr('The other code deceives a look, not an examination of the device: the two journals are stored side by side, and one is plainly larger.')}</p>}
+                        {locked && !other && <p>{tr('The second code fools a quick look, not a close examination of the device: both journals are stored side by side, and one is clearly larger.')}</p>}
                     </div>
                 </section>
 
                 {/* ── a plain name and icon ── */}
                 <section>
-                    <h2 className="group-heading mb-1">{tr('A plain name and icon')}</h2>
+                    <h2 className="group-heading mb-1">{tr('A discreet name and icon')}</h2>
                     <div className={settingsSection}>
                         <div className={row}>
                             <span>
-                                <span className="block text-sm text-[var(--text)]">{tr('Call the site something else')}</span>
-                                <span className={`block text-xs ${muted} mt-0.5`}>{tr('In the tab, in the browser’s history and on the Home Screen, under a plain grey icon.')}</span>
+                                <span className="block text-sm text-[var(--text)]">{tr('Use a different name for the site')}</span>
+                                <span className={`block text-xs ${muted} mt-0.5`}>{tr('Shown in the tab, the browser history and on the Home Screen, with a plain grey icon.')}</span>
                             </span>
                             <Switch
                                 checked={!!quiet}
-                                label={tr('Call the site something else')}
+                                label={tr('Use a different name for the site')}
                                 onChange={next => {
                                     const q = next ? { name: name.trim() || tr('Notes') } : null;
                                     setQuiet(q);
@@ -249,7 +249,7 @@ export function PrivacyPage() {
                         </div>
                         <div className="py-3.5">
                             <label className={label} htmlFor="quiet-name">
-                                {tr('The name it goes by')}
+                                {tr('Name shown')}
                             </label>
                             <input
                                 id="quiet-name"
@@ -269,7 +269,7 @@ export function PrivacyPage() {
                         </div>
                     </div>
                     <p className={`mt-3 text-xs ${muted}`}>
-                        {tr('An app already on the Home Screen keeps the name and icon it was added with: it takes the new ones only when added again with this on. The address still shows in a browser’s address bar.')}
+                        {tr('An app already on your Home Screen keeps its old name and icon until you add it again with this on. The address still shows in the browser’s address bar.')}
                     </p>
                 </section>
 
@@ -295,7 +295,7 @@ export function PrivacyPage() {
                         )}
                     </div>
                     <p className={`mt-3 text-xs ${muted}`}>
-                        {tr('At once: the journal, the saved list, your medicines and limits, the lock, the sign-in, and what was kept for offline. Nothing is said to an account, so its encrypted copy stays, and signing in brings it back.')}
+                        {tr('Clears your journal, saved list, medicines, limits, lock, sign-in and offline data at once. Your account isn’t touched, so its encrypted copy stays and signing in brings it back.')}
                     </p>
                 </section>
             </div>

@@ -259,7 +259,7 @@ export function Interactions({ pairs }: { pairs: PairResult[] }) {
                     </Link>
                 );
             })}
-            <p className={`pt-2 text-xs ${muted}`}>{tr('Every pair taken in this session, worst first.')}</p>
+            <p className={`pt-2 text-xs ${muted}`}>{tr('Every combination in this session, most serious first.')}</p>
         </div>
     );
 }
@@ -326,7 +326,7 @@ export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }
                 text:
                     now >= end
                         ? tr('{0} is over', { 0: d.label ?? '' })
-                        : tr('{0}: {1}, over around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) }),
+                        : tr('{0}: {1}, ends around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) }),
             };
         });
     return (
@@ -337,7 +337,7 @@ export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }
                 </p>
             ))}
             <p className={`text-xs ${muted} mt-1`}>
-                {tr('The curve’s height is how strong it is against its peak. Times are estimates from typical durations; yours can differ.')}
+                {tr('Curve height shows strength relative to the peak. Times are estimates based on typical durations and may differ for you.')}
             </p>
         </div>
     );
@@ -421,7 +421,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
             <PageHeader
                 title={tr('Journal')}
                 backTo={fromLink}
-                subtitle={count ? (count === 1 ? tr('1 session') : tr('{0} sessions', { 0: count })) : account ? tr('Kept in sync with your account') : tr('Only on this device')}
+                subtitle={count ? (count === 1 ? tr('1 session') : tr('{0} sessions', { 0: count })) : account ? tr('Synced with your account') : tr('Only on this device')}
                 actions={
                     <>
                         {count > 0 && !view && (
@@ -515,7 +515,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                 <Doodle name="notebook" size={4.5} />
                                 <p className={`mt-4 text-sm font-medium ${on}`}>{tr('Nothing logged yet')}</p>
                                 <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                                    {tr('Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix. It stays on this device, unless you make an account to sync it.')}
+                                    {tr('Log what you take and when. You’ll be warned if you redose too soon or take things that don’t mix. Your journal stays on this device unless you sign up to sync it.')}
                                 </p>
                                 <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
                                     {tr('Log a dose')}
@@ -562,7 +562,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     )}
                                     {/* And if it goes wrong tonight, the way there is one tap from here. */}
                                     <p className="footnote">
-                                        <Link to={{ page: 'emergency' }}>{tr('If something goes wrong: what to do until help comes')}</Link>
+                                        <Link to={{ page: 'emergency' }}>{tr('If something goes wrong: what to do until help arrives')}</Link>
                                     </p>
                                 </section>
                             )}
@@ -630,7 +630,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
         return (
             <>
                 <PageHeader title={tr('Session')} backTo />
-                <div className={`${PAGE_COLUMN} py-8 text-sm ${muted}`}>{tr('This session isn’t in the journal any more.')}</div>
+                <div className={`${PAGE_COLUMN} py-8 text-sm ${muted}`}>{tr('This session no longer exists.')}</div>
             </>
         );
 
@@ -772,7 +772,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                 <ParacetamolLine doses={s.ingestions} now={now} />
 
                 <section className="mt-6">
-                    <h2 className="group-heading mb-2">{tr('How it went')}</h2>
+                    <h2 className="group-heading mb-2">{tr('How was it')}</h2>
                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={tr('Shulgin rating')}>
                         {RATINGS.map(r => (
                             <button
@@ -787,7 +787,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                             </button>
                         ))}
                     </div>
-                    <p className={`mt-2 text-xs ${muted}`}>{meta.rating ? tr(SHULGIN[meta.rating]) : tr('Shulgin’s scale, from nothing (−) to the strongest (++++).')}</p>
+                    <p className={`mt-2 text-xs ${muted}`}>{meta.rating ? tr(SHULGIN[meta.rating]) : tr('Shulgin scale: − is nothing, ++++ is the strongest.')}</p>
                     <textarea
                         rows={3}
                         className={`input-base w-full mt-4 resize-none ${meta.note ? 'is-inked' : ''}`}
@@ -985,7 +985,7 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                     <StackedBars
                         buckets={buckets}
                         names={k => rows.find(([x]) => x === k)?.[1].name ?? k}
-                        idle={range === '30' ? tr('A bar a day. Tap one to read it.') : tr('A bar a month. Tap one to read it.')}
+                        idle={range === '30' ? tr('One bar per day. Tap a bar for details.') : tr('One bar per month. Tap a bar for details.')}
                     />
                 </div>
             </section>
@@ -1040,7 +1040,7 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                     </div>
                 </section>
             ) : (
-                <p className={`text-sm ${muted}`}>{tr('Nothing logged in this time.')}</p>
+                <p className={`text-sm ${muted}`}>{tr('Nothing logged in this period.')}</p>
             )}
         </div>
     );
@@ -1134,13 +1134,13 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
                                         </div>
                                     ))}
                                 </div>
-                                <p className={`mt-2 text-xs ${muted}`}>{tr('Kept apart, as a different share of a dose gets in each way.')}</p>
+                                <p className={`mt-2 text-xs ${muted}`}>{tr('Shown separately, because each route absorbs a different amount.')}</p>
                             </section>
                         )}
 
                         <section className="mb-9">
                             <h2 className="group-heading mb-3">{tr('Sessions in the last 12 months')}</h2>
-                            <StackedBars buckets={buckets} names={() => name} idle={tr('A bar a month. Tap one to read it.')} />
+                            <StackedBars buckets={buckets} names={() => name} idle={tr('One bar per month. Tap a bar for details.')} />
                         </section>
 
                         <section>

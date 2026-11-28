@@ -104,7 +104,7 @@ export function CreditsPage() {
         { name: 'Wikipedia', href: 'https://www.wikipedia.org', desc: tr('Summaries, how it works, uses') },
         { name: 'PubChem', href: 'https://pubchem.ncbi.nlm.nih.gov', desc: tr('Chemical structures, formulas') },
         { name: 'Guide to Pharmacology', href: 'https://www.guidetopharmacology.org', desc: tr('What a substance binds to') },
-        { name: 'FreeODwiki', href: 'https://freeodwiki.org', desc: tr('Doses where the others have none') },
+        { name: 'FreeODwiki', href: 'https://freeodwiki.org', desc: tr('Doses that other sources lack') },
     ];
     return (
         <div className="relative md:pb-32">
@@ -152,9 +152,9 @@ export function CreditsPage() {
                     </ul>
                 </div>
                 <div>
-                    <Heading>{tr('How it was written')}</Heading>
+                    <Heading>{tr('How it was made')}</Heading>
                     <p className={`text-sm leading-relaxed ${muted}`}>
-                        {tr('The code was written with Claude, by Anthropic. Where no source says anything about a substance, a few sentences on its page are Claude’s too, and each says so.')}
+                        {tr('The code was written with Claude, by Anthropic. Where no source covers a substance, a few sentences on its page were also written by Claude, and they’re labelled.')}
                     </p>
                 </div>
             </div>
