@@ -732,8 +732,6 @@ const zh: Record<string, string> = {
     'Step {0} of {1}': '第 {0} 步，共 {1} 步',
     'Back': '返回',
     'Get started': '开始使用',
-    'Choose your language.': '选择语言',
-    'You can change it any time in Settings.': '之后随时可以在设置中更改。',
     'Before you start': '开始之前',
     'Please read this.': '请先阅读',
     'This site is harm-reduction and educational information only. It is not medical advice and not legal advice.': '本站仅提供减害与教育信息，不构成医疗建议，也不构成法律意见。',

@@ -525,6 +525,9 @@ interface Screen {
     title: string;
     body: ReactNode;
     stage: (active: boolean) => ReactNode;
+    /** Only the stage, no words under it: the language screen, whose
+     *  choices say what it is in every language at once. */
+    bare?: boolean;
 }
 
 /** The last screen's line, with its warning in red. */
@@ -540,9 +543,10 @@ function LastWords() {
 const SCREENS: Screen[] = [
     {
         kicker: 'Language',
-        title: 'Choose your language.',
-        body: 'You can change it any time in Settings.',
+        title: 'Language',
+        body: null,
         stage: () => <LanguageStage />,
+        bare: true,
     },
     {
         kicker: 'Oyama Journal',
@@ -681,7 +685,7 @@ export function Onboarding() {
                     {SCREENS.map((s, k) => (
                         <section
                             key={s.kicker}
-                            className="ob-screen flex h-full w-full shrink-0 flex-col px-6 pt-5"
+                            className={`ob-screen flex h-full w-full shrink-0 flex-col px-6 pt-5 ${s.bare ? 'justify-center pb-5' : ''}`}
                             data-active={k === step}
                             aria-hidden={k !== step}
                             {...(k === step ? {} : { inert: '' })}
@@ -689,7 +693,7 @@ export function Onboarding() {
                             <div className="ob-stage relative grid min-h-[15rem] flex-1 max-h-[24rem] place-items-center overflow-hidden rounded-[1.75rem] bg-[var(--surface-muted)] px-6 py-6">
                                 {s.stage(k === step)}
                             </div>
-                            <div className="pt-7 pb-4">
+                            {!s.bare && <div className="pt-7 pb-4">
                                 <p className="ob-rise text-sm font-semibold text-[var(--accent-ink)]" style={{ '--i': 0 } as CSSProperties}>
                                     {tr(s.kicker)}
                                 </p>
@@ -706,7 +710,7 @@ export function Onboarding() {
                                         <Agree agreed={agreed} onChange={setAgreed} />
                                     </div>
                                 )}
-                            </div>
+                            </div>}
                         </section>
                     ))}
                 </div>
