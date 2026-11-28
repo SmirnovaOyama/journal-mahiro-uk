@@ -148,7 +148,11 @@ range, since it doesn't know your sex). It syncs with an account, encrypted.
 curve to read any moment. Tap a bar to read its month.
 
 **Share a link.** Every page has its own title, description and preview card
-for chat apps and search engines.
+for chat apps and search engines. A chat app fetching a link seldom says what
+its reader speaks, and is answered in English; `?lang=` on the address says
+it instead: `/s/ketamine?lang=zh-Hans`, `zh-Hant`, `zh-HK` or `en`, or `cn`,
+`tw`, `hk` for short. The page itself still opens in its reader's own
+language.
 
 ## Pages
 

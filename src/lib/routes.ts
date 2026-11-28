@@ -1,6 +1,23 @@
 /* The site's pages and their paths, with nothing that touches the browser,
    so the Worker (worker/index.ts) reads paths exactly as the app does. */
 
+/** The language an address asks to be shared in: /s/lsd?lang=zh-Hans. A chat
+ *  app that fetches a link to preview it seldom says what its reader speaks,
+ *  and is answered in English; with this, whoever shares the link says. The
+ *  site's own names for its languages, the tags a browser would send, and
+ *  cn, tw and hk for short. `tag` is the page's language tag, which picks
+ *  the Chinese typeface; `param` is how the address is written back. */
+export function addressLang(value: string | null | undefined): { lang: 'en' | 'zh-Hant' | 'zh-Hans'; tag: string; param: string } | null {
+    const v = (value ?? '').trim().toLowerCase().replace(/_/g, '-');
+    if (!v) return null;
+    if (/^en(-|$)/.test(v)) return { lang: 'en', tag: 'en', param: 'en' };
+    if (/^(hk|mo)$|^zh(-hant)?-(hk|mo)$/.test(v)) return { lang: 'zh-Hant', tag: 'zh-Hant-HK', param: 'zh-HK' };
+    if (/^(tw|hant)$|^zh-(hant|tw)(-|$)/.test(v)) return { lang: 'zh-Hant', tag: 'zh-Hant', param: 'zh-Hant' };
+    // Chinese that says nothing of where is 简体中文, as on the device (lib/lang.ts).
+    if (/^(cn|hans|zh)$|^zh-(hans|cn|sg|my)(-|$)/.test(v)) return { lang: 'zh-Hans', tag: 'zh-Hans', param: 'zh-Hans' };
+    return null;
+}
+
 export type Route =
     | { page: 'home' }
     | { page: 'substance'; id: string }
