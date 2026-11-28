@@ -48,7 +48,11 @@ main() {
             exit 0
         fi
     fi
-    trap 'rmdir "$home/lock" 2>/dev/null || true' EXIT
+    # The lock's path is written into the trap here: the trap runs when the
+    # script ends, and after a deploy that is once main has returned and
+    # `home` has gone with it. Read then, it was unbound, the lock stayed,
+    # and the next deploy waited out the hour.
+    trap "rmdir $(printf '%q' "$home/lock") 2>/dev/null || true" EXIT
 
     [ -d "$checkout/.git" ] || git clone --quiet "$url" "$checkout"
     cd "$checkout"
