@@ -79,6 +79,12 @@ const SOFTWARE: { name: string; href: string; licence: string }[] = [
     { name: 'qrcode.react', href: 'https://github.com/zpao/qrcode.react', licence: 'ISC' },
     { name: 'Wrangler', href: 'https://github.com/cloudflare/workers-sdk', licence: 'MIT / Apache-2.0' },
     { name: 'Playwright', href: 'https://playwright.dev', licence: 'Apache-2.0' },
+    // The link preview cards: what draws them, what measures their lines, and their type.
+    { name: 'resvg', href: 'https://github.com/linebender/resvg', licence: 'MIT / Apache-2.0' },
+    { name: 'resvg-js', href: 'https://github.com/thx/resvg-js', licence: 'MPL-2.0' },
+    { name: 'fontkit', href: 'https://github.com/foliojs/fontkit', licence: 'MIT' },
+    { name: 'Inter', href: 'https://rsms.me/inter/', licence: 'OFL-1.1' },
+    { name: 'Source Han Sans', href: 'https://github.com/adobe-fonts/source-han-sans', licence: 'OFL-1.1' },
 ];
 
 const Heading: React.FC<{ children: React.ReactNode }> = ({ children }) => <h2 className="group-heading mb-1">{children}</h2>;

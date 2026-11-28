@@ -17,16 +17,21 @@
 //
 // The words come from src/lib/preview.ts, the same helpers the Worker uses
 // for the text under the card, bundled here with esbuild so this script can
-// use the app's TypeScript as it is. Rendered in Chromium (Playwright) from
-// scripts/og/card.html. Run it on a Mac, so the type is SF Pro and PingFang.
+// use the app's TypeScript as it is. Each card is an SVG (card.mjs) that
+// resvg draws, in the fonts kept in scripts/og/fonts: no browser and no
+// font of the machine's, so the cards are the same wherever this runs.
+// Cloudflare's build runs it on every push (vite.config.ts), as does
+// `npm run deploy`.
 
+import { Resvg } from '@resvg/resvg-js';
 import { build } from 'esbuild';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright-core';
 import { readStructures } from '../lib/structures.mjs';
+import * as card from './card.mjs';
+import { missing } from './type.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const arg = name => (process.argv.find(a => a.startsWith(`--${name}=`)) ?? '').slice(name.length + 3);
@@ -110,23 +115,35 @@ function cloverMarkup() {
 await fs.mkdir(path.join(OUT, 's'), { recursive: true });
 await fs.mkdir(path.join(OUT, 'mix'), { recursive: true });
 
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
-await page.goto(pathToFileURL(path.join(ROOT, 'scripts/og/card.html')).href);
-await page.evaluate('document.fonts.ready');
+/** A picture as the address an SVG holds it by. resvg reads PNG, JPEG and
+ *  GIF; a picture kept as anything else (WebP) needs a PNG of the same name
+ *  in scripts/og/pictures, and the run stops if there is none: a card with
+ *  a hole where its picture goes must not be drawn. */
+async function embed(file) {
+    let bytes = await fs.readFile(file);
+    const kind = b => (b[0] === 0x89 && b[1] === 0x50 ? 'png' : b[0] === 0xff && b[1] === 0xd8 ? 'jpeg' : b[0] === 0x47 && b[1] === 0x49 ? 'gif' : null);
+    if (!kind(bytes)) {
+        const png = path.join(ROOT, 'scripts/og/pictures', `${path.basename(file, path.extname(file))}.png`);
+        bytes = await fs.readFile(png).catch(() => {
+            throw new Error(`${path.relative(ROOT, file)} is not a PNG, JPEG or GIF, which is all the cards can hold: save a PNG of it as ${path.relative(ROOT, png)}`);
+        });
+    }
+    return `data:image/${kind(bytes)};base64,${bytes.toString('base64')}`;
+}
+const logo = await embed(path.join(ROOT, 'public/logo.png'));
 
-/** Draws a card and takes its picture; gives back what the page says of how it set it. */
+/** Draws a card and writes its picture; gives back how its name was set. */
 async function shoot(kind, data, file) {
-    const set = await page.evaluate(([k, d]) => window.draw(k, d), [kind, data]);
-    await page.screenshot({ path: file, type: 'png' });
-    return set;
+    const made = card[kind]({ host, logo, ...data });
+    const png = new Resvg(made.svg, { font: { fontFiles: made.fonts, loadSystemFonts: false, defaultFontFamily: 'Inter' } }).render().asPng();
+    await fs.writeFile(file, png);
+    return made.set;
 }
 
 // The site's card: LSD drawn large, as the substances' cards are.
 await shoot(
     'site',
     {
-        host,
         name: lib.SITE.name,
         kind: `${lib.SITE.tagline}, for ${index.length.toLocaleString('en')} substances`,
         molecule: moleculeMarkup('lsd'),
@@ -136,18 +153,17 @@ await shoot(
 
 // One card per answer the mix checker gives.
 const TONE = {
-    danger: 'var(--danger)',
-    warning: 'var(--warning)',
-    info: 'var(--info)',
-    positive: 'var(--positive)',
-    neutral: 'var(--text-muted)',
+    danger: card.INK.danger,
+    warning: card.INK.warning,
+    info: card.INK.info,
+    positive: card.INK.positive,
+    neutral: card.INK.muted,
 };
 const clover = cloverMarkup();
 for (const [verdict, v] of Object.entries(lib.VERDICT)) {
     await shoot(
         'mix',
         {
-            host,
             word: v.label,
             meaning: v.meaning,
             color: TONE[v.tone],
@@ -161,9 +177,7 @@ for (const [verdict, v] of Object.entries(lib.VERDICT)) {
 // picture is the report's own line drawing, or its closing picture if it has
 // no drawing. The card cuts a drawing square about its middle; where that
 // would slice through something (RP-74's blossom branches), a square cut by
-// hand sits in scripts/og/report/<id>.png and is used instead. A drawing goes
-// in as a data URL: the card draws it as a mask, and Chromium won't use a file
-// from disk as one.
+// hand sits in scripts/og/report/<id>.png and is used instead.
 // The wish's first line is the one it was written in, a clause to a line;
 // the lines after it are its English.
 await fs.mkdir(path.join(OUT, 'report'), { recursive: true });
@@ -180,8 +194,7 @@ for (const f of await fs.readdir(path.join(ROOT, 'public/data/reports'))) {
     await shoot(
         'report',
         {
-            host,
-            picture: r.picture ? `data:image/png;base64,${(await fs.readFile(file)).toString('base64')}` : pathToFileURL(file).href,
+            picture: await embed(file),
             line: !!r.picture,
             wish: wish[0].split(/[，,]\s*/).filter(Boolean),
             verse: wish.slice(1),
@@ -197,7 +210,7 @@ let n = 0;
 const set = {};
 const wrong = [];
 async function substance(id, data, file) {
-    const how = await shoot('substance', { host, ...data }, path.join(OUT, 's', file));
+    const how = await shoot('substance', data, path.join(OUT, 's', file));
     set[how.mode] = (set[how.mode] ?? 0) + 1;
     if (!how.ok) wrong.push(`${id} (${how.mode}, ${how.size}px, ${how.lines} line${how.lines > 1 ? 's' : ''}): ${data.name}`);
 }
@@ -234,7 +247,7 @@ if (!only.length || only.includes(lib.XUNXUN_ID)) {
             {
                 name: lib.xunxunName(),
                 kind: lib.xunxunWhat().split(/(?<=[，,])\s*/),
-                picture: pathToFileURL(path.join(ROOT, 'public', lib.PICTURES[lib.XUNXUN_ID])).href,
+                picture: await embed(path.join(ROOT, 'public', lib.PICTURES[lib.XUNXUN_ID])),
                 lang,
             },
             `${lib.XUNXUN_ID}${variant}.png`,
@@ -244,7 +257,6 @@ if (!only.length || only.includes(lib.XUNXUN_ID)) {
     lib.speak('en', null);
 }
 
-await browser.close();
 await fs.rm(tmp, { recursive: true, force: true });
 console.log(`done: the site card, ${Object.keys(lib.VERDICT).length} mix cards, ${reports} report cards and ${n} substance cards in ${path.relative(ROOT, OUT) || OUT}`);
 console.log(
@@ -252,6 +264,7 @@ console.log(
         .map(([mode, count]) => `${mode}: ${count}`)
         .join(', ')}`,
 );
+if (missing.size) console.error(`letters no font here has, drawn as nothing: ${[...missing].join(' ')}`);
 if (wrong.length) {
     console.error(`${wrong.length} card${wrong.length > 1 ? 's' : ''} that don’t hold their name or their line:\n  ${wrong.join('\n  ')}`);
     if (process.argv.includes('--strict')) process.exitCode = 1;
