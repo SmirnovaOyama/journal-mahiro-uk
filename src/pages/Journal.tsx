@@ -34,7 +34,8 @@ import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { StackedBars, type Bucket } from '../components/StackedBars';
 import { AlcoholLine } from '../components/AlcoholLine';
 import { KeepNote } from '../components/KeepNote';
-import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChart';
+import { SessionChart, loadName, whereEach, type ChartDose } from '../components/SessionChart';
+import { loadKindOf, loads, stacks } from '../lib/curve';
 import { ToleranceChart } from '../components/ToleranceChart';
 import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
@@ -130,7 +131,7 @@ export function chartDoses(s: Session, details: Record<string, Detail>, colors: 
         // In the row's own unit: 0.1 mg of LSD is 100 µg against its µg doses.
         const amount = i.dose != null && row ? convertAmount(i.dose, i.unit, row.unit) : null;
         const strength = amount != null && common ? amount / ((common[0] + common[1]) / 2) : 1;
-        return { id: i.id, time: i.time, color: colors(i.substance), course, strength, label: (d && shownName(d)) || i.name };
+        return { id: i.id, time: i.time, color: colors(i.substance), course, strength, label: (d && shownName(d)) || i.name, group: i.substance, load: loadKindOf(d?.category), category: d?.category };
     });
 }
 
@@ -313,24 +314,12 @@ function SessionRow({ s, data, byId, now }: { s: Session; data: JournalData; byI
 /** Under the chart of the session still going: where each substance is now
  *  and about when it will be over, and what the chart is a picture of. */
 export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }) {
-    // The latest dose of each substance says where it is.
-    const latest = new Map<string, ChartDose>();
-    for (const d of doses) {
-        const k = d.label ?? d.id;
-        if (!latest.has(k) || latest.get(k)!.time < d.time) latest.set(k, d);
-    }
-    const lines = [...latest.values()]
-        .filter(d => d.course)
-        .map(d => {
-            const end = d.time + d.course!.over * 60_000;
-            return {
-                d,
-                text:
-                    now >= end
-                        ? tr('{0} is over', { 0: d.label ?? '' })
-                        : tr('{0}: {1}, ends around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) }),
-            };
-        });
+    const together = useFeature('together');
+    // Each substance as one, all its doses together, says where it is.
+    const lines = whereEach(doses, now).map(({ d, end, over, phase }) => ({
+        d,
+        text: over ? tr('{0} is over', { 0: d.label ?? '' }) : tr('{0}: {1}, ends around {2}', { 0: d.label ?? '', 1: phase, 2: clock(end) }),
+    }));
     return (
         <div className="mt-1">
             {lines.map(({ d, text }) => (
@@ -338,6 +327,24 @@ export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }
                     {text}
                 </p>
             ))}
+            {together && loads(doses).map(l => (
+                <p key={l.kind} className={`text-sm ${on} mt-1`}>
+                    {tr('{0}, dashed: ', { 0: loadName(l.kind) })}
+                    {l.kind === 'depressant'
+                        ? tr('each against its own common dose, added up. Together they slow breathing more than any one curve shows.')
+                        : tr('each against its own common dose, added up. Together they push the heart harder than any one curve shows.')}
+                </p>
+            ))}
+            {stacks(doses).some(ds => ds.length > 1 && ds.some(d => d.course)) && (
+                <p className={`text-sm ${on} mt-1`}>
+                    {tr('Doses of the same thing are added into one curve: how much is in you against a common dose, not how strong it feels.')}
+                </p>
+            )}
+            {stacks(doses).some(ds => ds.length > 1 && (ds[0].category === 'Psychedelic' || ds[0].category === 'Empathogen')) && (
+                <p className={`text-sm ${on} mt-1`}>
+                    {tr('A redose of a psychedelic or MDMA does less than its curve shows: tolerance builds within hours.')}
+                </p>
+            )}
             <p className={`text-xs ${muted} mt-1`}>
                 {tr('Curve height shows strength relative to the peak. Times are estimates based on typical durations and may differ for you.')}
             </p>

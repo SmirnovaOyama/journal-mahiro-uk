@@ -4,9 +4,10 @@ import { ParacetamolLine } from '../components/JournalNotes';
 import { Link } from '../components/Link';
 import { Molecule } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChart';
+import { SessionChart, stackPhaseAt, type ChartDose } from '../components/SessionChart';
 import { ShareNight, CheckIn } from '../components/ShareNight';
 import { loadCombos, type ComboMatrix, type IndexEntry } from '../lib/data';
+import { stackEnd, stacks } from '../lib/curve';
 import { tr } from '../lib/i18n';
 import { colorOf, logFrom, sessionsOf, useJournal } from '../lib/journal';
 import { RANK } from '../lib/mix';
@@ -142,14 +143,9 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
     if (!wanted) return null;
 
     const doses: ChartDose[] = live ? chartDoses(live, details, s => colorOf(data, s)) : [];
-    // The latest dose of each thing taken says where it is.
-    const latestOf = new Map<string, ChartDose>();
-    for (const d of doses) {
-        const k = d.label ?? d.id;
-        if (!latestOf.has(k) || latestOf.get(k)!.time < d.time) latestOf.set(k, d);
-    }
-    const courses = [...latestOf.values()];
-    const ends = courses.filter(d => d.course && now < d.time + d.course.over * 60_000).map(d => ({ label: d.label ?? '', at: d.time + d.course!.over * 60_000 }));
+    // Each thing taken, all its doses together, says where it is.
+    const courses = stacks(doses).map(ds => ({ ...ds[ds.length - 1], ds, end: stackEnd(ds) }));
+    const ends = courses.filter(d => d.end != null && now < d.end).map(d => ({ label: d.label ?? '', at: d.end! }));
     const t = new Date(now);
     const time = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
 
@@ -176,7 +172,7 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
 
                         <ul className="mt-6 space-y-4">
                             {courses.map(d => {
-                                const end = d.course ? d.time + d.course.over * 60_000 : null;
+                                const end = d.end;
                                 // Its structure beside its name, as everywhere a substance is shown.
                                 const e = byId.get(live.ingestions.find(i => i.id === d.id)?.substance ?? '');
                                 return (
@@ -195,7 +191,7 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
                                                     ? tr('No data on how long it lasts.')
                                                     : now >= end
                                                       ? tr('Over.')
-                                                      : tr('{0}, over around {1}', { 0: phaseAt(d, now).replace(/^./, c => c.toUpperCase()), 1: clock(end) })}
+                                                      : tr('{0}, over around {1}', { 0: stackPhaseAt(d.ds, now).replace(/^./, c => c.toUpperCase()), 1: clock(end) })}
                                             </p>
                                         </div>
                                     </li>

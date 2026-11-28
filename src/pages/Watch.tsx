@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '../components/Link';
 import { Molecule } from '../components/Molecule';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChart';
+import { SessionChart, whereEach, type ChartDose } from '../components/SessionChart';
 import { loadCombos, nameOf, type ComboMatrix, type IndexEntry } from '../lib/data';
 import { dateLocale, roaName, tr } from '../lib/i18n';
 import { PALETTE, type Ingestion, type Session } from '../lib/journal';
@@ -103,11 +103,6 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
         return m;
     }, [doses]);
     const chart: ChartDose[] = session ? chartDoses(session, details, s => colors.get(s) ?? PALETTE[0]) : [];
-    const latest = new Map<string, ChartDose>();
-    for (const d of chart) {
-        const k = d.label ?? d.id;
-        if (!latest.has(k) || latest.get(k)!.time < d.time) latest.set(k, d);
-    }
 
     const due = night ? dueAt(night) : null;
     const missed = due != null && now > due;
@@ -242,16 +237,11 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                         <h2 className="group-heading mb-2">{tr('Where it is now')}</h2>
                         <SessionChart doses={chart} now={now} />
                         <div className="mt-2 space-y-1">
-                            {[...latest.values()]
-                                .filter(d => d.course)
-                                .map(d => {
-                                    const end = d.time + d.course!.over * 60_000;
-                                    return (
-                                        <p key={d.id} className="text-sm text-[var(--text)]">
-                                            {now >= end ? tr('{0} is over', { 0: d.label ?? '' }) : tr('{0}: {1}, ends around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) })}
-                                        </p>
-                                    );
-                                })}
+                            {whereEach(chart, now).map(({ d, end, over, phase }) => (
+                                <p key={d.id} className="text-sm text-[var(--text)]">
+                                    {over ? tr('{0} is over', { 0: d.label ?? '' }) : tr('{0}: {1}, ends around {2}', { 0: d.label ?? '', 1: phase, 2: clock(end) })}
+                                </p>
+                            ))}
                             <p className={`text-xs ${muted}`}>{tr('Times are estimates based on typical durations and may differ for them.')}</p>
                         </div>
                     </section>

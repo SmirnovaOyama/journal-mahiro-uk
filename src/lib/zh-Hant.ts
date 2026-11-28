@@ -187,6 +187,13 @@ const zh: Record<string, string> = {
     'wearing off': '消退中',
     'over': '已結束',
     'The session over time; press and slide along it to read any moment': '整個場次隨時間的變化；按住並沿線滑動可讀取任一時刻',
+    'Depressants together': '抑制劑合計',
+    'Stimulants together': '興奮劑合計',
+    '{0}, dashed: ': '{0}（虛線）：',
+    'each against its own common dose, added up. Together they slow breathing more than any one curve shows.': '各自依自己的常見劑量換算後相加。合在一起對呼吸的抑制，比任何一條曲線看起來都更強。',
+    'each against its own common dose, added up. Together they push the heart harder than any one curve shows.': '各自依自己的常見劑量換算後相加。合在一起對心臟的負擔，比任何一條曲線看起來都更重。',
+    'Doses of the same thing are added into one curve: how much is in you against a common dose, not how strong it feels.': '同一種東西的多次用量會相加成一條曲線：表示體內的量相對常見劑量有多少，不是感覺有多強。',
+    'A redose of a psychedelic or MDMA does less than its curve shows: tolerance builds within hours.': '迷幻劑或 MDMA 追加的效果比曲線看起來弱：幾小時內就會產生耐受。',
 
     // components/ToleranceChart.tsx
     'here': '此處',
@@ -1400,6 +1407,9 @@ const zh: Record<string, string> = {
     'Shows the current session on one screen, in large type.': '用大字在一個畫面上顯示進行中的場次。',
     'Drugs that shouldn’t be stopped suddenly get a note after seven days in a row.': '不能突然停用的藥物，連續記錄七天後會提醒您。',
     'Dose links': '用藥連結',
+    'Someone to watch over a night': '有人幫你照看這一晚',
+    'Drugs of one kind added up': '同類藥物合計',
+    'When two different depressants or opioids, or two stimulants, are active at once, the session chart adds them up in a dashed line, each against its own common dose. An estimate.': '兩種不同的抑制劑或鴉片類藥物，或兩種興奮劑同時起效時，場次圖會用一條虛線把它們加起來，各自依自己的常見劑量換算。這只是估計。',
     'Each dose has a link that opens the dose form already filled in.': '每筆用藥都有一個連結，打開後用藥表單已經填好。',
     'Share a night with someone through a link, with check-ins. Turning this off stops sharing; links others send you still open.': '透過連結和別人分享一晚，並定時報平安。關閉後會停止分享；別人傳來的連結仍可開啟。',
     'Shows paramedics your doses from the last 24 hours, your daily medicines and your body weight.': '整理過去 24 小時的用藥、每天服用的藥物和體重，給救護人員看。',

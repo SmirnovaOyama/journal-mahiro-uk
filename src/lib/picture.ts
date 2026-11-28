@@ -1,6 +1,7 @@
 import { loadStructure } from '../components/Molecule';
-import { clockTimes, curvePieces, nightSpan, type CurveDose } from './curve';
+import { chartTop, clockTimes, curvePieces, loads, nightSpan, stackPieces, stacks, type CurveDose, type LoadKind } from './curve';
 import { currentLang } from './i18n';
+import { featureOn } from './features';
 import { molToSvg } from './molsvg';
 import { SITE } from './preview';
 
@@ -76,6 +77,8 @@ export type Status = 'danger' | 'warning' | 'info' | 'positive' | 'muted';
 /** A dose round the dial, and what's written at its tip. */
 export interface ChartDose extends CurveDose {
     color: string;
+    /** Its kind, where different drugs of it add up. */
+    load?: LoadKind;
     name: string;
     /** Its time and amount, under the name. */
     detail: string;
@@ -467,9 +470,14 @@ function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0
 
     ctx.fillStyle = C.grid;
     for (const l of [0, 0.5, 1]) ctx.fillRect(x0, Math.round(y(l)) - 1, w, 2);
-    const trace = (d: CurveDose) => {
+    // Doses of one thing are one curve, their levels added, as on the chart.
+    const withLoads = featureOn('together');
+    const top = chartTop(p.doses, withLoads);
+    const yc = (level: number) => y(level / top);
+    const groups = stacks(p.doses).filter(ds => ds.some(d => d.course));
+    const trace = (ds: CurveDose[]) => {
         ctx.beginPath();
-        curvePieces(d, x, y).forEach((piece, k) => {
+        stackPieces(ds, x, yc).forEach((piece, k) => {
             if ('line' in piece) {
                 if (!k) ctx.moveTo(piece.line[0][0], piece.line[0][1]);
                 ctx.lineTo(piece.line[1][0], piece.line[1][1]);
@@ -479,24 +487,33 @@ function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0
             }
         });
     };
-    for (const d of order)
-        if (d.course) {
-            trace(d);
-            ctx.closePath();
-            ctx.fillStyle = colour(d.color);
-            ctx.globalAlpha = 0.1;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
+    for (const ds of groups) {
+        trace(ds);
+        ctx.closePath();
+        ctx.fillStyle = colour(ds[0].color);
+        ctx.globalAlpha = 0.1;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
     ctx.lineWidth = 4;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    for (const d of order)
-        if (d.course) {
-            trace(d);
-            ctx.strokeStyle = colour(d.color);
-            ctx.stroke();
-        }
+    for (const ds of groups) {
+        trace(ds);
+        ctx.strokeStyle = colour(ds[0].color);
+        ctx.stroke();
+    }
+    // Different drugs of one kind at work together: their sum, dashed.
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 8]);
+    ctx.strokeStyle = C.text;
+    ctx.globalAlpha = 0.6;
+    for (const l of withLoads ? loads(p.doses) : []) {
+        trace(l.ds);
+        ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
     for (const d of order) {
         ctx.beginPath();
         ctx.arc(x(d.time), y(0), 8, 0, Math.PI * 2);
