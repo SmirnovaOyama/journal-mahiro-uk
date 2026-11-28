@@ -143,6 +143,12 @@ function mapCategory(pwClasses = [], tsCategories = []) {
   const has = (kw) => all.some((x) => x.includes(kw));
 
   if (has('endocrine') || has('hormone')) return 'Endocrine';
+  // A sleeping pill that can make one see things (zolpidem, zopiclone,
+  // eszopiclone, gaboxadol: "Hallucinogens, Depressant") is a depressant
+  // first. Filed as a psychedelic, the mix checker didn't count it among the
+  // depressants, and zolpidem with alcohol read "Not documented".
+  if (has('hallucinogen') && !has('psychedelic') && !has('lysergamide') && (has('depressant') || has('hypnotic') || has('sedative')))
+    return 'Depressant';
   if (has('psychedelic') || has('hallucinogen') || has('lysergamide')) return 'Psychedelic';
   if (has('dissociative')) return 'Dissociative';
   if (has('empathogen') || has('entactogen')) return 'Empathogen';
