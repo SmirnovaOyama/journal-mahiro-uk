@@ -69,7 +69,7 @@ export function MedicinesPage() {
             <PageHeader backTo title={tr('Medicines I take every day')} />
             <div className={`${PAGE_COLUMN} mt-3 pb-10`}>
                 <p className={`text-sm ${muted} mb-4`}>
-                    {tr('Add what you take every day, such as an antidepressant, lithium or a hormone. The mix checker, substance pages and the dose form will treat it as already taken.')}
+                    {tr('This is for what you take every day, such as an antidepressant, lithium or a hormone. The mix checker, substance pages and the dose form treat it as already taken.')}
                 </p>
 
                 <SearchField

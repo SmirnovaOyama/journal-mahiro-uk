@@ -132,7 +132,7 @@ export function TwoFactorPage() {
                     >
                         <p className="text-sm leading-relaxed">
                             {acting === 'renew'
-                                ? tr('Get ten new backup codes. Your current ones will stop working.')
+                                ? tr('You get ten new backup codes, and your current ones stop working.')
                                 : tr('Signing in will ask for your password only. Your backup codes stop working.')}
                         </p>
                         <ErrorLine error={error} />

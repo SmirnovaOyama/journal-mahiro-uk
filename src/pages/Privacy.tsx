@@ -181,7 +181,7 @@ export function PrivacyPage() {
                                                 <span>
                                                     <span className="block text-sm text-[var(--text)]">{tr('A second code that opens an empty journal')}</span>
                                                     <span className={`block text-xs ${muted} mt-0.5`}>
-                                                        {tr('Enter it instead of your code to open an empty journal, for when someone makes you open the site.')}
+                                                        {tr('Entered instead of your code, it opens an empty journal, for when someone makes you open the site.')}
                                                     </span>
                                                 </span>
                                                 <Switch

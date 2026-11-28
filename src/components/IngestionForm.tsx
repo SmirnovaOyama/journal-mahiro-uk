@@ -525,7 +525,7 @@ export function IngestionForm({
                         )}
                         {perKgLine && <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">{perKgLine}</p>}
                         {row && isPerKg(row.unit) && !weight.kg && (
-                            <p className="mt-2 text-xs text-[var(--text-muted)]">{tr('Doses for this are per kilogram. Add your body weight in Settings to see how this amount compares.')}</p>
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">{tr('Doses for this are per kilogram. With your body weight set in Settings, you can see how this amount compares.')}</p>
                         )}
                         {paracetamol && paracetamol.mg > 0 && paracetamol.mg <= PARACETAMOL_DAY_MG && (
                             <p className="mt-2 text-xs tabular-nums text-[var(--text-muted)]">

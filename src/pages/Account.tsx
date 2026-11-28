@@ -733,7 +733,7 @@ export function RecoveryKeyPage() {
             ) : (
                 <form onSubmit={submit} className="space-y-4" noValidate>
                     <p className="text-sm leading-relaxed">
-                        {tr('Use your recovery key to set a new password if you forget yours. If you’ve lost it or someone else may have seen it, create a new one; the old one will stop working.')}
+                        {tr('If you forget your password, your recovery key can set a new one. If you’ve lost the key or someone may have seen it, you can create a new one, and the old one stops working.')}
                     </p>
                     <ErrorLine error={error} />
                     <Field label={tr('Password')} type="password" value={password} onChange={setPassword} autoComplete="current-password" autoFocus />
@@ -843,7 +843,7 @@ export function RecoverPage() {
                     </div>
                 ) : (
                     <form onSubmit={submit} className="space-y-4" noValidate>
-                        <p className="text-sm leading-relaxed">{tr('Use your recovery key to set a new password. It was shown when you created your account.')}</p>
+                        <p className="text-sm leading-relaxed">{tr('Your recovery key can set a new password. It was shown when you created your account.')}</p>
                         <ErrorLine error={error} />
                         <Field label={tr('Username')} value={username} onChange={setUsername} autoComplete="username" autoFocus />
                         <Field label={tr('Recovery key')} value={code} onChange={setCode} autoComplete="off" mono placeholder="XXXX-XXXX-XXXX-XXXX-…" />

@@ -43,7 +43,7 @@ export function AlcoholLine({ s, now }: { s: Session; now: number }) {
                 {est.clearAt > t ? tr('Back to zero by about {0}.', { 0: clock(est.clearAt) }) : ''}
             </p>
             <p className="text-xs">
-                {tr('Estimated with the Widmark formula, using {0}. Food, sex and how fast you drink all affect it. Don’t use it to decide whether you can drive.', { 0: formatWeight(weight.kg, weight.unit) })}
+                {tr('Estimated with the Widmark formula, using {0}. Food, sex and how fast you drink all affect it, and it can’t tell you whether you’re safe to drive.', { 0: formatWeight(weight.kg, weight.unit) })}
             </p>
         </div>
     );

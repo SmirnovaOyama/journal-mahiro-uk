@@ -39,7 +39,7 @@ export const FEATURES: { group: string; items: { id: Feature; label: string; say
             { id: 'limits', label: 'Limits', says: 'A maximum per night and a minimum gap between nights, set for each substance. The dose form warns you when a dose would go over.' },
             { id: 'medicines', label: 'Medicines I take every day', says: 'They’re treated as already taken in the mix checker, on substance pages and in the dose form.' },
             { id: 'lingering', label: 'Drugs still active', says: 'A dose from a few days ago is still checked against new doses while it’s in your body.' },
-            { id: 'products', label: 'Products with several ingredients', says: 'Enter a product’s ingredients once from the box. After that, log how many you took and each ingredient is counted.' },
+            { id: 'products', label: 'Products with several ingredients', says: 'A product’s ingredients are entered once from the box. After that, logging how many you took counts each ingredient.' },
             { id: 'paracetamol', label: 'Paracetamol’s total', says: 'Paracetamol is added up over 24 hours, with a warning past 4 g.' },
         ],
     },

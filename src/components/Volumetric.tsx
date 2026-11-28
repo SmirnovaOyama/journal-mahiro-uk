@@ -204,15 +204,15 @@ export function Volumetric({ row, substance, name, benzo }: { row: DoseRow; subs
             <div className="settings-section mt-5">
                 <Fold title={tr('How it’s made')} icon="vial">
                     <ul className="text-sm leading-relaxed max-w-prose list-disc ps-5 space-y-2">
-                        <li>{tr('Use the weight from your scale, not the amount on the bag: a seller may send more than it says, which makes the liquid stronger.')}</li>
+                        <li>{tr('What counts is the weight on your scale, not the amount on the bag: a seller may send more than it says, which makes the liquid stronger.')}</li>
                         <li>
                             {tr('What to dissolve it in depends on the substance: water, alcohol (such as vodka), propylene glycol or glycerine.')}
                             {/* Chinese sets no space after a full stop. */}
                             {benzo && `${isZh() ? '' : ' '}${tr('Benzodiazepines barely dissolve in water but do dissolve in the other three.')}`}
                         </li>
                         <li>{tr('It’s fully dissolved when nothing is floating or settled at the bottom. Warm water helps, but boiling can break some compounds down. If anything has settled, the doses won’t be even.')}</li>
-                        <li>{tr('Shake it before each dose and measure with an oral syringe, which is the most accurate.')}</li>
-                        <li>{tr('Label the bottle with what’s in it and how strong it is, and keep it away from light, heat and children: one bottle holds many doses.')}</li>
+                        <li>{tr('It’s shaken before each dose and measured with an oral syringe, which is the most accurate.')}</li>
+                        <li>{tr('The bottle is labelled with what’s in it and how strong it is, and kept away from light, heat and children: one bottle holds many doses.')}</li>
                     </ul>
                     <p className="footnote">
                         {fromBefore}

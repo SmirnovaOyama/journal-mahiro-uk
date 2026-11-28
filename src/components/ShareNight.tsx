@@ -124,7 +124,7 @@ export function ShareNight(_: { byId: Map<string, IndexEntry> }) {
                 {tr('Shared until {0}', { 0: clock(share.expires) })}
             </h2>
             <p className={`text-sm ${muted}`}>
-                {tr('Anyone with this link can see tonight’s doses until then, so only share it with the person watching. They’ll see updates while this site is open on your device.')}
+                {tr('Anyone with this link can see tonight’s doses until then, so it’s meant only for the person watching. They’ll see updates while this site is open on your device.')}
             </p>
             <div className="mt-4 flex justify-center rounded-[var(--radius-lg)] bg-white p-4">
                 <QRCodeSVG value={link} size={176} level="M" />

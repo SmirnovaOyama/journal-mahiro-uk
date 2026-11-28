@@ -145,9 +145,9 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                     </p>
                     <p className={`mt-1 text-sm ${muted}`}>
                         {state === 'gone'
-                            ? tr('They stopped sharing, or the 12 hours are up. Call them to check on them.')
+                            ? tr('They stopped sharing, or the 12 hours are up. A phone call is the way to reach them now.')
                             : state === 'key'
-                              ? tr('The part after the # is the key, and it’s missing. Open the full link.')
+                              ? tr('The part after the # is the key, and it’s missing. The full link is needed.')
                               : state === 'offline'
                                 ? tr('No connection, or the server didn’t respond. This page retries every 30 seconds.')
                                 : ''}
