@@ -121,6 +121,14 @@
                 display: grid;
                 place-items: center;
             }
+            .tile svg {
+                width: 75% !important;
+                height: 75% !important;
+            }
+            .picture {
+                display: block;
+                object-fit: cover;
+            }
             .mol {
                 color: var(--brand);
             }
@@ -136,7 +144,7 @@
                 vector-effect: non-scaling-stroke;
             }
             .mol line {
-                stroke-width: 3.4px;
+                stroke-width: var(--line, 3.4px);
             }
             .mol text {
                 font-family: -apple-system, 'SF Pro Text', sans-serif;
@@ -187,6 +195,10 @@
                         const w = Math.max(b.width + 2 * m, 260),
                             h = Math.max(b.height + 2 * m, 260 * (boxH / boxW));
                         svg.setAttribute('viewBox', `${b.x + b.width / 2 - w / 2} ${b.y + b.height / 2 - h / 2} ${w} ${h}`);
+                        /* A peptide of three hundred atoms is drawn small: its lines
+                           thin with it, so its rings stay open instead of filling in. */
+                        const bond = 100 * Math.min(boxW / w, boxH / h);
+                        svg.style.setProperty('--line', Math.max(1, Math.min(3.4, bond * 0.085)).toFixed(2) + 'px');
                     }
                 } catch {
                     /* keep the renderer's frame */
@@ -218,33 +230,148 @@
             /* The molecule's box: the right of the card, nearly its full height. */
             const MOL = { right: 36, top: 36, w: 700, h: 558 };
 
+            /* A substance's name, set so that every one of them reads, from LSD
+               to a systematic name a hundred letters long. In order of
+               preference:
+                 beside     one line beside the drawing, as large as fits;
+                 stacked    two or three lines beside it, broken between words;
+                 across     one line across the card, the drawing moved below it;
+                 lines      up to three lines across the card, broken where a
+                            chemical name is broken: after a hyphen, around a
+                            bracket, never inside a word;
+                 cut        the same at the smallest size, cut short with an
+                            ellipsis. No name in the catalogue needs it; a
+                            card that does is reported by render.mjs.
+               `col` is the width beside the drawing. Returns what it chose. */
+            const ACROSS = 1040;
+            const breakable = (name) =>
+                esc(name)
+                    .replace(/([^\s(\[])(?=[(\[])/g, '$1<wbr>')
+                    .replace(/([-‐–)\]])(?=[^\s\-‐–)\],.;:'′’])/g, '$1<wbr>');
+            function setName(el, name, col) {
+                const plain = esc(name);
+                const lines = () => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight));
+                const fits = (width, size, wrap) => {
+                    el.style.width = width + 'px';
+                    el.style.fontSize = size + 'px';
+                    el.style.whiteSpace = wrap ? 'normal' : 'nowrap';
+                    el.style.lineHeight = wrap ? '1.1' : '1.02';
+                    return el.scrollWidth <= width;
+                };
+                el.innerHTML = plain;
+                for (let size = 112; size >= 76; size -= 2) if (fits(col, size, false)) return { mode: 'beside', size, lines: 1 };
+                if (/\s/.test(name))
+                    for (let size = 84; size >= 60; size -= 2)
+                        if (fits(col, size, true) && lines() <= 3) return { mode: 'stacked', size, lines: lines() };
+                for (let size = 96; size >= 56; size -= 2) if (fits(ACROSS, size, false)) return { mode: 'across', size, lines: 1 };
+                el.innerHTML = breakable(name);
+                el.style.textWrap = 'balance';
+                for (let size = 64; size >= 40; size -= 2)
+                    if (fits(ACROSS, size, true) && lines() <= 3) return { mode: 'lines', size, lines: lines() };
+                fits(ACROSS, 40, true);
+                el.style.overflowWrap = 'anywhere';
+                el.style.display = '-webkit-box';
+                el.style.webkitBoxOrient = 'vertical';
+                el.style.webkitLineClamp = '3';
+                el.style.overflow = 'hidden';
+                return { mode: 'cut', size: 40, lines: 3 };
+            }
+
             async function draw(kind, d) {
                 const root = document.getElementById('root');
                 root.innerHTML = '';
                 let card;
 
-                if (kind === 'site' || kind === 'substance') {
-                    const caption = kind === 'substance' ? d.drawn : null;
-                    const boxH = caption ? MOL.h - 52 : MOL.h;
-                    const mol = molecule(d.molecule, MOL.w, boxH);
-                    const textW = mol ? 1200 - MOL.w - MOL.right - 80 - 24 : 1040;
+                if (kind === 'site') {
+                    const mol = molecule(d.molecule, MOL.w, MOL.h);
+                    const textW = 1200 - MOL.w - MOL.right - 80 - 24;
                     card = $(`<div class="card">
                         <div style="position:absolute;left:80px;top:72px;width:${textW}px">
                             <div class="title" id="name">${esc(d.name)}</div>
-                            ${d.kind ? `<p class="muted" style="font-size:30px;margin-top:24px;line-height:1.32">${esc(d.kind)}</p>` : ''}
+                            <p class="muted" style="font-size:30px;margin-top:24px;line-height:1.32">${esc(d.kind)}</p>
                         </div>
-                        ${
-                            mol
-                                ? `<div class="mol" style="position:absolute;right:${MOL.right}px;top:${MOL.top}px;width:${MOL.w}px;height:${boxH}px">${mol}</div>
-                                   ${caption ? `<p class="muted" style="position:absolute;right:${MOL.right}px;top:${MOL.top + boxH + 8}px;width:${MOL.w}px;text-align:center;font-size:24px">${esc(caption)}</p>` : ''}`
-                                : `<div class="tile" style="position:absolute;right:150px;top:115px;width:400px;height:400px;border-radius:72px">${doodle('capsule', 300)}</div>`
-                        }
+                        <div class="mol" style="position:absolute;right:${MOL.right}px;top:${MOL.top}px;width:${MOL.w}px;height:${MOL.h}px">${mol}</div>
                         <div class="foot"><img src="../../public/logo.png" alt="" />${esc(d.host)}</div>
                     </div>`);
                     root.appendChild(card);
-                    fit(card.querySelector('#name'), textW, kind === 'site' ? 100 : 112);
+                    fit(card.querySelector('#name'), textW, 100);
                     await settle(card);
                     return;
+                }
+
+                /* A substance: its name, what kind of drug it is, and on the
+                   right what the site draws for it: its structure, or the
+                   doodle of the form it comes in where it has none (a kind of
+                   drug, a lone atom), or its picture (寻寻). The drawing has
+                   the right of the card to itself, from under the name when
+                   the name runs across the card. */
+                if (kind === 'substance') {
+                    const art = d.molecule ? 'molecule' : d.picture ? 'picture' : 'doodle';
+                    // The widest a picture or a tile is drawn, centred in the molecule's box.
+                    const most = art === 'picture' ? 480 : 400;
+                    const col = art === 'molecule' ? 1200 - MOL.w - MOL.right - 80 - 24 : 1200 - MOL.right - MOL.w / 2 - most / 2 - 80 - 40;
+                    card = $(`<div class="card">
+                        <div id="text" style="position:absolute;left:80px;top:72px;width:${ACROSS}px">
+                            <div class="title" id="name"></div>
+                            ${d.kind ? `<p class="muted" id="kind" style="font-size:30px;margin-top:24px;line-height:1.32;max-width:${col}px">${[].concat(d.kind).map(esc).join('<br />')}</p>` : ''}
+                        </div>
+                        <div class="foot"><img src="../../public/logo.png" alt="" />${esc(d.host)}</div>
+                    </div>`);
+                    // 正體中文 in its own PingFang, not the mainland's.
+                    if (d.lang === 'zh-Hant') {
+                        card.lang = 'zh-Hant';
+                        card.style.fontFamily = `-apple-system, 'SF Pro Text', 'PingFang TC', sans-serif`;
+                        card.querySelector('#name').style.fontFamily = `'SF Pro Display', -apple-system, 'PingFang TC', sans-serif`;
+                    }
+                    root.appendChild(card);
+                    const nameEl = card.querySelector('#name');
+                    const set = setName(nameEl, d.name, col);
+                    const beside = set.mode === 'beside' || set.mode === 'stacked';
+
+                    // Where the drawing goes: the whole box, or what is left of it under the name.
+                    const top = beside ? MOL.top : Math.round(72 + nameEl.getBoundingClientRect().height + 20);
+                    const room = MOL.top + MOL.h - top;
+                    const boxH = d.drawn ? room - 52 : room;
+                    let drawing;
+                    if (art === 'molecule') {
+                        drawing = `<div class="mol" style="position:absolute;right:${MOL.right}px;top:${top}px;width:${MOL.w}px;height:${boxH}px">${molecule(d.molecule, MOL.w, boxH)}</div>
+                            ${d.drawn ? `<p class="muted" style="position:absolute;right:${MOL.right}px;top:${top + boxH + 8}px;width:${MOL.w}px;text-align:center;font-size:24px">${esc(d.drawn)}</p>` : ''}`;
+                    } else {
+                        const side = Math.min(most, boxH - (beside ? 40 : 0));
+                        const at = `position:absolute;right:${MOL.right + (MOL.w - side) / 2}px;top:${top + (boxH - side) / 2}px;width:${side}px;height:${side}px;border-radius:${Math.round(side * 0.18)}px`;
+                        drawing =
+                            art === 'picture'
+                                ? `<img class="picture" src="${esc(d.picture)}" alt="" style="${at}" />`
+                                : `<div class="tile" style="${at}">${d.doodle || doodle('capsule', 300)}</div>`;
+                    }
+                    const foot = card.querySelector('.foot');
+                    card.insertBefore($(`<div id="art">${drawing}</div>`), foot);
+                    /* Beside a picture the logo and the host stand on the picture's
+                       bottom edge, as on a report's card, not below it. */
+                    if (art === 'picture') {
+                        const edge = card.querySelector('.picture').getBoundingClientRect().bottom;
+                        foot.style.bottom = Math.max(44, 630 - Math.round(edge)) + 'px';
+                    }
+
+                    // A long line under a tall name gives way before it reaches the foot.
+                    const text = card.querySelector('#text');
+                    const kindEl = card.querySelector('#kind');
+                    const FLOOR = foot.getBoundingClientRect().top - 20;
+                    for (let size = 30; kindEl && text.getBoundingClientRect().bottom > FLOOR && size > 22; size -= 2) kindEl.style.fontSize = size - 2 + 'px';
+
+                    await settle(card);
+                    /* What render.mjs checks of every card: that the name was
+                       not cut and nothing runs past its place. */
+                    const nameBox = nameEl.getBoundingClientRect();
+                    return {
+                        ...set,
+                        ok:
+                            set.mode !== 'cut' &&
+                            nameEl.scrollWidth <= Math.ceil(nameBox.width) &&
+                            nameBox.right <= 1200 - 80 + 1 &&
+                            text.getBoundingClientRect().bottom <= FLOOR + 1 &&
+                            boxH >= 240,
+                    };
                 }
 
                 /* A report that closes on a wish: its picture on the left,

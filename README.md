@@ -396,7 +396,7 @@ npm run dev
 | `node scripts/absorption.mjs` | How much of a dose gets in, by route: PsychonautWiki's figures, and Wikipedia's drug infoboxes where the route is named |
 | `node scripts/check-doses.mjs` | Checks every route's doses rise in order on their rail, mends rows whose ranges change unit, and fails on any left |
 | `node scripts/sync-wikidata.mjs --write` | Rebuild the reference entries from the cache in `scripts/.cache/`, without fetching |
-| `npm run og` | Draw the link preview cards into `public/og/` |
+| `npm run og` | Draw the link preview cards into `public/og/`, one per substance, and list any whose name doesn't fit its card (`-- --out=<folder>` draws them elsewhere to look at first) |
 | `npm run sitemap` | Write `public/sitemap.xml` |
 | `npm run deploy` | Cards, sitemap, build, and deploy to Cloudflare |
 | `scripts/local/install.sh` | Have this Mac run that on its own after each push to main (see [Who deploys](#who-deploys)) |
