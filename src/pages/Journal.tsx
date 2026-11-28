@@ -36,7 +36,7 @@ import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChar
 import { ToleranceChart } from '../components/ToleranceChart';
 import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
-import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
+import { ChevronDown, ChevronRight, Close, Heart, Plus } from '../components/icons';
 import { dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
 
 /* The journal, as PsychonautWiki Journal lays its own out, in Oyama's hand:
@@ -442,7 +442,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     setProduct(false);
                                 }}
                             >
-                                <Plus size={16} />
+                                {adding ? <Close size={16} /> : <Plus size={16} />}
                                 {adding ? tr('Close') : tr('Log')}
                             </button>
                         )}
@@ -659,7 +659,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                             {tr('Favourite')}
                         </button>
                         <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
-                            <Plus size={16} />
+                            {adding ? <Close size={16} /> : <Plus size={16} />}
                             {adding ? tr('Close') : tr('Add')}
                         </button>
                     </>
@@ -785,7 +785,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                         now={now}
                         days={Number(tolDays)}
                         colors={color}
-                        names={x => byId.get(x)?.name ?? before.find(i => i.substance === x)?.name ?? x}
+                        names={x => nameOf(x, before, byId)}
                     />
                 </section>
             </div>
