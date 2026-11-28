@@ -166,8 +166,9 @@ function simplified(run) {
 let changed = 0;
 for (const [i, [from, to]] of PAIRS.entries()) {
     const out = sources[i].replace(RUN, r => {
-        if (!HAN.test(r)) return r;
-        const s = simplified(r);
+        // A placeholder or Latin word can leave a quote in a punctuation-only run.
+        const converted = HAN.test(r) ? simplified(r) : r;
+        const s = converted.replaceAll('「', '“').replaceAll('」', '”');
         if (s !== r) changed++;
         return s;
     });
