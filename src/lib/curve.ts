@@ -183,9 +183,9 @@ export function loads<T extends StackDose & { load?: LoadKind }>(doses: T[]): { 
 }
 
 /** The highest a stack or a load reaches, never under 1. */
-export function chartTop(doses: (StackDose & { load?: LoadKind })[]): number {
+export function chartTop(doses: (StackDose & { load?: LoadKind })[], withLoads = true): number {
     let top = stackTop(doses);
-    for (const { ds } of loads(doses)) {
+    for (const { ds } of withLoads ? loads(doses) : []) {
         const [a, b] = stackSpan(ds);
         for (let k = 0; k <= 240; k++) {
             const t = a + ((b - a) * k) / 240;

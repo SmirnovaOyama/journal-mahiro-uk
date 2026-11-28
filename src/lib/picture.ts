@@ -1,6 +1,7 @@
 import { loadStructure } from '../components/Molecule';
 import { chartTop, clockTimes, curvePieces, loads, nightSpan, stackPieces, stacks, type CurveDose, type LoadKind } from './curve';
 import { currentLang } from './i18n';
+import { featureOn } from './features';
 import { molToSvg } from './molsvg';
 import { SITE } from './preview';
 
@@ -470,7 +471,8 @@ function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0
     ctx.fillStyle = C.grid;
     for (const l of [0, 0.5, 1]) ctx.fillRect(x0, Math.round(y(l)) - 1, w, 2);
     // Doses of one thing are one curve, their levels added, as on the chart.
-    const top = chartTop(p.doses);
+    const withLoads = featureOn('together');
+    const top = chartTop(p.doses, withLoads);
     const yc = (level: number) => y(level / top);
     const groups = stacks(p.doses).filter(ds => ds.some(d => d.course));
     const trace = (ds: CurveDose[]) => {
@@ -506,7 +508,7 @@ function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0
     ctx.setLineDash([10, 8]);
     ctx.strokeStyle = C.text;
     ctx.globalAlpha = 0.6;
-    for (const l of loads(p.doses)) {
+    for (const l of withLoads ? loads(p.doses) : []) {
         trace(l.ds);
         ctx.stroke();
     }

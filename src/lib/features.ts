@@ -1,7 +1,8 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
 /* The things the journal does beyond keeping doses, each of which can be
-   turned off in Settings, Features. All are on to begin with. Turning one
+   turned off in Settings, Features. All are on to begin with, but for the
+   few in DEFAULT_OFF, which wait to be turned on. Turning one
    off hides it and stops what it does; nothing it kept is deleted, so
    turning it back on finds the limits, the medicines and the products as
    they were.
@@ -28,7 +29,11 @@ export type Feature =
     | 'emergencyTools'
     | 'volumetric'
     | 'picture'
-    | 'report';
+    | 'report'
+    | 'together';
+
+/** Off until turned on: an estimate some would rather not see unasked. */
+const DEFAULT_OFF: ReadonlySet<Feature> = new Set(['together']);
 
 /** Every feature, grouped as Settings lists them, with what its switch says. */
 export const FEATURES: { group: string; items: { id: Feature; label: string; says: string }[] }[] = [
@@ -49,6 +54,11 @@ export const FEATURES: { group: string; items: { id: Feature; label: string; say
             { id: 'now', label: 'The Now screen', says: 'Shows the current session on one screen, in large type.' },
             { id: 'patterns', label: 'Days in a row', says: 'Drugs that shouldn’t be stopped suddenly get a note after seven days in a row.' },
             { id: 'doseLink', label: 'Dose links', says: 'Each dose has a link that opens the dose form already filled in.' },
+            {
+                id: 'together',
+                label: 'Drugs of one kind added up',
+                says: 'When two different depressants or opioids, or two stimulants, are active at once, the session chart adds them up in a dashed line, each against its own common dose. An estimate.',
+            },
             { id: 'watch', label: 'Someone to watch over a night', says: 'Share a night with someone through a link, with check-ins. Turning this off stops sharing; links others send you still open.' },
         ],
     },
@@ -83,7 +93,11 @@ export const FEATURES: { group: string; items: { id: Feature; label: string; say
 ];
 
 const KEY = 'journal.features.v1';
-type Off = Partial<Record<Feature, true>>;
+/** What was chosen: true turned off, false turned on (for one off by default). */
+type Off = Partial<Record<Feature, boolean>>;
+
+const isOff = (o: Off, f: Feature) => o[f] ?? DEFAULT_OFF.has(f);
+const allFeatures = () => FEATURES.flatMap(g => g.items.map(i => i.id));
 
 function read(): Off {
     try {
@@ -104,15 +118,15 @@ const subscribe = (f: () => void) => {
 };
 
 /** Whether a feature is on. For code outside a component. */
-export const featureOn = (f: Feature) => !off[f];
+export const featureOn = (f: Feature) => !isOff(off, f);
 
 /** How many features are off. */
-export const featuresOff = () => Object.keys(off).length;
+export const featuresOff = () => allFeatures().filter(f => isOff(off, f)).length;
 
 export function setFeature(f: Feature, on: boolean) {
     const next = { ...off };
-    if (on) delete next[f];
-    else next[f] = true;
+    if (on === !DEFAULT_OFF.has(f)) delete next[f];
+    else next[f] = !on;
     off = next;
     try {
         if (Object.keys(next).length) localStorage.setItem(KEY, JSON.stringify(next));
@@ -126,11 +140,11 @@ export function setFeature(f: Feature, on: boolean) {
 /** The features, for a component: it is drawn again when one changes. */
 export function useFeatures() {
     const snapshot = useSyncExternalStore(subscribe, () => off);
-    const on = useCallback((f: Feature) => !snapshot[f], [snapshot]);
-    return { on, set: setFeature, off: Object.keys(snapshot).length };
+    const on = useCallback((f: Feature) => !isOff(snapshot, f), [snapshot]);
+    return { on, set: setFeature, off: allFeatures().filter(f => isOff(snapshot, f)).length };
 }
 
 /** One feature, for a component. */
 export function useFeature(f: Feature): boolean {
-    return !useSyncExternalStore(subscribe, () => off)[f];
+    return !isOff(useSyncExternalStore(subscribe, () => off), f);
 }

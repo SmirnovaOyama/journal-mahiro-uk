@@ -314,6 +314,7 @@ function SessionRow({ s, data, byId, now }: { s: Session; data: JournalData; byI
 /** Under the chart of the session still going: where each substance is now
  *  and about when it will be over, and what the chart is a picture of. */
 export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }) {
+    const together = useFeature('together');
     // Each substance as one, all its doses together, says where it is.
     const lines = whereEach(doses, now).map(({ d, end, over, phase }) => ({
         d,
@@ -326,7 +327,7 @@ export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }
                     {text}
                 </p>
             ))}
-            {loads(doses).map(l => (
+            {together && loads(doses).map(l => (
                 <p key={l.kind} className={`text-sm ${on} mt-1`}>
                     {tr('{0}, dashed: ', { 0: loadName(l.kind) })}
                     {l.kind === 'depressant'

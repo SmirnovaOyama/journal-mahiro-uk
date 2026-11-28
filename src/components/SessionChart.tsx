@@ -5,6 +5,7 @@ import type { Course } from '../lib/time';
 import { chartTop, clockTimes, loads, nightSpan, stackEnd, stackPieces, stackStage, stacks, type LoadKind } from '../lib/curve';
 import { useScrub, yOnPieces, type Piece } from './scrub';
 import { tr } from '../lib/i18n';
+import { useFeature } from '../lib/features';
 
 /* A session on one clock: each dose's curve from the time it was taken, in
    its substance's colour, drawn as the substance page draws one (Timeline):
@@ -99,6 +100,8 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     const { width } = useElementSize(box);
     const W = Math.round(width);
     const scrub = useScrub();
+    // The dashed line for drugs of one kind is off until turned on in Settings.
+    const together0 = useFeature('together');
     if (!doses.length) return null;
 
     // The span shown, each curve and the clock times are lib/curve.ts's, as
@@ -112,8 +115,8 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     // Doses of one thing are one curve, their levels added; the curves are
     // scaled so the tallest stack fits under the top line.
     const groups = stacks(doses);
-    const together = loads(doses);
-    const top = chartTop(doses);
+    const together = together0 ? loads(doses) : [];
+    const top = chartTop(doses, together0);
     const yc = (lvl: number) => y(lvl / top);
 
     /** A stack's curve as pieces, so a point on it can be found as well as drawn. */
