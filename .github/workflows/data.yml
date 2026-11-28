@@ -35,8 +35,11 @@ jobs:
           node-version: 22
           cache: npm
 
-      # What the sync scripts fetched last time, so only what changed is
-      # asked for again (scripts/.cache, which the repository doesn't keep).
+      # What the sync scripts fetched before (scripts/.cache, which the
+      # repository doesn't keep). Doses, timings and combinations are fetched
+      # afresh on every run; of Wikidata, Wikipedia and PubChem, only what
+      # the cache lacks is, since each script reads its cache first unless
+      # it's run by hand with --refetch.
       - uses: actions/cache@v4
         with:
           path: scripts/.cache

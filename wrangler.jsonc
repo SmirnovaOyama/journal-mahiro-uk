@@ -55,6 +55,14 @@
     { "name": "RL_AUTH", "namespace_id": "3010", "simple": { "limit": 10, "period": 60 } },
     { "name": "RL_SYNC", "namespace_id": "3060", "simple": { "limit": 60, "period": 60 } }
   ],
+  // A preview of any branch but main (`npx wrangler preview`, which
+  // Cloudflare's build runs for one) has none of production's bindings: no
+  // accounts database, no rate limiters. Search, the mix checker and the
+  // journal work in a preview; signing in says accounts aren't available
+  // there (worker/api.ts), and nothing a preview does can reach a real
+  // account. The block has to be here, even empty: without it that command
+  // refuses to run, and every branch's build fails.
+  "previews": {},
   // Every address the site answers on. Cloudflare makes the DNS records and
   // the certificates for these itself.
   "routes": [

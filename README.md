@@ -399,6 +399,7 @@ npm run dev
 | `npm run og` | Draw the link preview cards into `public/og/` |
 | `npm run sitemap` | Write `public/sitemap.xml` |
 | `npm run deploy` | Cards, sitemap, build, and deploy to Cloudflare |
+| `scripts/local/install.sh` | Have this Mac run that on its own after each push to main (see [Who deploys](#who-deploys)) |
 | `python3 scripts/icons.py` | Cut the favicon and app icons from `design/logo.jpg` |
 
 The cards are drawn in Chromium through playwright-core, so it needs a
@@ -419,6 +420,33 @@ database (`oyama-journal`) and two Workers rate limiters. A change to the
 tables is a new file in `migrations/`, applied with
 `npx wrangler d1 migrations apply oyama-journal --remote` before deploying.
 Shared nights are in the same database (`migrations/0004_watch.sql`).
+
+### Who deploys
+
+A push to main is built and deployed by Cloudflare (Workers Builds) within a
+minute. That build has no link preview cards, which are drawn with a Mac's
+fonts and aren't in the repository, and only the sitemap as it was last
+committed. So a Mac that is left on follows it with the full deploy
+(`scripts/local/deploy.sh`): every two minutes it looks at origin/main, and
+once that has moved and then stood still for three minutes, it runs
+`npm run deploy` on it, from a checkout of its own under
+`~/Library/Application Support/journal-mahiro-uk`, never from the folder the
+site is worked on in. What it did is in `deploy.log` there; a deploy that
+fails raises a notification and is tried again half an hour later.
+
+```bash
+scripts/local/install.sh            # this Mac deploys main on its own (launchd)
+scripts/local/install.sh --remove   # no more
+scripts/local/deploy.sh --now       # deploy origin/main at once, by hand
+```
+
+It deploys with that account's `wrangler login`. Tables are still changed by
+hand, before the push that needs them.
+
+Cloudflare also builds every other branch, as a preview
+(`npx wrangler preview`). A preview has none of production's bindings
+(`previews` in `wrangler.jsonc` is empty on purpose): the site works in
+one, accounts and shared nights don't, and it can't reach a real account.
 
 ### Tests, and the data kept fresh
 
