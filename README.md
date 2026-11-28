@@ -179,7 +179,7 @@ two ways, chosen in Settings, Features:
   time and amount stand in one of two columns beside the dial, a hairline
   from where it was taken. The date is in the middle.
 - **Timeline.** The session chart just as the app draws it, in the light
-  theme, under the date as a reading: each dose's curve in its colour over
+  theme and as flat as on a phone, under the date as a reading: each dose's curve in its colour over
   a faint fill, a hollow ring where it was taken, the clock times under,
   "now" a dotted upright.
 

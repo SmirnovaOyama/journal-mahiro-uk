@@ -438,6 +438,10 @@ function labelWidth(ctx: CanvasRenderingContext2D, doses: ChartDose[]) {
     return w;
 }
 
+/** How tall the line's chart is against its width: the session chart's
+ *  proportion on a phone. */
+const FLAT = 0.4;
+
 /* ── the line ─────────────────────────────────────────────────────────── */
 
 /** The night along a line, just as the session chart draws it
@@ -452,10 +456,14 @@ function timeline(ctx: CanvasRenderingContext2D, p: NightPicture, x0: number, y0
     const order = [...p.doses].sort((a, b) => a.time - b.time);
     const now = p.now && p.now.at >= span.start && p.now.at <= span.end ? p.now : null;
 
-    // The chart's own measures (TOP, BASE, its times' line) at 2x.
-    const nowTop = y0 + (now ? 24 * 1.3 + 4 : 0);
-    const base = y0 + h - 52;
-    const y = (level: number) => base - level * (base - nowTop - 16);
+    // The chart's own measures (TOP, BASE, its times' line) at 2x, and its
+    // own proportion, as flat as it is on a phone: the gridlines' height
+    // FLAT of the width. It stands in the middle of the room it is given.
+    const head = now ? 24 * 1.3 + 4 : 0;
+    const plotH = Math.min(w * FLAT, h - head - 16 - 52);
+    const nowTop = y0 + (h - (head + 16 + plotH + 52)) / 2 + head;
+    const base = nowTop + 16 + plotH;
+    const y = (level: number) => base - level * plotH;
 
     ctx.fillStyle = C.grid;
     for (const l of [0, 0.5, 1]) ctx.fillRect(x0, Math.round(y(l)) - 1, w, 2);
