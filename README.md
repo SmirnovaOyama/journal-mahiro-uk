@@ -124,8 +124,8 @@ bot's name and a question in any chat. See [Telegram](#telegram).
 the notes from last time, limits, the daily medicines, drugs still at work,
 products, paracetamol's total, the Now screen, days in a row, a dose's
 address, watching over a night, the card for the crew, the emergency
-page's beat, reading aloud and position, measuring in a liquid, and the
-link to report a mistake.
+page's beat, reading aloud and position, measuring in a liquid, pictures,
+and the link to report a mistake.
 All are on to begin with. Off, a feature is hidden and does nothing, and
 what it kept stays for when it's turned back on (`src/lib/features.ts`).
 The lock, the other code and the plain name have their own switches under
@@ -164,6 +164,24 @@ its reader speaks, and is answered in English; `?lang=` on the address says
 it instead: `/s/ketamine?lang=zh-Hans`, `zh-Hant`, `zh-HK` or `en`, or `cn`,
 `tw`, `hk` for short. The page itself still opens in its reader's own
 language.
+
+**Keep it as a picture.** A substance's page, a mix's answer and a night in
+the journal can each be drawn as a picture, 1080 by 1440, to save to a phone
+or send where a link isn't read (Picture, at the top of the page). It is
+drawn on the device, in the reader's language (`src/lib/picture.ts`):
+- **A substance:** what it is, its structure, its warning, the doses by the
+  route chosen as a rail of bands, how long it lasts, and what not to mix it
+  with.
+- **A mix:** the verdict, each pair, and the substances' structures. A pair
+  with a medicine taken every day is left out, so a picture that is sent
+  doesn't say what its sender takes.
+- **A night in the journal:** its doses, what they came to, what didn't mix,
+  and the rating; never the notes. The night isn't uploaded to draw it.
+
+Behind each is a field of its own substances' skeletal formulas in the
+terracotta, set on a turned lattice with two large ones behind, flat and
+faint. At the foot are the logo, the site and the page's address, with a QR
+code to it.
 
 ## Pages
 
@@ -523,6 +541,7 @@ and the files of the build before it are let go.
   - `ProfileHeader`: the top of the account page.
   - `Absorption`: how much gets in, by route.
   - `Volumetric`: measuring a dose too small to weigh in a liquid.
+  - `PictureExport`: the Picture button, and the picture with Share and Save.
 - `src/lib/`:
   - `data.ts`, `mix.ts`: the data and the mix checker.
   - `journal.ts`: the journal's store, sessions, import, export and merging.
@@ -540,6 +559,8 @@ and the files of the build before it are let go.
   - `alcohol.ts`: blood alcohol, roughly, from the body weight.
   - `volumetric.ts`: which doses are too small to weigh, and a liquid's
     strength.
+  - `picture.ts`: a page drawn as a picture on a canvas, loaded only when
+    one is asked for.
   - `keys.ts`: the keys, and encrypting the journal.
   - `password.ts`: how guessable a new password is.
   - `molsvg.ts`: skeletal formulas from 2D coordinates.

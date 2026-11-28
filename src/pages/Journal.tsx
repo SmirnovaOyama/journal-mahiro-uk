@@ -38,6 +38,8 @@ import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
 import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
 import { dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
+import { PictureAction, PicturePanel, usePictures } from '../components/PictureExport';
+import type { Block, Ink, Row } from '../lib/picture';
 
 /* The journal, as PsychonautWiki Journal lays its own out, in Oyama's hand:
    the page's title with Log on the right and the form folding open under
@@ -609,6 +611,8 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const [matrix, setMatrix] = useState<ComboMatrix>();
     const [adding, setAdding] = useState(false);
     const [openRow, setOpenRow] = useState<string | null>(null);
+    const picturesOn = usePictures();
+    const [picturing, setPicturing] = useState(false);
     useEffect(() => {
         loadCombos()
             .then(setMatrix)
@@ -641,6 +645,56 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     }
     const live = now < sessionEnd(s, details) + 60 * 60_000;
 
+    /* The night as a picture (lib/picture.ts), drawn on this device: its
+       date, each dose, what it came to, what didn't mix, and the rating.
+       Not the notes, which are written for oneself. The picture names the
+       site, but not this page: its address is of no use to anyone else. */
+    const picture = () => {
+        const date = new Date(s.start).toLocaleDateString(dateLocale(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const span = `${clock(s.start)}${s.end - s.start > 60_000 ? `–${clock(s.end)}` : ''}`;
+        const toneInk: Record<string, Ink> = { danger: 'danger', warning: 'warning', info: 'info', positive: 'positive', neutral: 'muted' };
+        const doses = [...s.ingestions].sort((a, b) => a.time - b.time);
+        const blocks: Block[] = [
+            { t: 'head', eyebrow: meta.title ? `${date}, ${span}` : span, title: meta.title || date },
+            { t: 'heading', text: tr('Doses') },
+            {
+                t: 'rows',
+                rows: doses.map((i): Row => {
+                    const e = byId.get(i.substance);
+                    return { time: clock(i.time), mol: e ? e.id : undefined, left: (e && shownName(e)) || i.name, right: `${amountOf(i)}${isZh() ? '，' : ', '}${roaName(i.route)}` };
+                }),
+                more: n => tr('And {0} more', { 0: n }),
+            },
+        ];
+        const many = [...totals.values()].some(t => t.n > 1);
+        if (many)
+            blocks.push(
+                { t: 'heading', text: tr('In total') },
+                {
+                    t: 'rows',
+                    rows: [...totals.values()].map(t => ({
+                        left: t.name,
+                        right: `${t.sum && !t.mixed ? `${fmtDose(t.sum)} ${t.unit}` : '—'}${isZh() ? '，' : ', '}${t.n === 1 ? tr('once') : tr('{0} times', { 0: t.n })}`,
+                    })),
+                    more: n => tr('And {0} more', { 0: n }),
+                },
+            );
+        const bad = pairsOf(s, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution);
+        if (bad.length)
+            blocks.push(
+                { t: 'heading', text: tr('Together') },
+                {
+                    t: 'rows',
+                    rows: bad.map(p => ({ left: `${shownName(p.a)} + ${shownName(p.b)}`, right: tr(VERDICT[p.verdict].label), rightInk: toneInk[VERDICT[p.verdict].tone] })),
+                    more: n => tr('And {0} more', { 0: n }),
+                },
+            );
+        if (meta.rating) blocks.push({ t: 'heading', text: tr('Shulgin rating') }, { t: 'text', text: `${meta.rating}  ${tr(SHULGIN[meta.rating])}` });
+        const day = new Date(s.start);
+        const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+        return { field: [...new Set(doses.map(i => i.substance))].filter(id => byId.has(id)), blocks, file: `night-${stamp}` };
+    };
+
     return (
         <div className="md:pb-32">
             <PageHeader
@@ -662,10 +716,12 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                             <Plus size={16} />
                             {adding ? tr('Close') : tr('Add')}
                         </button>
+                        {picturesOn && <PictureAction open={picturing} onToggle={() => setPicturing(o => !o)} />}
                     </>
                 }
             />
             <div className={`${PAGE_COLUMN} pb-10`}>
+                {picturesOn && <PicturePanel open={picturing} make={picture} />}
                 <div className="disclosure disclosure-bleed" data-open={adding} {...(adding ? {} : { inert: '' })}>
                     <div className="disclosure-inner">
                         {adding && (

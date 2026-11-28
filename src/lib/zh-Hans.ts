@@ -1414,6 +1414,20 @@ const zh: Record<string, string> = {
     'Measure it from {0}': '从“{0}”量取',
     'Measuring in a liquid': '溶成液体来量',
     'Where a dose is too small for a milligram scale, the page works out how strong a liquid is and how much of it each dose is.': '剂量小到毫克秤秤不准时，页面会算出液体的浓度，以及每一剂是多少液体。',
+    // components/PictureExport.tsx, lib/picture.ts
+    'Picture': '图片',
+    'Drawing the picture…': '正在画图片…',
+    'The picture couldn’t be drawn on this device.': '这台装置画不出这张图片。',
+    'The picture': '图片',
+    'Drawn on this device, from what this page shows. It goes nowhere until it is shared.': '在这台装置上依本页内容画成，分享之前哪里都不去。',
+    'Share': '分享',
+    'Threshold': '阈值',
+    'Doses from {0}. Information, not medical advice.': '剂量资料来源：{0}。仅供参考，并非医疗建议。',
+    'Until it’s checked, don’t take it as safe.': '确认之前，别当它是安全的。',
+    'And {0} more': '另有 {0} 项',
+    'Pictures': '图片',
+    'Save as a picture': '存成图片',
+    'A substance, a mix and a night in the journal can be drawn as a picture to keep or send. It is drawn on this device.': '物质、混用结果和日志里的一夜，可以画成图片保存或传送。图片在这台装置上画成。',
 };
 
 export default zh;

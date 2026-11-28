@@ -19,7 +19,10 @@ import {
 import { historyOf, logFrom, useJournal } from '../lib/journal';
 import { RANK } from '../lib/mix';
 import { pushRecent, useSaved, formatWeight, useWeight } from '../lib/store';
-import { courseFor, formatMinutes } from '../lib/time';
+import { courseFor, formatMinutes, formatSpan, parseSpan } from '../lib/time';
+import { href } from '../lib/routes';
+import { PictureAction, PicturePanel, formulaText, usePictures } from '../components/PictureExport';
+import type { Block, Ink } from '../lib/picture';
 import { useDetail } from '../lib/useIndex';
 import { DoseRuler } from '../components/DoseRuler';
 import { Absorption } from '../components/Absorption';
@@ -278,6 +281,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     const saved = useSaved();
     const entry = byId.get(id);
     const reportOn = useFeature('report');
+    const picturesOn = usePictures();
+    const [picturing, setPicturing] = useState(false);
 
     useEffect(() => {
         if (detail) {
@@ -438,6 +443,67 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
             ? tr(' Tolerance should be back to normal around {0}.', { 0: new Date(baseline).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' }) })
             : '';
 
+    /** The page as a picture (lib/picture.ts): what it is, the doses and
+     *  timing by the route chosen, its warning, and what not to mix it with. */
+    const picture = () => {
+        const blocks: Block[] = [
+            {
+                t: 'head',
+                eyebrow: whatItIs,
+                title: nameOf(detail),
+                sub: detail.formula ? `${formulaText(detail.formula)}${detail.molarMass != null ? tr(', {0} g/mol', { 0: detail.molarMass }) : ''}` : undefined,
+                mol: detail.id,
+            },
+        ];
+        const warnings = [limited && tr('Little is known about this one. Treat any dose as stronger than you expect.'), detail.advisory && dataText(detail.advisory)].filter(Boolean) as string[];
+        for (const w of warnings) blocks.push({ t: 'text', text: w, ink: 'danger', size: 30 });
+        if (dose) {
+            const bands: [string, string | undefined, Ink][] = [
+                [tr('Threshold'), dose.threshold, 'muted'],
+                [tr('Light'), dose.light, 'info'],
+                [tr('Common'), dose.common, 'accent'],
+                [tr('Strong'), dose.strong, 'warning'],
+                [tr('Heavy'), dose.heavy, 'danger'],
+            ];
+            blocks.push(
+                { t: 'heading', text: roa ? tr('{0}, in {1}', { 0: roaName(roa), 1: dose.unit }) : tr('How much') },
+                // The heading names the unit, so the figures go without it: "75–150", "300+".
+                {
+                    t: 'cols',
+                    bars: true,
+                    items: bands
+                        .filter(([, v]) => v)
+                        .map(([label, v, ink]) => ({ label, value: v!.replace(` ${dose.unit}`, '').replace(` ${dose.unit.replace('μ', 'µ')}`, '').trim(), ink })),
+                },
+            );
+        }
+        if (time) {
+            const spans = (
+                [
+                    [tr('First effects after'), time.onset],
+                    [tr('Peak lasts'), time.peak],
+                    [tr('In total'), time.total],
+                ] as const
+            )
+                .map(([k, v]) => [k, parseSpan(v)] as const)
+                .filter(([, v]) => v);
+            if (spans.length) blocks.push({ t: 'heading', text: tr('How long') }, { t: 'cols', items: spans.map(([label, v]) => ({ label, value: formatSpan(v!) })) });
+        }
+        const dont = [
+            ...new Set(
+                combos
+                    .filter(c => c.status === 'Dangerous' || c.status === 'Unsafe')
+                    .map(c => {
+                        const other = index ? resolveName(index, c.substance) : undefined;
+                        return other ? nameOf(other) : dataText(c.substance);
+                    }),
+            ),
+        ];
+        if (dont.length) blocks.push({ t: 'heading', text: tr('Don’t mix with') }, { t: 'text', text: dont.slice(0, 14).join(tr(', ')) + (dont.length > 14 ? '…' : ''), size: 30 });
+        blocks.push({ t: 'note', text: dose ? tr('Doses from {0}. Information, not medical advice.', { 0: dose.source ?? 'PsychonautWiki' }) : tr('Information, not medical advice.') });
+        return { field: [detail.id], blocks, path: href({ page: 'substance', id: detail.id }), file: detail.id };
+    };
+
     return (
         <>
             <PageHeader
@@ -472,9 +538,15 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <Heart size={18} fill={isSaved ? 'currentColor' : 'none'} />
                             <span className="max-sm:hidden">{isSaved ? tr('Saved', undefined, 'bookmark') : tr('Save', undefined, 'bookmark')}</span>
                         </button>
+                        {picturesOn && <PictureAction open={picturing} onToggle={() => setPicturing(o => !o)} />}
                     </>
                 }
             />
+            {picturesOn && (
+                <div className={PAGE_COLUMN}>
+                    <PicturePanel open={picturing} make={picture} />
+                </div>
+            )}
 
             {/* The reading block, as hrt's Overview header: what it is, any
                 warning, then the dose read off its rail, and the way on. */}

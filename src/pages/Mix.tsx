@@ -12,7 +12,10 @@ import { rowBleed } from '../components/SettingsListItem';
 import { SubstanceRow } from '../components/SubstanceRow';
 import { ChevronRight, Clover, Close, Plus } from '../components/icons';
 import { Linked } from '../components/Linked';
-import { dataText, phraseList, tr } from '../lib/i18n';
+import { dataText, isZh, phraseList, tr } from '../lib/i18n';
+import { href } from '../lib/routes';
+import { PictureAction, PicturePanel, usePictures } from '../components/PictureExport';
+import type { Block, Ink } from '../lib/picture';
 import { sessionsOf, useJournal } from '../lib/journal';
 import { courseFor } from '../lib/time';
 import { medicinesOf, usePerson } from '../lib/person';
@@ -60,6 +63,8 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
     // Opened from a substance's warnings or a session: the way back to it.
     const fromLink = useOpenedFromLink();
     const [q, setQ] = useState('');
+    const picturesOn = usePictures();
+    const [picturing, setPicturing] = useState(false);
     const [active, setActive] = useState(0);
     const input = useRef<HTMLInputElement>(null);
     const [details, setDetails] = useState<Record<string, Detail>>({});
@@ -165,10 +170,46 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                 ? tr('Not documented for this exact pair. A cautious guess from what kind of drug each one is')
                 : tr('No source covers this pair');
 
+    /* The answer as a picture (lib/picture.ts). Only the substances chosen
+       here: a pair with a medicine taken every day stays on this screen, so
+       a picture that is sent doesn't say what its sender takes. */
+    const shared = pairs.filter(p => !p.daily);
+    const sharedTop: Checked | undefined = worst(shared);
+    const canPicture = picturesOn && enough && !!ready && !!sharedTop && chosen.length >= 2;
+    const TONE_INK: Record<string, Ink> = { danger: 'danger', warning: 'warning', info: 'info', positive: 'positive', neutral: 'muted' };
+    const picture = () => {
+        const top = sharedTop!;
+        const v = VERDICT[top.verdict];
+        const blocks: Block[] = [
+            { t: 'text', text: shared.length === 1 ? tr('Together') : tr('The most serious of {0} pairs', { 0: shared.length }), size: 28, ink: 'muted', weight: 600 },
+            { t: 'word', text: top.unchecked ? tr('Not checked') : tr(v.label), ink: top.unchecked ? 'muted' : TONE_INK[v.tone] },
+            { t: 'text', text: top.unchecked ? tr('Until it’s checked, don’t take it as safe.') : tr(v.meaning), size: 34 },
+            { t: 'mols', items: chosen.map(e => ({ id: e.id, name: nameOf(e) })) },
+            {
+                t: 'rows',
+                rows: shared.map(p => {
+                    const pv = VERDICT[p.verdict];
+                    const says = p.note ? dataText(p.note) : shared.length > 1 && !p.unchecked ? tr(pv.meaning) : '';
+                    const from = p.unchecked ? '' : sourceWords(p.source);
+                    return {
+                        left: `${nameOf(p.a)} ${tr('with')} ${nameOf(p.b)}`,
+                        right: p.unchecked ? tr('Not checked') : tr(pv.label),
+                        rightInk: p.unchecked ? 'muted' : TONE_INK[pv.tone],
+                        sub: [says, from].filter(Boolean).join(isZh() ? '' : ' ') || undefined,
+                    };
+                }),
+                more: n => tr('And {0} more', { 0: n }),
+            },
+            { t: 'note', text: tr('Mixing advice from TripSit and PsychonautWiki. Information, not medical advice. If someone is unresponsive or breathing slowly, call emergency services.') },
+        ];
+        return { field: chosen.map(e => e.id), blocks, path: href({ page: 'mix', ids: chosen.map(e => e.id) }), file: `mix-${chosen.map(e => e.id).join('-')}` };
+    };
+
     return (
         <>
-            <PageHeader title={tr('Mix')} backTo={fromLink} />
+            <PageHeader title={tr('Mix')} backTo={fromLink} actions={canPicture ? <PictureAction open={picturing} onToggle={() => setPicturing(o => !o)} /> : undefined} />
             <div className={`${PAGE_COLUMN} pb-8`}>
+                {canPicture && <PicturePanel open={picturing} make={picture} />}
                 <p className="text-sm text-[var(--text-muted)] mb-4">
                     {tr('What are the risks of taking these together? Add everything you plan to take, including alcohol and any medication.')}
                 </p>
