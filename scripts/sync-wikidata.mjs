@@ -626,9 +626,32 @@ const slug = s =>
 const squash = s => s.toLowerCase().replace(/[^a-z0-9À-￿]+/g, '');
 const STEREO = /^\s*(\(\s*[+\-−±RSrsEZ,\s]*\)|[dl]-|levo|dextro|rac-|\(rs\)-|\(r\)-|\(s\)-|\(±\)-)/i;
 
-/** The name to show: the label, unless it's a systematic name a line long
+/** The title of its English Wikipedia article, as a name: "W-18 (drug)" is
+ *  W-18, and a Greek letter the title had to start with a capital is itself
+ *  again ("Α,N,N,O-TeMS" is α,N,N,O-TeMS). */
+const articleName = d =>
+    (d.enwiki ?? '')
+        .replace(/\s+\([^()]*\)$/, '')
+        .replace(/^[ΑΒΓ]/, c => ({ Α: 'α', Β: 'β', Γ: 'γ' })[c]);
+
+/** A name written out by the rules of nomenclature, too long to say. */
+const isSystematic = name => name.length > 30 && /[[\]()]|\d,\d|\d-[a-z]{2,}|,\s|-$/i.test(name);
+
+/** The name to show. Wikidata labels a compound nobody has named with its
+ *  systematic name, a line or three long; where its article is titled with
+ *  the name people use (Ciforadenant, 2C-T-16, 8-OH-DPAT), that is the name,
+ *  unless another entry already goes by it. The id is still made from the
+ *  label (labelName), so no page moves. */
+function displayName(d, taken) {
+    const name = labelName(d);
+    const title = articleName(d);
+    if (!isSystematic(name) || !title || title.length > 30 || title.length > name.length * 0.7) return name;
+    return taken?.has(squash(title)) ? name : title;
+}
+
+/** The name the label gives: the label, unless it's a systematic name a line long
  *  and the item has a short code people use (JWH-018). */
-function displayName(d) {
+function labelName(d) {
     const en = d.en ?? '';
     const systematic = /[[\]()]|\d,\d|\d-[a-z]{2,}/i.test(en) && en.length > 18;
     if (systematic) {
@@ -760,8 +783,10 @@ for (const group of fresh.values()) {
     );
     const d = group[0];
     if (SALT.test(d.en) && group.length === 1 && !d.enwiki) continue; // a lone salt of something listed elsewhere
-    const name = displayName(d);
-    if (takenNames.has(squash(name))) continue;
+    // Whether it's already listed is asked of the label's name, as the id is made from it.
+    const label = labelName(d);
+    if (takenNames.has(squash(label))) continue;
+    const name = displayName(d, takenNames);
     for (const o of group.slice(1)) {
         for (const a of [o.en, ...o.aliasEn]) if (a && !d.aliasEn.includes(a)) d.aliasEn.push(a);
         d.enwiki ??= o.enwiki;
@@ -771,11 +796,14 @@ for (const group of fresh.values()) {
         d.listed ||= o.listed;
         (d.hints ??= []).push(...(o.hints ?? []));
     }
-    let id = slug(name);
+    let id = slug(label);
     if (!id || id.length > 48 || taken.has(id)) id = d.q.toLowerCase();
     if (taken.has(id)) continue;
     taken.add(id);
+    takenNames.add(squash(label));
     takenNames.add(squash(name));
+    // Named as its article is: the label's name is still one it goes by, and a search finds it.
+    if (name !== label && !d.aliasEn.includes(label)) d.aliasEn.unshift(label);
     added.push({ id, name, d });
 }
 
