@@ -190,6 +190,13 @@ const zh: Record<string, string> = {
     'wearing off': '消退中',
     'over': '已结束',
     'The session over time; press and slide along it to read any moment': '整个场次随时间的变化；按住并沿线滑动可读取任一时刻',
+    'Depressants together': '抑制剂合计',
+    'Stimulants together': '兴奋剂合计',
+    '{0}, dashed: ': '{0}（虚线）：',
+    'each against its own common dose, added up. Together they slow breathing more than any one curve shows.': '各自按自己的常见剂量换算后相加。合在一起对呼吸的抑制，比任何一条曲线看起来都更强。',
+    'each against its own common dose, added up. Together they push the heart harder than any one curve shows.': '各自按自己的常见剂量换算后相加。合在一起对心脏的负担，比任何一条曲线看起来都更重。',
+    'Doses of the same thing are added into one curve: how much is in you against a common dose, not how strong it feels.': '同一种东西的多次用量会相加成一条曲线：表示体内的量相对常见剂量有多少，不是感觉有多强。',
+    'A redose of a psychedelic or MDMA does less than its curve shows: tolerance builds within hours.': '迷幻剂或 MDMA 追加的效果比曲线看起来弱：几小时内就会产生耐受。',
 
     // components/ToleranceChart.tsx
     'here': '此处',

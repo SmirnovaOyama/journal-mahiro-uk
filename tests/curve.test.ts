@@ -50,3 +50,52 @@ test('the clock times begin with when the night began', () => {
     assert.equal(times[0], t0);
     for (const t of times.slice(1)) assert.equal(new Date(t).getMinutes(), 0);
 });
+
+/* Doses of one thing, added up; different drugs of one kind, together. */
+
+test('a second dose of the same thing is one curve, taller where they overlap', async () => {
+    const { stacks, stackPieces, levelAt, stackTop } = await import('../src/lib/curve');
+    const a = { ...dose(t0), id: 'a', group: 'water' };
+    const b = { ...dose(t0 + 5 * MIN), id: 'b', group: 'water' };
+    const other = { ...dose(t0 + MIN), id: 'c', group: 'caffeine' };
+    const groups = stacks([b, other, a]);
+    assert.deepEqual(groups.map(g => g.map(d => d.id)), [['a', 'b'], ['c']]);
+    const at = t0 + 100 * MIN;
+    assert.ok(Math.abs(levelAt(a, at) + levelAt(b, at) - 2 * levelAt(a, at)) < 0.05);
+    assert.ok(stackTop([a, b]) > 1.7); // two doses, each 0.87 tall
+    // One curve, from the first dose to the last one's landing.
+    const ps = stackPieces([a, b], t => t, l => l);
+    const first = 'line' in ps[0] ? ps[0].line[0] : ps[0].cubic[0];
+    const last = ps[ps.length - 1];
+    assert.equal(first[0], t0);
+    assert.equal('line' in last ? last.line[1][0] : last.cubic[3][0], t0 + 305 * MIN);
+});
+
+test('doses of one thing are where the furthest along of them is', async () => {
+    const { stackStage } = await import('../src/lib/curve');
+    const water = { firstEffects: 10, peakStart: 25, peakEnd: 55, over: 145 };
+    const a = { time: t0, course: water, strength: 1 };
+    const b = { time: t0 + 11 * MIN, course: water, strength: 1 };
+    // 13 minutes after the first glass, 2 after the second: coming up, not starting.
+    assert.equal(stackStage([a, b], t0 + 13 * MIN), 'coming up');
+    assert.equal(stackStage([a, b], t0 + 30 * MIN), 'peak');
+    assert.equal(stackStage([a, b], t0 - MIN), 'none');
+    assert.equal(stackStage([a, b], t0 + 200 * MIN), 'over');
+});
+
+test('two different depressants at work together have a load; one alone, or a psychedelic pair, has none', async () => {
+    const { loads, loadKindOf } = await import('../src/lib/curve');
+    assert.equal(loadKindOf('Opioid'), 'depressant');
+    assert.equal(loadKindOf('Psychedelic'), undefined);
+    const alcohol = { ...dose(t0), id: 'a', group: 'alcohol', load: loadKindOf('Depressant') };
+    const gaba = { ...dose(t0 + 60 * MIN), id: 'g', group: 'gabapentin', load: loadKindOf('Depressant') };
+    const again = { ...dose(t0 + 30 * MIN), id: 'a2', group: 'alcohol', load: loadKindOf('Depressant') };
+    assert.deepEqual(loads([alcohol, again]), []);
+    const l = loads([alcohol, gaba, again]);
+    assert.equal(l.length, 1);
+    assert.equal(l[0].kind, 'depressant');
+    assert.equal(l[0].ds.length, 3);
+    // Never meeting: none.
+    const late = { ...gaba, time: t0 + 24 * 60 * MIN };
+    assert.deepEqual(loads([alcohol, late]), []);
+});

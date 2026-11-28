@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useElementSize } from '../hooks/useElementSize';
 import { DRAW_MS, DrawnCurve } from './DrawnCurve';
 import type { Course } from '../lib/time';
-import { clockTimes, curvePieces, nightSpan } from '../lib/curve';
+import { chartTop, clockTimes, loads, nightSpan, stackEnd, stackPieces, stackStage, stacks, type LoadKind } from '../lib/curve';
 import { useScrub, yOnPieces, type Piece } from './scrub';
 import { tr } from '../lib/i18n';
 
@@ -40,7 +40,16 @@ export interface ChartDose {
     strength: number;
     /** What it was, for the reading under the cursor. */
     label?: string;
+    /** What it is (a substance's id): doses of one thing are one curve. */
+    group?: string;
+    /** Its kind, where different drugs of it add up (lib/curve.ts, loads). */
+    load?: LoadKind;
+    /** Its kind as the catalogue has it ("Psychedelic"). */
+    category?: string;
 }
+
+/** What a load's dashed line is called. */
+export const loadName = (kind: LoadKind) => (kind === 'depressant' ? tr('Depressants together') : tr('Stimulants together'));
 
 const H = 196;
 const TOP = 14;
@@ -67,6 +76,24 @@ export function phaseAt(d: ChartDose, T: number): string {
     return tr('over');
 }
 
+/** Where several doses of one thing are at time T, as one: at its peak
+ *  if any of them is (lib/curve.ts, stackStage). */
+export function stackPhaseAt(ds: ChartDose[], T: number): string {
+    if (ds.length === 1) return phaseAt(ds[0], T);
+    const stage = stackStage(ds, T);
+    if (stage === 'none') return T < ds[0].time ? tr('not taken yet') : tr('taken at {0}', { 0: clock(ds[0].time) });
+    return tr(stage === 'peak' ? 'at its peak' : stage);
+}
+
+/** Each thing taken, its doses together: where it is now and when it will
+ *  be over, for the lines under a chart. Only things with a timing. */
+export function whereEach(doses: ChartDose[], now: number) {
+    return stacks(doses)
+        .map(ds => ({ d: ds[ds.length - 1], ds, end: stackEnd(ds) }))
+        .filter((s): s is typeof s & { end: number } => s.end != null)
+        .map(s => ({ ...s, over: now >= s.end, phase: stackPhaseAt(s.ds, now) }));
+}
+
 export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }) {
     const [box, setBox] = useState<HTMLDivElement | null>(null);
     const { width } = useElementSize(box);
@@ -82,9 +109,15 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     const plotW = W - LEFT - RIGHT;
     const x = (t: number) => LEFT + ((t - start) / (end - start)) * plotW;
     const y = (lvl: number) => BASE - lvl * (BASE - TOP - 8);
+    // Doses of one thing are one curve, their levels added; the curves are
+    // scaled so the tallest stack fits under the top line.
+    const groups = stacks(doses);
+    const together = loads(doses);
+    const top = chartTop(doses);
+    const yc = (lvl: number) => y(lvl / top);
 
-    /** A dose's curve as pieces, so a point on it can be found as well as drawn. */
-    const pieces = (d: ChartDose): Piece[] => curvePieces(d, x, y);
+    /** A stack's curve as pieces, so a point on it can be found as well as drawn. */
+    const pieces = (ds: ChartDose[]): Piece[] => stackPieces(ds, x, yc);
     const path = (ps: Piece[]) =>
         ps
             .map((p, k) => {
@@ -109,11 +142,13 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     const reading =
         T === null
             ? []
-            : doses.map(d => ({
-                  d,
-                  phase: phaseAt(d, T),
-                  y: d.course ? yOnPieces(pieces(d), cx!) : null,
+            : groups.map(ds => ({
+                  d: ds[0],
+                  phase: stackPhaseAt(ds, T),
+                  y: ds.some(d => d.course) ? yOnPieces(pieces(ds), cx!) : null,
               }));
+    const loadReading =
+        T === null ? [] : together.map(l => ({ kind: l.kind, y: yOnPieces(pieces(l.ds), cx!) })).filter(r => r.y !== null);
     // The reading sits beside the cursor, on whichever side has more room.
     const onRight = cx !== null && cx < W / 2;
 
@@ -140,18 +175,33 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                                 {clock(t)}
                             </text>
                         ))}
-                    {doses.map(d =>
-                        d.course ? (
+                    {groups.map(ds =>
+                        ds.some(d => d.course) ? (
                             <DrawnCurve
-                                key={d.id}
-                                d={path(pieces(d))}
-                                color={d.color}
+                                key={ds[0].id}
+                                d={path(pieces(ds))}
+                                color={ds[0].color}
                                 fillOpacity={cx === null ? 0.1 : 0.07}
-                                delay={(order.get(d.id) ?? 0) + 60}
+                                delay={(order.get(ds[0].id) ?? 0) + 60}
                                 height={H}
                             />
                         ) : null,
                     )}
+                    {/* Different drugs of one kind at work together: their sum, dashed,
+                        over their own curves. */}
+                    {together.map(l => (
+                        <path
+                            key={l.kind}
+                            d={path(pieces(l.ds))}
+                            fill="none"
+                            stroke="var(--text)"
+                            strokeWidth={1.5}
+                            strokeDasharray="5 4"
+                            opacity={0.6}
+                            className="chart-appear"
+                            style={{ animationDelay: `${landed}ms` }}
+                        />
+                    ))}
                     {doses.map(d => (
                         <circle
                             key={`dot-${d.id}`}
@@ -182,6 +232,9 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                         {reading.map(r =>
                             r.y !== null ? <circle key={r.d.id} cx={cx} cy={r.y} r={5} fill={r.d.color} stroke="var(--bg)" strokeWidth={2} /> : null,
                         )}
+                        {loadReading.map(r => (
+                            <circle key={r.kind} cx={cx} cy={r.y!} r={4} fill="var(--bg)" stroke="var(--text)" strokeWidth={1.5} />
+                        ))}
                     </g>
                 )}
             </svg>
@@ -202,6 +255,11 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
                                 </span>
                             )}
                             {r.phase}
+                        </p>
+                    ))}
+                    {loadReading.map(r => (
+                        <p key={r.kind} className="whitespace-nowrap text-[var(--text-muted)]">
+                            {loadName(r.kind)}
                         </p>
                     ))}
                 </div>
