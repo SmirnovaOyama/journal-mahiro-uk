@@ -31,6 +31,7 @@ interface Draft {
     name: string;
     per: string;
     parts: (Omit<ProductPart, 'amount'> & { amount: string })[];
+    route?: string;
 }
 
 function toLocalInput(t: number) {
@@ -45,11 +46,14 @@ const amountText = (v: number, unit: string) => `${fmtAmount(v)} ${unit}`;
 export function ProductForm({
     index,
     byId,
+    initial,
     onLog,
     onCancel,
 }: {
     index: IndexEntry[] | null;
     byId: Map<string, IndexEntry>;
+    /** The product to open on: a liquid the dose form offered. */
+    initial?: string;
     onLog: (doses: Omit<Ingestion, 'id'>[]) => void;
     onCancel: () => void;
 }) {
@@ -59,7 +63,9 @@ export function ProductForm({
     useNavHeldAway();
     const paracetamolOn = useFeature('paracetamol');
 
-    const [chosen, setChosen] = useState<string | null>(products.length === 1 ? products[0].id : null);
+    const [chosen, setChosen] = useState<string | null>(
+        initial && products.some(p => p.id === initial) ? initial : products.length === 1 ? products[0].id : null,
+    );
     const [draft, setDraft] = useState<Draft | null>(products.length ? null : { id: newId(), name: '', per: 'tablet', parts: [] });
     const [q, setQ] = useState('');
     const [countText, setCountText] = useState('');
@@ -97,7 +103,13 @@ export function ProductForm({
                 onSubmit={e => {
                     e.preventDefault();
                     if (!canSave) return;
-                    const saved: Omit<Product, 'at'> = { id: draft.id, name: draft.name.trim(), per: draft.per, parts: draft.parts.map(p => ({ ...p, amount: num(p.amount) })) };
+                    const saved: Omit<Product, 'at'> = {
+                        id: draft.id,
+                        name: draft.name.trim(),
+                        per: draft.per,
+                        parts: draft.parts.map(p => ({ ...p, amount: num(p.amount) })),
+                        ...(draft.route ? { route: draft.route } : {}),
+                    };
                     saveProduct(saved);
                     setChosen(saved.id);
                     setDraft(null);
@@ -210,6 +222,8 @@ export function ProductForm({
     const apapMine = apap ? convertAmount(apap.total, apap.unit, 'mg') : null;
     const apapTotal = apapMine != null ? paracetamolMg(data.ingestions, time).mg + apapMine : null;
     const mixIds = product ? product.parts.map(p => p.substance).filter(id => byId.has(id)) : [];
+    // A liquid is measured, not counted.
+    const byMl = product?.per === 'mL';
 
     return (
         <form
@@ -217,12 +231,12 @@ export function ProductForm({
             onSubmit={e => {
                 e.preventDefault();
                 if (!product || !countOk) return;
-                const note = `${fmtAmount(count!)} × ${product.name}`;
+                const note = byMl ? tr('{0} mL of {1}', { 0: fmtAmount(count!), 1: product.name }) : `${fmtAmount(count!)} × ${product.name}`;
                 onLog(
                     taken.map(p => ({
                         substance: p.substance,
                         name: byId.get(p.substance)?.name ?? p.name,
-                        route: 'Oral',
+                        route: product.route ?? 'Oral',
                         dose: Number(p.total.toPrecision(6)),
                         unit: p.unit,
                         estimate: false,
@@ -262,7 +276,9 @@ export function ProductForm({
                             <button
                                 type="button"
                                 className="link-button !text-[var(--text-muted)]"
-                                onClick={() => setDraft({ id: product.id, name: product.name, per: product.per, parts: product.parts.map(p => ({ ...p, amount: String(p.amount) })) })}
+                                onClick={() =>
+                                    setDraft({ id: product.id, name: product.name, per: product.per, parts: product.parts.map(p => ({ ...p, amount: String(p.amount) })), route: product.route })
+                                }
                             >
                                 {tr('Edit')}
                             </button>
@@ -280,7 +296,7 @@ export function ProductForm({
                     </div>
                     <div>
                         <label className={label} htmlFor="product-count">
-                            {tr('How many')}
+                            {byMl ? tr('How much, in mL') : tr('How many')}
                         </label>
                         <input
                             id="product-count"

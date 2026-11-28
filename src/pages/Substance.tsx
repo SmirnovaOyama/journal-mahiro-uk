@@ -23,6 +23,8 @@ import { courseFor, formatMinutes } from '../lib/time';
 import { useDetail } from '../lib/useIndex';
 import { DoseRuler } from '../components/DoseRuler';
 import { Absorption } from '../components/Absorption';
+import { Volumetric } from '../components/Volumetric';
+import { tooSmallToWeigh } from '../lib/volumetric';
 import { hrtLine, isHrt, sparkleFrom, toast } from '../lib/eggs';
 import Doodle, { Route } from '../components/Doodle';
 import { Fold } from '../components/Fold';
@@ -314,6 +316,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     };
     const taps = useRef(0);
     const roa = route && routes.includes(route) ? route : routes[0];
+    const volumetricOn = useFeature('volumetric');
 
 
     const combos = useMemo(() => (detail ? dedupe(detail.combinations) : []), [detail]);
@@ -360,6 +363,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
     const dose = detail.doseRows.find(r => r.roa === roa);
     const time = detail.durationRows.find(r => r.roa === roa);
+    // A dose of this, taken this way, is too small for a milligram scale.
+    const tooSmall = tooSmallToWeigh(dose);
     const isSaved = saved.ids.includes(detail.id);
     const aliases = detail.aliases
         .split(',')
@@ -635,7 +640,9 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     </p>
                                 )}
                                 <p>
-                                    {tr('Weigh with a milligram scale; eyeballing powder is how people get hurt. Start at the light end, and with any new batch.')}
+                                    {tooSmall
+                                        ? tr('A milligram scale is accurate to a few milligrams, too coarse for a dose of this: it is measured in a liquid. Start at the light end, and with any new batch.')
+                                        : tr('Weigh with a milligram scale; eyeballing powder is how people get hurt. Start at the light end, and with any new batch.')}
                                 </p>
                                 <p className="text-xs">
                                     {tr('Doses from ')}
@@ -666,6 +673,15 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         <p className={`text-sm ${muted}`}>
                             {tr('No dosage is documented for this route.')}
                         </p>
+                    )}
+                    {dose && tooSmall && volumetricOn && (
+                        <Volumetric
+                            key={`liquid-${detail.id}`}
+                            row={dose}
+                            substance={detail.id}
+                            name={nameOf(detail)}
+                            benzo={/benzodiazepine/i.test(detail.chemicalClass ?? '')}
+                        />
                     )}
                     <Absorption rows={detail.doseRows} roa={roa} onPick={setRoute} />
                     </>

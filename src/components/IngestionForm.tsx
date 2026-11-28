@@ -18,7 +18,7 @@ import Switch from './Switch';
 import { Alert, Close } from './icons';
 import { roaName, tr } from '../lib/i18n';
 import { LINGER_DAYS, PARACETAMOL, PARACETAMOL_DAY_MG, PARACETAMOL_SOURCE, lastNightOf, lastTime, lingering, nightTotal, paracetamolMg } from '../lib/advice';
-import { medicinesOf, usePerson } from '../lib/person';
+import { medicinesOf, productsOf, usePerson } from '../lib/person';
 import { LastTimeNote, gramsText } from './JournalNotes';
 import { Link } from './Link';
 import { useFeatures } from '../lib/features';
@@ -90,8 +90,9 @@ export function IngestionForm({
     onSave: (i: Omit<Ingestion, 'id'> & { id?: string }) => void;
     onCancel: () => void;
     onDelete?: () => void;
-    /** Opens the form for a product with several ingredients instead. */
-    onProduct?: () => void;
+    /** Opens the form for a product with several ingredients instead, or
+     *  for one kept liquid of this substance, measured in mL. */
+    onProduct?: (id?: string) => void;
 }) {
     const { data } = useJournal();
     const start = editing ?? initial;
@@ -170,6 +171,12 @@ export function IngestionForm({
     // Each of these can be turned off in Settings, Features (lib/features.ts).
     const feat = useFeatures();
     const meds = useMemo(() => (feat.on('medicines') ? medicinesOf(person).filter(m => byId.has(m.id)) : []), [person, byId, feat.on]);
+    // A liquid this substance was dissolved in, kept from its page: a dose of
+    // it is measured in mL there (components/Volumetric.tsx).
+    const liquids = useMemo(
+        () => (entry && !editing && onProduct && feat.on('products') ? productsOf(person).filter(p => p.per === 'mL' && p.parts.some(q => q.substance === entry.id)) : []),
+        [entry, editing, onProduct, feat.on, person],
+    );
     const older = useMemo(
         () => (!feat.on('lingering') ? [] : [...new Set(data.ingestions.filter(i => i.id !== editing?.id && time - i.time > DAY && time - i.time <= LINGER_DAYS * DAY).map(i => i.substance))]),
         [data.ingestions, editing?.id, time, feat.on],
@@ -396,7 +403,7 @@ export function IngestionForm({
                             </div>
                         )}
                         {!q.trim() && onProduct && feat.on('products') && (
-                            <button type="button" className="link-button mt-3 block text-sm" onClick={onProduct}>
+                            <button type="button" className="link-button mt-3 block text-sm" onClick={() => onProduct()}>
                                 {tr('A product with several ingredients')}
                             </button>
                         )}
@@ -517,6 +524,11 @@ export function IngestionForm({
                                 {tr('{0} of a dose taken this way reaches the blood.', { 0: absorbedText(row.absorbed).replace(/^./, c => c.toUpperCase()) })}
                             </p>
                         )}
+                        {liquids.map(l => (
+                            <button type="button" key={l.id} className="link-button mt-2 block text-start text-sm" onClick={() => onProduct!(l.id)}>
+                                {tr('Measure it from {0}', { 0: l.name })}
+                            </button>
+                        ))}
                         <label className="mt-3 flex items-center justify-between gap-3 text-sm text-[var(--text)]">
                             <span>{tr('It’s a guess')}</span>
                             <Switch checked={estimate} onChange={setEstimate} label={tr('The amount is a guess')} />

@@ -26,6 +26,7 @@ export type Feature =
     | 'watch'
     | 'crewCard'
     | 'emergencyTools'
+    | 'volumetric'
     | 'report';
 
 /** Every feature, grouped as Settings lists them, with what its switch says. */
@@ -59,7 +60,14 @@ export const FEATURES: { group: string; items: { id: Feature; label: string; say
     },
     {
         group: 'On a substance’s page',
-        items: [{ id: 'report', label: 'Reporting a mistake', says: 'Each page ends with a link that opens a GitHub issue about it.' }],
+        items: [
+            {
+                id: 'volumetric',
+                label: 'Measuring in a liquid',
+                says: 'Where a dose is too small for a milligram scale, the page works out how strong a liquid is and how much of it each dose is.',
+            },
+            { id: 'report', label: 'Reporting a mistake', says: 'Each page ends with a link that opens a GitHub issue about it.' },
+        ],
     },
 ];
 
