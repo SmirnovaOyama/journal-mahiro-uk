@@ -23,6 +23,8 @@ import { WeightLog } from '../components/WeightLog';
 import { IngestionForm } from '../components/IngestionForm';
 import { DoseLink } from '../components/DoseLink';
 import { useFeature } from '../lib/features';
+import { useShare } from '../lib/watch';
+import { shareTonight } from '../components/ShareNight';
 import { ProductForm } from '../components/ProductForm';
 import { LimitEditor, ParacetamolLine, PatternNotes } from '../components/JournalNotes';
 import { Link } from '../components/Link';
@@ -36,8 +38,11 @@ import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChar
 import { ToleranceChart } from '../components/ToleranceChart';
 import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
-import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
-import { dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
+import { ChevronDown, ChevronRight, Close, Heart, Plus } from '../components/icons';
+import { currentLang, dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
+import { toPageTop } from '../lib/scroll';
+import { SavePicture, usePictureStyle, usePictures } from '../components/PictureExport';
+import type { NightPicture as Picture, Status } from '../lib/picture';
 
 /* The journal, as PsychonautWiki Journal lays its own out, in Oyama's hand:
    the page's title with Log on the right and the form folding open under
@@ -256,7 +261,7 @@ export function Interactions({ pairs }: { pairs: PairResult[] }) {
                     </Link>
                 );
             })}
-            <p className={`pt-2 text-xs ${muted}`}>{tr('Every pair taken in this session, worst first.')}</p>
+            <p className={`pt-2 text-xs ${muted}`}>{tr('Every combination in this session, most serious first.')}</p>
         </div>
     );
 }
@@ -323,7 +328,7 @@ export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }
                 text:
                     now >= end
                         ? tr('{0} is over', { 0: d.label ?? '' })
-                        : tr('{0}: {1}, over around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) }),
+                        : tr('{0}: {1}, ends around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) }),
             };
         });
     return (
@@ -334,7 +339,7 @@ export function ChartCaption({ doses, now }: { doses: ChartDose[]; now: number }
                 </p>
             ))}
             <p className={`text-xs ${muted} mt-1`}>
-                {tr('The curve’s height is how strong it is against its peak. Times are estimates from typical durations; yours can differ.')}
+                {tr('Curve height shows strength relative to the peak. Times are estimates based on typical durations and may differ for you.')}
             </p>
         </div>
     );
@@ -387,6 +392,8 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     const [product, setProduct] = useState<boolean | string>(false);
     const [onlyStarred, setOnlyStarred] = useState(false);
     const nowOn = useFeature('now');
+    const shareOn = useFeature('watch');
+    const shared = useShare();
     const [matrix, setMatrix] = useState<ComboMatrix>();
     useEffect(() => {
         document.title = tr('Journal');
@@ -418,7 +425,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
             <PageHeader
                 title={tr('Journal')}
                 backTo={fromLink}
-                subtitle={count ? (count === 1 ? tr('1 session') : tr('{0} sessions', { 0: count })) : account ? tr('Kept in sync with your account') : tr('Only on this device')}
+                subtitle={count ? (count === 1 ? tr('1 session') : tr('{0} sessions', { 0: count })) : account ? tr('Synced with your account') : tr('Only on this device')}
                 actions={
                     <>
                         {count > 0 && !view && (
@@ -442,7 +449,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     setProduct(false);
                                 }}
                             >
-                                <Plus size={16} />
+                                {adding ? <Close size={16} /> : <Plus size={16} />}
                                 {adding ? tr('Close') : tr('Log')}
                             </button>
                         )}
@@ -471,6 +478,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         doses.forEach(d => add(d));
                                         setAdding(false);
                                         setProduct(false);
+                                        toPageTop();
                                     }}
                                     onCancel={() => setProduct(false)}
                                 />
@@ -490,6 +498,8 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                             toast(tr('Dose logged.'));
                                         }
                                         setAdding(false);
+                                        // Up to where the night is, to see it there.
+                                        toPageTop();
                                     }}
                                     onCancel={() => setAdding(false)}
                                 />
@@ -507,9 +517,9 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                         adding ? null : (
                             <div className="flex flex-col items-center text-center pt-6 pb-10">
                                 <Doodle name="notebook" size={4.5} />
-                                <p className={`mt-4 text-sm font-medium ${on}`}>{tr('Nothing logged yet')}</p>
+                                <p className={`mt-4 text-sm font-medium ${on}`}>{tr('No doses logged yet')}</p>
                                 <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                                    {tr('Log what you take and when. The journal warns about redosing too soon and about what doesn’t mix. It stays on this device, unless you make an account to sync it.')}
+                                    {tr('Log what you take and when. You’ll be warned if you redose too soon or take things that don’t mix. Your journal stays on this device unless you sign up to sync it.')}
                                 </p>
                                 <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
                                     {tr('Log a dose')}
@@ -545,18 +555,27 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                         {tr('See the risks of mixing with {0}', { 0: andList(substancesOf(live).map(x => nameOf(x, live, byId))) })}
                                         <ChevronRight size={15} />
                                     </Link>
-                                    {/* The same night on one calm screen, for the hours it lasts. */}
+                                    {/* The same night on one calm screen, large, for the hours it lasts. */}
                                     {nowOn && (
                                         <p className="mt-1">
                                             <Link to={{ page: 'now' }} className={`${headerActionAccent} tap-target -ms-2.5 no-underline`}>
-                                                {tr('Keep tonight on one screen')}
+                                                {tr('Show this session full screen, for others to see or to do more')}
                                                 <ChevronRight size={15} />
                                             </Link>
                                         </p>
                                     )}
+                                    {/* Tonight with someone trusted, in one tap: the share sheet opens with the link. */}
+                                    {shareOn && (
+                                        <p className="mt-1">
+                                            <button type="button" className={`${headerActionAccent} tap-target -ms-2.5`} onClick={() => shareTonight(shared)}>
+                                                {shared ? tr('Shared until {0}: send the link again', { 0: clock(shared.expires) }) : tr('Share this session with someone you trust')}
+                                                <ChevronRight size={15} />
+                                            </button>
+                                        </p>
+                                    )}
                                     {/* And if it goes wrong tonight, the way there is one tap from here. */}
                                     <p className="footnote">
-                                        <Link to={{ page: 'emergency' }}>{tr('If something goes wrong: what to do until help comes')}</Link>
+                                        <Link to={{ page: 'emergency' }}>{tr('If something goes wrong: what to do until help arrives')}</Link>
                                     </p>
                                 </section>
                             )}
@@ -579,7 +598,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     </section>
                                 ))
                             ) : onlyStarred ? (
-                                <p className={`text-sm ${muted}`}>{tr('No favourites yet. Open a session and tap its heart.')}</p>
+                                <p className={`text-sm ${muted}`}>{tr('No favourites yet. Tap the heart on a session to add it here.')}</p>
                             ) : null}
                         </>
                     )}
@@ -609,6 +628,8 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const [matrix, setMatrix] = useState<ComboMatrix>();
     const [adding, setAdding] = useState(false);
     const [openRow, setOpenRow] = useState<string | null>(null);
+    const picturesOn = usePictures();
+    const pictureStyle = usePictureStyle();
     useEffect(() => {
         loadCombos()
             .then(setMatrix)
@@ -622,7 +643,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
         return (
             <>
                 <PageHeader title={tr('Session')} backTo />
-                <div className={`${PAGE_COLUMN} py-8 text-sm ${muted}`}>{tr('This session isn’t in the journal any more.')}</div>
+                <div className={`${PAGE_COLUMN} py-8 text-sm ${muted}`}>{tr('This session no longer exists.')}</div>
             </>
         );
 
@@ -641,6 +662,62 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     }
     const live = now < sessionEnd(s, details) + 60 * 60_000;
 
+    /* The night as a picture (lib/picture.ts), drawn on this device: its
+       doses round a dial or along a line (Settings, Features), each with
+       its name, time and amount; the date; its substances' structures; what
+       didn't mix, and the rating. Not the notes, which
+       are written for oneself. The picture names the site, but not this
+       page: its address is of no use to anyone else. */
+    const picture = (): Picture => {
+        const day = new Date(s.start);
+        const span = `${clock(s.start)}${s.end - s.start > 60_000 ? `–${clock(s.end)}` : ''}`;
+        const toneOf: Record<string, Status> = { danger: 'danger', warning: 'warning', info: 'info', positive: 'positive', neutral: 'muted' };
+        const doses = [...s.ingestions].sort((a, b) => a.time - b.time);
+        const nameOf = (id: string, fallback: string) => {
+            const e = byId.get(id);
+            return (e && shownName(e)) || fallback;
+        };
+        const substances = [...new Map(doses.map(i => [i.substance, i])).values()]
+            .filter(i => byId.has(i.substance))
+            .map(i => {
+                const t = totals.get(i.substance);
+                return { id: i.substance, name: nameOf(i.substance, i.name), color: color(i.substance), total: t && t.sum && !t.mixed ? `${fmtDose(t.sum)} ${t.unit}` : undefined };
+            });
+        const bad = pairsOf(s, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution);
+        const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+        return {
+            style: pictureStyle,
+            title: meta.title || undefined,
+            month: day.toLocaleDateString(dateLocale(), { year: 'numeric', month: 'long' }),
+            day: String(day.getDate()),
+            weekday: day.toLocaleDateString(dateLocale(), { weekday: 'long' }),
+            span,
+            substances,
+            // Each dose is written at its own petal, not listed apart.
+            doses: chartDoses(s, details, color).map(d => {
+                const i = doses.find(x => x.id === d.id)!;
+                return { ...d, name: nameOf(i.substance, i.name), detail: `${clock(i.time)}  ${amountOf(i)}` };
+            }),
+            now: live ? { at: Date.now(), label: tr('now') } : undefined,
+            pairs: bad.length
+                ? bad.map(p => ({ label: `${shownName(p.a)} + ${shownName(p.b)}`, word: tr(VERDICT[p.verdict].label), status: toneOf[VERDICT[p.verdict].tone] }))
+                : undefined,
+            rating: meta.rating ? tr('{0}: {1}', { 0: tr('Shulgin rating'), 1: `${meta.rating} ${tr(SHULGIN[meta.rating])}` }) : undefined,
+            file: `night-${stamp}`,
+        };
+    };
+    // What the picture is drawn from: it's drawn again when any of it changes.
+    const pictureSignature = JSON.stringify([
+        pictureStyle,
+        s.ingestions.map(i => [i.id, i.substance, i.time, i.dose, i.unit, i.route, i.estimate]),
+        meta.title,
+        meta.rating,
+        Object.keys(details).length,
+        !!matrix,
+        currentLang(),
+        live ? Math.floor(now / 300_000) : 0,
+    ]);
+
     return (
         <div className="md:pb-32">
             <PageHeader
@@ -649,19 +726,23 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                 backTo
                 actions={
                     <>
+                        {/* On a phone the heart alone, as a substance's Save is, so
+                            the date keeps its room beside three actions. */}
                         <button
                             type="button"
-                            className={`${meta.favorite ? headerActionAccent : headerAction} tap-target`}
+                            className={`${meta.favorite ? headerActionAccent : headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
                             aria-pressed={!!meta.favorite}
+                            aria-label={tr('Favourite')}
                             onClick={() => setMeta(s.id, { favorite: !meta.favorite })}
                         >
                             <Fave on={!!meta.favorite} />
-                            {tr('Favourite')}
+                            <span className="max-sm:hidden">{tr('Favourite')}</span>
                         </button>
                         <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
-                            <Plus size={16} />
+                            {adding ? <Close size={16} /> : <Plus size={16} />}
                             {adding ? tr('Close') : tr('Add')}
                         </button>
+                        {picturesOn && <SavePicture make={picture} signature={pictureSignature} />}
                     </>
                 }
             />
@@ -681,6 +762,8 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                                             toast(tr('Dose logged.'));
                                         }
                                         setAdding(false);
+                                        // Up to where the night is, to see it there.
+                                        toPageTop();
                                     }}
                                     onCancel={() => setAdding(false)}
                                 />
@@ -702,7 +785,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                 <ParacetamolLine doses={s.ingestions} now={now} />
 
                 <section className="mt-6">
-                    <h2 className="group-heading mb-2">{tr('How it went')}</h2>
+                    <h2 className="group-heading mb-2">{tr('How was it')}</h2>
                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={tr('Shulgin rating')}>
                         {RATINGS.map(r => (
                             <button
@@ -717,7 +800,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                             </button>
                         ))}
                     </div>
-                    <p className={`mt-2 text-xs ${muted}`}>{meta.rating ? tr(SHULGIN[meta.rating]) : tr('Shulgin’s scale, from nothing (−) to the strongest (++++).')}</p>
+                    <p className={`mt-2 text-xs ${muted}`}>{meta.rating ? tr(SHULGIN[meta.rating]) : tr('Shulgin scale: − is nothing, ++++ is the strongest.')}</p>
                     <textarea
                         rows={3}
                         className={`input-base w-full mt-4 resize-none ${meta.note ? 'is-inked' : ''}`}
@@ -785,7 +868,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                         now={now}
                         days={Number(tolDays)}
                         colors={color}
-                        names={x => byId.get(x)?.name ?? before.find(i => i.substance === x)?.name ?? x}
+                        names={x => nameOf(x, before, byId)}
                     />
                 </section>
             </div>
@@ -915,7 +998,7 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                     <StackedBars
                         buckets={buckets}
                         names={k => rows.find(([x]) => x === k)?.[1].name ?? k}
-                        idle={range === '30' ? tr('A bar a day. Tap one to read it.') : tr('A bar a month. Tap one to read it.')}
+                        idle={range === '30' ? tr('One bar per day. Tap a bar for details.') : tr('One bar per month. Tap a bar for details.')}
                     />
                 </div>
             </section>
@@ -970,7 +1053,7 @@ function Stats({ byId, now }: { byId: Map<string, IndexEntry>; now: number }) {
                     </div>
                 </section>
             ) : (
-                <p className={`text-sm ${muted}`}>{tr('Nothing logged in this time.')}</p>
+                <p className={`text-sm ${muted}`}>{tr('Nothing logged in this period.')}</p>
             )}
         </div>
     );
@@ -1064,13 +1147,13 @@ function SubstanceHistory({ id, byId }: { id: string; byId: Map<string, IndexEnt
                                         </div>
                                     ))}
                                 </div>
-                                <p className={`mt-2 text-xs ${muted}`}>{tr('Kept apart, as a different share of a dose gets in each way.')}</p>
+                                <p className={`mt-2 text-xs ${muted}`}>{tr('Shown separately, because each route absorbs a different amount.')}</p>
                             </section>
                         )}
 
                         <section className="mb-9">
                             <h2 className="group-heading mb-3">{tr('Sessions in the last 12 months')}</h2>
-                            <StackedBars buckets={buckets} names={() => name} idle={tr('A bar a month. Tap one to read it.')} />
+                            <StackedBars buckets={buckets} names={() => name} idle={tr('One bar per month. Tap a bar for details.')} />
                         </section>
 
                         <section>

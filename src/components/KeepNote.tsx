@@ -34,12 +34,12 @@ export function KeepNote() {
     };
     const touch = onTouch();
     return (
-        <section className="callout mb-8 space-y-2" aria-label={tr('Keeping the journal')}>
+        <section className="callout mb-8 space-y-2" aria-label={tr('Keeping your journal safe')}>
             <p className="font-medium text-[var(--text)]">
                 {touch ? tr('Add the journal to your Home Screen') : tr('Add the journal to your Dock')}
             </p>
             <p>
-                {tr('In a browser tab, Safari deletes what this site keeps after 7 days of use without a visit, the journal included. From the Home Screen it keeps its own count. That app starts empty, though: it doesn’t share this tab’s storage.')}
+                {tr('In a Safari tab, Safari deletes this site’s data, including your journal, after 7 days of browsing without a visit. The Home Screen app is counted separately, but it starts empty: it doesn’t share this tab’s data.')}
             </p>
             <ol className="list-decimal ps-5 space-y-1">
                 {!account && (
@@ -47,7 +47,7 @@ export function KeepNote() {
                         <Link to={{ page: 'settings', sub: 'account' }} className="font-medium text-[var(--text)] underline underline-offset-3">
                             {tr('Turn on the encrypted backup')}
                         </Link>
-                        {tr(', so the journal can be brought across.')}
+                        {tr(', so you can move your journal over.')}
                     </li>
                 )}
                 <li>{touch ? tr('In Safari, tap Share, then Add to Home Screen.') : tr('In Safari, choose File, then Add to Dock.')}</li>

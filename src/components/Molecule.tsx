@@ -36,7 +36,9 @@ const shardOf = (id: string) => (/^[a-z0-9]/.test(id) ? id[0] : '_');
 /** The file a substance's drawing is in (lib/offline.ts keeps it with the
  *  substance, so its page is drawn whole without a connection). */
 export const structureUrl = (id: string) => `/data/structures/${shardOf(id)}.json`;
-function loadStructure(id: string): Promise<Structure | null> {
+/** A substance's drawing data, for whatever draws it besides this component
+ *  (lib/picture.ts). */
+export function loadStructure(id: string): Promise<Structure | null> {
     const k = shardOf(id);
     let p = shards.get(k);
     if (!p) {

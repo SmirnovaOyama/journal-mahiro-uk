@@ -99,7 +99,7 @@ function NotRight({ ends }: { ends: { label: string; at: number }[] }) {
                 </ul>
                 {ends.map(e => (
                     <p key={e.label} className="mt-3">
-                        {tr('It passes: {0} is usually over around {1}.', { 0: e.label, 1: clock(e.at) })}
+                        {tr('It will pass. {0} usually wears off around {1}.', { 0: e.label, 1: clock(e.at) })}
                     </p>
                 ))}
                 <Breath />
@@ -163,7 +163,7 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
 
                 {!live ? (
                     <>
-                        <p className={`mt-4 text-base ${muted}`}>{tr('Nothing is going on now: no dose in the journal is still working.')}</p>
+                        <p className={`mt-4 text-base ${muted}`}>{tr('No active session: nothing in your journal is still active.')}</p>
                         <button type="button" className={`${big} mt-6 bg-[var(--accent)] text-[var(--on-accent,white)]`} onClick={() => logFrom({ time: Date.now() })}>
                             {tr('Log a dose')}
                         </button>
@@ -192,7 +192,7 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
                                             </p>
                                             <p className="text-lg leading-7 text-[var(--text)]">
                                                 {end == null
-                                                    ? tr('How long it lasts isn’t documented.')
+                                                    ? tr('No data on how long it lasts.')
                                                     : now >= end
                                                       ? tr('Over.')
                                                       : tr('{0}, over around {1}', { 0: phaseAt(d, now).replace(/^./, c => c.toUpperCase()), 1: clock(end) })}
@@ -229,7 +229,7 @@ export function Now({ byId }: { byId: Map<string, IndexEntry> }) {
 
                         <ShareNight byId={byId} />
 
-                        <p className={`mt-8 text-xs ${muted}`}>{tr('Times are estimates from typical durations; yours can differ. The screen stays on while this page is open, where the browser allows it.')}</p>
+                        <p className={`mt-8 text-xs ${muted}`}>{tr('Times are estimates based on typical durations and may differ for you. If your browser allows it, the screen stays on while this page is open.')}</p>
                     </>
                 )}
             </div>

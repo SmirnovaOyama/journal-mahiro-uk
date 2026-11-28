@@ -33,7 +33,7 @@ export function Saved({ byId }: { byId: Map<string, IndexEntry> }) {
                     // cats are on), a bold line, a quiet one, and the one action.
                     <div className="flex flex-col items-center text-center pt-20 pb-8">
                         {showCats ? <PixelCat pose="loaf" size={96} /> : <Doodle name="heart" size={4} />}
-                        <p className="mt-5 text-sm font-semibold">{tr('Nothing saved yet')}</p>
+                        <p className="mt-5 text-sm font-semibold">{tr('No saved substances yet')}</p>
                         <p className="mt-1 text-sm text-[var(--text-muted)] max-w-xs">
                             {tr('Tap the bookmark on any substance to keep it here.')}
                         </p>

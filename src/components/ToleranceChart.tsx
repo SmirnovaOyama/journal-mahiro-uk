@@ -208,7 +208,7 @@ export function ToleranceChart({
                 </div>
             )}
             <p className="mt-2 px-4 md:px-6 text-xs text-[var(--text-muted)]">
-                {rows.length > 0 && tr('From each dose up to this session: darker until tolerance is halved, lighter until it’s back to normal.')}
+                {rows.length > 0 && tr('For each dose up to this session: darker while tolerance is above half, lighter until it’s back to normal.')}
                 {rows.length > 0 && unknown.length > 0 && ' '}
                 {unknown.length > 0 && tr('No tolerance is documented for {0}.', { 0: phraseList(unknown.map(names)) })}
             </p>

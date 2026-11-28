@@ -27,6 +27,7 @@ export type Feature =
     | 'crewCard'
     | 'emergencyTools'
     | 'volumetric'
+    | 'picture'
     | 'report';
 
 /** Every feature, grouped as Settings lists them, with what its switch says. */
@@ -34,28 +35,28 @@ export const FEATURES: { group: string; items: { id: Feature; label: string; say
     {
         group: 'In the dose form',
         items: [
-            { id: 'lastTime', label: 'Notes from last time', says: 'What was written the last night a substance was taken is shown before it’s taken again.' },
-            { id: 'limits', label: 'Limits', says: 'The most in one night and the days between nights, set on a substance’s page in the journal and said back when a dose would cross one.' },
-            { id: 'medicines', label: 'Medicines I take every day', says: 'They are counted as already taken in the mix checker, on each substance’s page and in the dose form.' },
-            { id: 'lingering', label: 'Drugs still at work', says: 'A dose logged days ago is checked against a new one for as long as its drug stays in the body.' },
-            { id: 'products', label: 'Products with several ingredients', says: 'A product is written down once from its box, and so many of it are logged as so much of each ingredient.' },
+            { id: 'lastTime', label: 'Notes from last time', says: 'Before you log a substance again, your notes from the last time are shown.' },
+            { id: 'limits', label: 'Limits', says: 'A maximum per night and a minimum gap between nights, set for each substance. The dose form warns you when a dose would go over.' },
+            { id: 'medicines', label: 'Medicines I take every day', says: 'They’re treated as already taken in the mix checker, on substance pages and in the dose form.' },
+            { id: 'lingering', label: 'Drugs still active', says: 'A dose from a few days ago is still checked against new doses while it’s in your body.' },
+            { id: 'products', label: 'Products with several ingredients', says: 'A product’s ingredients are entered once from the box. After that, logging how many you took counts each ingredient.' },
             { id: 'paracetamol', label: 'Paracetamol’s total', says: 'Paracetamol is added up over 24 hours, with a warning past 4 g.' },
         ],
     },
     {
         group: 'In the journal',
         items: [
-            { id: 'now', label: 'The Now screen', says: 'The night going on is shown on one screen, in large type.' },
-            { id: 'patterns', label: 'Days in a row', says: 'A drug that can’t safely be stopped at once gets a note after seven days in a row.' },
-            { id: 'doseLink', label: 'A dose’s own address', says: 'Each dose has a link that opens the form filled in, and such links are followed when opened.' },
-            { id: 'watch', label: 'Someone to watch over a night', says: 'A night can be shared with a link, with check-ins. Turning this off ends a night being shared. A link someone else sent still opens.' },
+            { id: 'now', label: 'The Now screen', says: 'Shows the current session on one screen, in large type.' },
+            { id: 'patterns', label: 'Days in a row', says: 'Drugs that shouldn’t be stopped suddenly get a note after seven days in a row.' },
+            { id: 'doseLink', label: 'Dose links', says: 'Each dose has a link that opens the dose form already filled in.' },
+            { id: 'watch', label: 'Someone to watch over a night', says: 'Share a night with someone through a link, with check-ins. Turning this off stops sharing; links others send you still open.' },
         ],
     },
     {
         group: 'On the emergency page',
         items: [
-            { id: 'crewCard', label: 'What was taken', says: 'The journal’s last 24 hours, the daily medicines and the body weight are set out for the crew.' },
-            { id: 'emergencyTools', label: 'The beat, reading aloud and position', says: 'A beat for chest compressions, the steps read aloud, and where this device is.' },
+            { id: 'crewCard', label: 'What was taken', says: 'Shows paramedics your doses from the last 24 hours, your daily medicines and your body weight.' },
+            { id: 'emergencyTools', label: 'The beat, reading aloud and position', says: 'A beat for chest compressions, steps read aloud, and your location.' },
         ],
     },
     {
@@ -64,9 +65,19 @@ export const FEATURES: { group: string; items: { id: Feature; label: string; say
             {
                 id: 'volumetric',
                 label: 'Measuring in a liquid',
-                says: 'Where a dose is too small for a milligram scale, the page works out how strong a liquid is and how much of it each dose is.',
+                says: 'When a dose is too small to weigh, the substance page works out the liquid’s strength and how much liquid each dose is.',
             },
-            { id: 'report', label: 'Reporting a mistake', says: 'Each page ends with a link that opens a GitHub issue about it.' },
+            { id: 'report', label: 'Reporting a mistake', says: 'Each page has a link at the bottom to report a mistake on GitHub.' },
+        ],
+    },
+    {
+        group: 'Images',
+        items: [
+            {
+                id: 'picture',
+                label: 'Save as image',
+                says: 'Save a night from your journal as an image in one tap, as a timeline or a clock. It’s made on your device and isn’t uploaded.',
+            },
         ],
     },
 ];

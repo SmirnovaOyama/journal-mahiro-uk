@@ -89,8 +89,8 @@ export function WeightPage() {
                     />
                 </div>
                 <p className="mt-4 text-xs leading-relaxed text-[var(--text-muted)]">
-                    {tr('It reads a dose per kilogram, turns a dose given per kilogram into an amount, and estimates blood alcohol. ')}
-                    {account ? tr('Kept on this device, and in your account, encrypted.') : tr('Kept on this device only.')}
+                    {tr('It’s used to show doses per kilogram, convert per-kilogram doses into amounts, and estimate blood alcohol. ')}
+                    {account ? tr('Stored on this device and, encrypted, in your account.') : tr('Kept on this device only.')}
                 </p>
                 <button type="submit" className="btn-primary mt-6 w-full">
                     {tr('Save')}

@@ -171,7 +171,7 @@ function UnlockForm() {
     return (
         <form onSubmit={submit} className="m-appear space-y-3 ps-8 pb-4">
             <p className={`text-xs leading-relaxed ${muted}`}>
-                {tr('This device no longer has the key to your journal’s copy, maybe because its storage was cleared. Your password brings it back.')}
+                {tr('This device lost the key to your synced journal, maybe because its storage was cleared. Enter your password to restore it.')}
             </p>
             <ErrorLine error={error} />
             <Field label={tr('Password')} type="password" value={password} onChange={setPassword} autoComplete="current-password" autoFocus />
@@ -218,7 +218,7 @@ function SyncPart({ s, info }: { s: AccountState; info: AccountInfo | null }) {
                     {status === 'locked' && <UnlockForm />}
                 </div>
                 <p className={`mt-2 text-xs leading-relaxed ${muted}`}>
-                    {tr('It syncs on its own: a moment after a change, when you come back to the page, and every two minutes while it’s open.')}
+                    {tr('Syncs automatically: shortly after a change, when you return to the page, and every two minutes while it’s open.')}
                 </p>
             </section>
             <section>
@@ -226,7 +226,7 @@ function SyncPart({ s, info }: { s: AccountState; info: AccountInfo | null }) {
                 <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
                     <dt className={muted}>{tr('What syncs')}</dt>
                     <dd className={on}>{tr('Your journal, its notes and ratings, and your saved substances')}</dd>
-                    <dt className={muted}>{tr('Kept as')}</dt>
+                    <dt className={muted}>{tr('Stored as')}</dt>
                     <dd className={on}>{copy ? tr('{0} KB, encrypted on this device', { 0: (copy.size / 1024).toFixed(copy.size < 10240 ? 1 : 0) }) : tr('Nothing yet')}</dd>
                     {copy && (
                         <>
@@ -244,7 +244,7 @@ function SecurityPart({ info }: { info: AccountInfo | null }) {
     const tf = info?.twoFactor;
     return (
         <div className={settingsSection}>
-            <SettingsListItem icon={Password} title={tr('Change password')} description={tr('Signs your other devices out')} onClick={() => go({ page: 'settings', sub: 'password' })} />
+            <SettingsListItem icon={Password} title={tr('Change password')} description={tr('Signs out all devices except this one')} onClick={() => go({ page: 'settings', sub: 'password' })} />
             <SettingsListItem
                 icon={Shield}
                 title={tr('Two-step sign-in')}
@@ -252,7 +252,7 @@ function SecurityPart({ info }: { info: AccountInfo | null }) {
                 onClick={() => go({ page: 'settings', sub: 'two-factor' })}
                 trailing={tf ? <span className={`shrink-0 text-xs ${tf.on ? 'text-[var(--accent-ink)] font-medium' : muted}`}>{tf.on ? tr('On') : tr('Off')}</span> : null}
             />
-            <SettingsListItem icon={Codes} title={tr('Recovery key')} description={tr('Make a new one if yours is lost')} onClick={() => go({ page: 'settings', sub: 'recovery-key' })} />
+            <SettingsListItem icon={Codes} title={tr('Recovery key')} description={tr('Create a new one if you’ve lost it')} onClick={() => go({ page: 'settings', sub: 'recovery-key' })} />
         </div>
     );
 }
@@ -276,7 +276,7 @@ function DevicesPart({ info, reload }: { info: AccountInfo | null; reload: () =>
     const sessions = [...(info?.sessions ?? [])].sort((a, b) => Number(b.current) - Number(a.current) || b.used - a.used);
     return (
         <div className="space-y-4">
-            <p className={`text-sm leading-relaxed ${muted}`}>{tr('Every device signed in to your account. One signed out stops syncing; its journal stays on it.')}</p>
+            <p className={`text-sm leading-relaxed ${muted}`}>{tr('All devices signed in to your account. A signed-out device stops syncing but keeps its journal.')}</p>
             <ErrorLine error={error} />
             {!info && !error && (
                 <Waiting />
@@ -303,7 +303,7 @@ function DevicesPart({ info, reload }: { info: AccountInfo | null; reload: () =>
             )}
             {sessions.length > 1 && (
                 <button className="btn-secondary w-full" disabled={!!busy} onClick={() => void run('all', signOutOtherDevices)}>
-                    {busy === 'all' ? tr('Signing them out…') : tr('Sign out every other device')}
+                    {busy === 'all' ? tr('Signing them out…') : tr('Sign out all other devices')}
                 </button>
             )}
         </div>
@@ -473,7 +473,7 @@ function LeaveTiles() {
             <SettingsTile
                 Icon={Trash}
                 label={tr('Delete account')}
-                hint={tr('It and the copy it keeps, for good')}
+                hint={tr('Permanently, with its synced journal')}
                 onClick={() => go({ page: 'settings', sub: 'delete-account' })}
                 danger
             />
@@ -555,11 +555,11 @@ function SignedOut({
                 </div>
             )}
             <div className="mb-4">
-                <Point mark="lock" title={tr('It stays on this device')} desc={tr('Your journal is kept in this browser. Without an account, nothing is sent anywhere.')} />
+                <Point mark="lock" title={tr('It stays on this device')} desc={tr('Your journal is stored in this browser. Without an account, nothing is sent anywhere.')} />
                 <Point
                     mark="cloud"
                     title={tr('An account is optional')}
-                    desc={tr('With one, your journal and saved list are the same on every device you sign in on, encrypted on each before it’s sent.')}
+                    desc={tr('With an account, your journal and saved list stay in sync on every device you sign in on, and are encrypted before they’re sent.')}
                 />
             </div>
             <Tabs
@@ -606,13 +606,13 @@ function SignedOut({
                         </div>
                     )}
                     {isLogin ? (
-                        !needCode && <p className={`text-xs leading-relaxed ${muted}`}>{tr('What’s in this browser’s journal is added to your account’s.')}</p>
+                        !needCode && <p className={`text-xs leading-relaxed ${muted}`}>{tr('The journal in this browser will be added to your account’s journal.')}</p>
                     ) : (
                         <p id={`${formId}-key`} className="callout">
-                            {tr('Your password is also the key to your journal’s copy in the account. If you forget it, only your recovery key opens it again: the server can’t.')}
+                            {tr('Your password also encrypts the journal in your account. If you forget it, only your recovery key can unlock it, not the server.')}
                         </p>
                     )}
-                    <Submit busy={busy} busyLabel={isLogin ? tr('Signing in…') : tr('Making your account…')}>
+                    <Submit busy={busy} busyLabel={isLogin ? tr('Signing in…') : tr('Creating your account…')}>
                         {isLogin ? tr('Sign in') : tr('Create account')}
                     </Submit>
                     {isLogin && (
@@ -665,7 +665,7 @@ export function PasswordPage() {
         setError(null);
         const problem = newPasswordProblem(next);
         if (problem) return setError(problem);
-        if (next !== again) return setError(tr('The new password and its repeat aren’t the same.'));
+        if (next !== again) return setError(tr('The new passwords don’t match.'));
         if (next === current) return setError(tr('That’s the password you have now.'));
         setBusy(true);
         try {
@@ -733,12 +733,12 @@ export function RecoveryKeyPage() {
             ) : (
                 <form onSubmit={submit} className="space-y-4" noValidate>
                     <p className="text-sm leading-relaxed">
-                        {tr('Your recovery key sets a new password if you forget yours. Make a new one if you’ve lost it, or someone else may have seen it: the old one stops working.')}
+                        {tr('If you forget your password, your recovery key can set a new one. If you’ve lost the key or someone may have seen it, you can create a new one, and the old one stops working.')}
                     </p>
                     <ErrorLine error={error} />
                     <Field label={tr('Password')} type="password" value={password} onChange={setPassword} autoComplete="current-password" autoFocus />
-                    <Submit busy={busy} busyLabel={tr('Making it…')}>
-                        {tr('Make a new recovery key')}
+                    <Submit busy={busy} busyLabel={tr('Creating…')}>
+                        {tr('Create a new recovery key')}
                     </Submit>
                 </form>
             )}
@@ -775,7 +775,7 @@ export function DeleteAccountPage() {
                 <PageHeader backTo title={tr('Delete account')} />
                 <div className={`${PAGE_COLUMN} mt-3 [&>*]:mx-auto [&>*]:max-w-sm`}>
                     <div className="m-appear space-y-4">
-                        <p className="text-sm">{tr('Your account and its copy are deleted. Your journal is still on this device.')}</p>
+                        <p className="text-sm">{tr('Your account and its synced journal have been deleted. Your journal is still on this device.')}</p>
                         <button className="btn-primary w-full" onClick={() => go({ page: 'settings' }, { replace: true })}>
                             {tr('Done')}
                         </button>
@@ -787,9 +787,9 @@ export function DeleteAccountPage() {
         <NeedsAccount title={tr('Delete account')} hold={busy}>
             <form onSubmit={submit} className="space-y-4" noValidate>
                 <p className="text-sm leading-relaxed">
-                    {tr('This deletes your account and the copy of your journal it keeps, for good. The journal on this device stays, and you can still export it.')}
+                    {tr('This permanently deletes your account and the journal saved in it. The journal on this device stays, and you can still export it.')}
                 </p>
-                <p className={`text-sm leading-relaxed ${muted}`}>{tr('Other devices signed in to it stop syncing. Their journals stay on them.')}</p>
+                <p className={`text-sm leading-relaxed ${muted}`}>{tr('Other devices signed in to it will stop syncing but keep their journals.')}</p>
                 <ErrorLine error={error} />
                 <Field label={tr('Password')} type="password" value={password} onChange={setPassword} autoComplete="current-password" autoFocus />
                 <Submit busy={busy} busyLabel={tr('Deleting…')} danger>
@@ -814,7 +814,7 @@ export function RecoverPage() {
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        if (!USERNAME.test(username.trim())) return setError(tr('That username and recovery key don’t go together.'));
+        if (!USERNAME.test(username.trim())) return setError(tr('That username and recovery key don’t match.'));
         const problem = newPasswordProblem(password);
         if (problem) return setError(problem);
         if (needOtp && !otp.trim()) return setError(tr('Enter the code from your authenticator app, or a backup code.'));
@@ -843,7 +843,7 @@ export function RecoverPage() {
                     </div>
                 ) : (
                     <form onSubmit={submit} className="space-y-4" noValidate>
-                        <p className="text-sm leading-relaxed">{tr('Your recovery key sets a new password. It was shown when you made your account.')}</p>
+                        <p className="text-sm leading-relaxed">{tr('Your recovery key can set a new password. It was shown when you created your account.')}</p>
                         <ErrorLine error={error} />
                         <Field label={tr('Username')} value={username} onChange={setUsername} autoComplete="username" autoFocus />
                         <Field label={tr('Recovery key')} value={code} onChange={setCode} autoComplete="off" mono placeholder="XXXX-XXXX-XXXX-XXXX-…" />
@@ -853,11 +853,11 @@ export function RecoverPage() {
                         </div>
                         {needOtp && (
                             <div className="m-appear space-y-3">
-                                <p className="callout">{tr('Two-step sign-in is on for this account: the code from your app, or a backup code, as well.')}</p>
+                                <p className="callout">{tr('Two-step sign-in is on for this account, so you’ll also need a code from your app or a backup code.')}</p>
                                 <CodeField value={otp} onChange={setOtp} />
                             </div>
                         )}
-                        <p className="callout">{tr('Every device signed in to your account is signed out. You get a new recovery key, and this one stops working.')}</p>
+                        <p className="callout">{tr('All devices signed in to your account will be signed out. You’ll get a new recovery key, and this one will stop working.')}</p>
                         <Submit busy={busy} busyLabel={tr('Setting it…')}>
                             {tr('Set the new password')}
                         </Submit>

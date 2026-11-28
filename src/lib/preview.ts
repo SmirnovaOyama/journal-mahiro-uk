@@ -227,7 +227,7 @@ export function kindPreview(category: string, count: number): Preview {
     const info = categoryInfo(category);
     return {
         title: tr(info.plural),
-        description: spaced(tr('{0}. All {1}, A to Z, each with its doses, durations and what not to mix.', { 0: tr(info.blurb), 1: count })),
+        description: spaced(tr('{0}. All {1}, A to Z, with doses, durations and combinations to avoid.', { 0: tr(info.blurb), 1: count })),
         image: '/og/site.png',
         imageAlt: info.plural,
     };
@@ -262,7 +262,7 @@ export function pagePreview(page: 'browse' | 'saved' | 'settings' | 'journal' | 
         return {
             ...base,
             title: tr('In an emergency'),
-            description: tr('What to do until help comes: when to call, the number to call, the recovery position, and the signs by kind of drug.'),
+            description: tr('What to do until help arrives: when to call, which number, the recovery position, and warning signs by type of drug.'),
         };
     if (page === 'saved') return { ...base, title: tr('Saved') };
     return { ...base, title: tr('Settings') };

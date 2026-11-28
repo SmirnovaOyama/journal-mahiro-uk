@@ -69,7 +69,7 @@ export function MedicinesPage() {
             <PageHeader backTo title={tr('Medicines I take every day')} />
             <div className={`${PAGE_COLUMN} mt-3 pb-10`}>
                 <p className={`text-sm ${muted} mb-4`}>
-                    {tr('What you take every day goes here: an antidepressant, lithium, a hormone. The mix checker, each substance’s page and the dose form then count it as already taken.')}
+                    {tr('This is for what you take every day, such as an antidepressant, lithium or a hormone. The mix checker, substance pages and the dose form treat it as already taken.')}
                 </p>
 
                 <SearchField
@@ -89,7 +89,7 @@ export function MedicinesPage() {
                                 <SubstanceRow key={h.entry.id} id={`med-${h.entry.id}`} entry={h.entry} sub={h.via ? tr('Also called {0}', { 0: h.via }) : undefined} active={i === active} onPick={add} />
                             ))
                         ) : (
-                            <p className={`text-sm ${muted} py-3`}>{tr('Nothing called “{0}”.', { 0: q.trim() })}</p>
+                            <p className={`text-sm ${muted} py-3`}>{tr('No results for “{0}”.', { 0: q.trim() })}</p>
                         )}
                     </div>
                 )}
@@ -107,7 +107,7 @@ export function MedicinesPage() {
                                         <Link to={{ page: 'substance', id: m.id }} className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text)] no-underline">
                                             {name}
                                         </Link>
-                                        <button type="button" className="btn-ghost !size-9 !p-0" aria-label={tr('Take {0} off', { 0: name })} onClick={() => setMedicine(m.id, m.name, false)}>
+                                        <button type="button" className="btn-ghost !size-9 !p-0" aria-label={tr('Remove {0}', { 0: name })} onClick={() => setMedicine(m.id, m.name, false)}>
                                             <Close size={18} />
                                         </button>
                                     </div>
@@ -135,14 +135,14 @@ export function MedicinesPage() {
                             })}
                         </div>
                         <p className={`mt-2 text-xs ${muted}`}>
-                            {tr('What the sources say of these together. Medicines prescribed together are a prescriber’s decision, and this line is no reason to stop one: the prescriber is the one to ask.')}
+                            {tr('What the sources say about taking these together. If they were prescribed together, that was your prescriber’s call. Don’t stop either one because of this; ask your prescriber.')}
                         </p>
                     </section>
                 )}
 
                 <p className={`mt-8 text-xs ${muted}`}>
                     {account
-                        ? tr('Kept in this browser and, encrypted, in your account.')
+                        ? tr('Stored in this browser and, encrypted, in your account.')
                         : tr('Kept in this browser only.')}
                 </p>
             </div>

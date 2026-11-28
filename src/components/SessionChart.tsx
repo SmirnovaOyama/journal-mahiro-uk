@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useElementSize } from '../hooks/useElementSize';
 import { DRAW_MS, DrawnCurve } from './DrawnCurve';
 import type { Course } from '../lib/time';
+import { clockTimes, curvePieces, nightSpan } from '../lib/curve';
 import { useScrub, yOnPieces, type Piece } from './scrub';
 import { tr } from '../lib/i18n';
 
@@ -73,34 +74,17 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
     const scrub = useScrub();
     if (!doses.length) return null;
 
-    const first = Math.min(...doses.map(d => d.time));
-    const ends = doses.map(d => d.time + (d.course ? d.course.over : 60) * MIN);
-    let start = first - 15 * MIN;
-    let end = Math.max(...ends, first + 2 * 3600_000);
-    // A little room after the last curve lands, so it doesn't run into the edge.
-    end += (end - start) * 0.06;
-    // Now inside the night, or just after it: show it.
-    if (now > start && now < end + 3 * 3600_000) end = Math.max(end, now + 20 * MIN);
-    end = Math.min(end, start + 36 * 3600_000);
-    if (now < start) start = Math.min(start, now);
+    // The span shown, each curve and the clock times are lib/curve.ts's, as
+    // the night's picture draws them.
+    const night = nightSpan(doses, now);
+    const { first, start, end } = night;
 
     const plotW = W - LEFT - RIGHT;
     const x = (t: number) => LEFT + ((t - start) / (end - start)) * plotW;
     const y = (lvl: number) => BASE - lvl * (BASE - TOP - 8);
 
     /** A dose's curve as pieces, so a point on it can be found as well as drawn. */
-    const pieces = (d: ChartDose): Piece[] => {
-        const c = d.course!;
-        const h = Math.min(1.15, Math.max(0.35, d.strength)) / 1.15;
-        const t = (m: number) => x(d.time + m * MIN);
-        const { firstEffects: a, peakStart: b, peakEnd: e, over: f } = c;
-        return [
-            { line: [[t(0), y(0)], [t(a), y(0.01)]] },
-            { cubic: [[t(a), y(0.01)], [t(a + (b - a) * 0.55), y(0.04 * h)], [t(a + (b - a) * 0.6), y(h)], [t(b), y(h)]] },
-            { line: [[t(b), y(h)], [t(e), y(h)]] },
-            { cubic: [[t(e), y(h)], [t(e + (f - e) * 0.45), y(h)], [t(e + (f - e) * 0.5), y(0.02)], [t(f), y(0)]] },
-        ];
-    };
+    const pieces = (d: ChartDose): Piece[] => curvePieces(d, x, y);
     const path = (ps: Piece[]) =>
         ps
             .map((p, k) => {
@@ -111,15 +95,8 @@ export function SessionChart({ doses, now }: { doses: ChartDose[]; now: number }
             .join(' ');
 
     const span = end - start;
-    const room = Math.max(2, Math.floor(plotW / 64));
-    const every = [30, 60, 120, 180, 240, 360, 720].map(m => m * MIN).find(m => span / m <= room) ?? 720 * MIN;
-    const ticks: number[] = [];
-    const d0 = new Date(start);
-    d0.setMinutes(0, 0, 0);
-    for (let t = d0.getTime(); t <= end; t += every) if (t >= start) ticks.push(t);
     // The time the session began, under its first dot; hours too close to it make way.
-    const x0 = x(first);
-    const axis = [first, ...ticks.filter(t => Math.abs(x(t) - x0) > 56)];
+    const axis = clockTimes(night, plotW, x);
 
     const showNow = now >= start && now <= end;
     // In the order taken: each dose's turn to be drawn.

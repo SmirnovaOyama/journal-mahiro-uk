@@ -67,7 +67,7 @@ const BottomNav: React.FC<{
         <nav
             ref={navRef}
             data-hidden={hidden ? '' : undefined}
-            className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)]"
+            className="bottom-nav fixed bg-[var(--surface)] left-4 right-4 bottom-[calc(0.25rem+env(safe-area-inset-bottom,0px))] z-40 md:hidden rounded-[var(--radius-xl)] border-(length:--hairline) border-[var(--border)]"
         >
             <div className="flex items-stretch p-1.5 gap-0.5">
                 {tabs.map(({ id, icon, label }) => {

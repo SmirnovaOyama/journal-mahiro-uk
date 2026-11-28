@@ -42,6 +42,9 @@ export interface Share {
     name?: string;
     /** When the copy last reached the server. */
     sent?: number;
+    /** Not on the server yet: the link is handed over in the same tap it's
+     *  made, and the copy follows it there, sent again until it arrives. */
+    pending?: boolean;
 }
 
 /** What the watcher reads. */
@@ -147,7 +150,7 @@ function snapshot(s: Share): Watched {
 
 export class WatchError extends Error {
     constructor(
-        public code: 'OFFLINE' | 'GONE' | 'UNAVAILABLE' | 'KEY',
+        public code: 'OFFLINE' | 'GONE' | 'UNAVAILABLE' | 'KEY' | 'TAKEN',
         message = code,
     ) {
         super(message);
@@ -168,12 +171,16 @@ async function call(path: string, init: { method?: string; body?: unknown; token
     }
     if (res.status === 204) return {};
     if (res.status === 404) throw new WatchError('GONE');
+    if (res.status === 409) throw new WatchError('TAKEN');
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('application/json')) throw new WatchError('UNAVAILABLE');
     return (await res.json()) as Record<string, unknown>;
 }
 
-/** Starts sharing tonight, for `hours`, asking for a check-in every `every` minutes (0: never). */
-export async function startShare(opts: { hours: number; every: number; name?: string }): Promise<Share> {
+/** Starts sharing tonight, for `hours`, asking for a check-in every
+ *  `every` minutes (0: never). The id and the keys are made here, so the
+ *  link is ready at once and can be handed over in the same tap, while the
+ *  copy goes to the server behind it (pushShare, until it gets there). */
+export function startShare(opts: { hours: number; every: number }): Share {
     const now = Date.now();
     const s: Share = {
         id: b64url(random(16)),
@@ -182,12 +189,18 @@ export async function startShare(opts: { hours: number; every: number; name?: st
         expires: now + opts.hours * HOUR,
         every: opts.every,
         checked: now,
-        ...(opts.name?.trim() ? { name: opts.name.trim().slice(0, 40) } : {}),
+        pending: true,
     };
-    const made = await call('/api/watch', { method: 'POST', body: { id: s.id, token: s.token, hours: opts.hours, data: await sealWatch(snapshot(s), s.id, s.key) } });
-    const next = { ...s, expires: typeof made.expires === 'number' ? made.expires : s.expires, sent: now };
-    set(next);
-    return next;
+    set(s);
+    void pushShare();
+    return s;
+}
+
+/** How often a check-in is asked for, changed while sharing; counted from now. */
+export function setCheckInEvery(every: number) {
+    if (!share) return;
+    set({ ...share, every, checked: Date.now() });
+    void pushShare();
 }
 
 let pushing: Promise<void> | null = null;
@@ -209,7 +222,21 @@ export function pushShare(): Promise<void> {
                     return;
                 }
                 try {
-                    await call(`/api/watch/${s.id}`, { method: 'PUT', token: s.token, body: { data: await sealWatch(snapshot(s), s.id, s.key) } });
+                    const data = await sealWatch(snapshot(s), s.id, s.key);
+                    if (s.pending) {
+                        // Made, not yet sent: it goes up as a new copy. Already
+                        // there (a reply that was lost on the way): it's made.
+                        try {
+                            const made = await call('/api/watch', { method: 'POST', body: { id: s.id, token: s.token, hours: Math.max(0.1, (s.expires - Date.now()) / HOUR), data } });
+                            if (share?.id === s.id) set({ ...share, pending: undefined, expires: typeof made.expires === 'number' ? made.expires : share.expires, sent: Date.now() });
+                        } catch (e) {
+                            if (!(e instanceof WatchError && e.code === 'TAKEN')) throw e;
+                            if (share?.id === s.id) set({ ...share, pending: undefined });
+                            again = true;
+                        }
+                        continue;
+                    }
+                    await call(`/api/watch/${s.id}`, { method: 'PUT', token: s.token, body: { data } });
                     if (share?.id === s.id) set({ ...share, sent: Date.now() });
                 } catch (e) {
                     // Ended on the server (it ran out): nothing left to share.

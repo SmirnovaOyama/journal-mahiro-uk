@@ -90,7 +90,7 @@ const fail = (error: string, message: string, status: number, extra: Record<stri
 
 const WRONG = () => fail('INVALID_CREDENTIALS', 'Wrong username or password.', 401);
 const SIGNED_OUT = () => fail('SIGNED_OUT', 'Signed out. Sign in again.', 401);
-const TOO_MANY = () => fail('RATE_LIMITED', 'Too many tries. Wait a minute and try again.', 429, { 'retry-after': '60' });
+const TOO_MANY = () => fail('RATE_LIMITED', 'Too many attempts. Please try again in a minute.', 429, { 'retry-after': '60' });
 
 /* ── bytes ──────────────────────────────────────────────────────────── */
 
@@ -257,7 +257,7 @@ async function secondStep(db: D1Database, user: UserRow, code: unknown, secret =
 }
 
 const CODE_REQUIRED = () => fail('CODE_REQUIRED', 'Enter the code from your authenticator app, or a backup code.', 401);
-const WRONG_CODE = () => fail('WRONG_CODE', 'That code isn’t right, or it’s been used.', 401);
+const WRONG_CODE = () => fail('WRONG_CODE', 'Invalid code, or it has already been used.', 401);
 
 /* ── requests ───────────────────────────────────────────────────────── */
 
@@ -464,20 +464,20 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         if (path === '/api/signup' && method === 'POST') {
             if (!(await allowed(env.RL_AUTH, `signup:${ipOf(request)}`))) return TOO_MANY();
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const username = typeof b.username === 'string' ? b.username.trim() : '';
             if (!USERNAME.test(username))
                 return fail('BAD_USERNAME', 'A username is 3 to 30 letters, digits, - or _.', 400);
-            if (RESERVED.has(username.toLowerCase())) return fail('USERNAME_TAKEN', 'That username is taken.', 409);
+            if (RESERVED.has(username.toLowerCase())) return fail('USERNAME_TAKEN', 'This username is already taken.', 409);
             const recovery = recoveryOf(b);
-            if (!isKey(b.auth, 32) || !isWrapped(b.key) || !recovery) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!isKey(b.auth, 32) || !isWrapped(b.key) || !recovery) return fail('BAD_REQUEST', 'Invalid request.', 400);
             // The admin's name, made only with the admin's password: anyone
             // else is told it's taken.
             const admin = username.toLowerCase() === adminName(env);
             if (admin) {
                 const expected = env.ADMIN_KEY_HASH?.trim() ?? '';
                 if (!expected || !same(b64url(await sha256(unb64url(b.auth))), expected))
-                    return fail('USERNAME_TAKEN', 'That username is taken.', 409);
+                    return fail('USERNAME_TAKEN', 'This username is already taken.', 409);
             }
 
             const id = crypto.randomUUID();
@@ -494,7 +494,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
                 )
                 .bind(id, username, account, pw.salt, pw.hash, pw.wrapped, rc.salt, rc.hash, rc.wrapped, t)
                 .run();
-            if (!made.meta?.changes) return fail('USERNAME_TAKEN', 'That username is taken.', 409);
+            if (!made.meta?.changes) return fail('USERNAME_TAKEN', 'This username is already taken.', 409);
             // A deleted account's misses would otherwise lock out the name's new owner.
             await clearMisses(db, account);
             const token = await newSession(db, id, request);
@@ -504,7 +504,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         // Sign in.
         if (path === '/api/login' && method === 'POST') {
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const username = typeof b.username === 'string' ? b.username.trim() : '';
             const account = username.toLowerCase();
             if (!(await allowed(env.RL_AUTH, `login-ip:${ipOf(request)}`))) return TOO_MANY();
@@ -542,12 +542,12 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         // a ticket, then, with the ticket, set the password.
         if ((path === '/api/recover/start' || path === '/api/recover/finish') && method === 'POST') {
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const username = typeof b.username === 'string' ? b.username.trim() : '';
             const account = username.toLowerCase();
             if (!(await allowed(env.RL_AUTH, `recover-ip:${ipOf(request)}`))) return TOO_MANY();
             if (!(await allowed(env.RL_AUTH, `recover-user:${account}`))) return TOO_MANY();
-            const badKey = () => fail('INVALID_RECOVERY', 'That username and recovery key don’t go together.', 401);
+            const badKey = () => fail('INVALID_RECOVERY', 'That username and recovery key don’t match.', 401);
             if (!USERNAME.test(username)) return badKey();
             const locked = await lockedFor(db, account);
             if (locked) return LOCKED(locked);
@@ -578,9 +578,9 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
                 !!user.recovery_ticket &&
                 (user.recovery_ticket_until ?? 0) > now() &&
                 same(b64url(await sha256(utf8(b.ticket))), user.recovery_ticket);
-            if (!ticketOk) return fail('TICKET', 'That took too long. Start again.', 401);
+            if (!ticketOk) return fail('TICKET', 'Timed out. Please start again.', 401);
             const recovery = recoveryOf(b);
-            if (!isKey(b.auth, 32) || !isWrapped(b.key) || !recovery) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!isKey(b.auth, 32) || !isWrapped(b.key) || !recovery) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const pw = await credentials(b.auth, b.key);
             const rc = await credentials(recovery.auth, recovery.key);
             await db.batch([
@@ -604,7 +604,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         if (path === '/api/watch' || path.startsWith('/api/watch/')) return await watchRoute(db, env, request, path, method);
 
         // Everything after this is for a signed-in device.
-        if (!path.startsWith('/api/')) return fail('NOT_FOUND', 'Nothing here.', 404);
+        if (!path.startsWith('/api/')) return fail('NOT_FOUND', 'Not found.', 404);
         const me = await signedIn(db, request);
         if (!me) return SIGNED_OUT();
         const { user, sid } = me;
@@ -653,20 +653,20 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         if (path.startsWith('/api/2fa/') && method === 'POST') {
             if (!(await allowed(env.RL_AUTH, `password:${user.id}`))) return TOO_MANY();
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const locked = await lockedFor(db, user.username_key);
             if (locked) return LOCKED(locked);
             if (!(await matches(user, b.auth))) {
                 await miss(db, user.username_key);
-                return fail('WRONG_PASSWORD', 'That isn’t the password.', 403);
+                return fail('WRONG_PASSWORD', 'Incorrect password.', 403);
             }
 
             // On: the first code from the app confirms it scanned the secret.
             if (path === '/api/2fa/enable') {
                 if (user.totp_secret) return fail('ALREADY_ON', 'Two-step sign-in is already on.', 409);
-                if (!user.totp_pending || now() - (user.totp_pending_at ?? 0) > 1800) return fail('NO_SETUP', 'That setup ran out of time. Start again.', 409);
+                if (!user.totp_pending || now() - (user.totp_pending_at ?? 0) > 1800) return fail('NO_SETUP', 'Setup timed out. Please start again.', 409);
                 if (!(await secondStep(db, user, b.code, user.totp_pending, true)))
-                    return fail('WRONG_CODE', 'That code isn’t right. Check your phone’s clock, and try the next one.', 400);
+                    return fail('WRONG_CODE', 'Invalid code. Check your phone’s clock and try the next code.', 400);
                 await db.prepare('UPDATE users SET totp_secret = totp_pending, totp_pending = NULL, totp_pending_at = NULL WHERE id = ?').bind(user.id).run();
                 await clearMisses(db, user.username_key);
                 return ok({ backupCodes: await freshBackupCodes(db, user.id) });
@@ -716,7 +716,7 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             const base = b.base;
             const data = b.data;
             if (typeof base !== 'number' || !Number.isSafeInteger(base) || base < 0 || typeof data !== 'string' || !VAULT.test(data))
-                return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+                return fail('BAD_REQUEST', 'Invalid request.', 400);
             if (data.length > MAX_VAULT) return fail('TOO_LARGE', 'The journal is too large to keep in an account.', 413);
             const t = now();
             const wrote =
@@ -741,14 +741,14 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         if (path === '/api/password' && method === 'POST') {
             if (!(await allowed(env.RL_AUTH, `password:${user.id}`))) return TOO_MANY();
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const locked = await lockedFor(db, user.username_key);
             if (locked) return LOCKED(locked);
             if (!(await matches(user, b.auth))) {
                 await miss(db, user.username_key);
-                return fail('WRONG_PASSWORD', 'That isn’t the current password.', 403);
+                return fail('WRONG_PASSWORD', 'Incorrect current password.', 403);
             }
-            if (!isKey(b.newAuth, 32) || !isWrapped(b.key)) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!isKey(b.newAuth, 32) || !isWrapped(b.key)) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const pw = await credentials(b.newAuth, b.key);
             await db.batch([
                 db
@@ -764,15 +764,15 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         if (path === '/api/recovery' && method === 'POST') {
             if (!(await allowed(env.RL_AUTH, `password:${user.id}`))) return TOO_MANY();
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const locked = await lockedFor(db, user.username_key);
             if (locked) return LOCKED(locked);
             if (!(await matches(user, b.auth))) {
                 await miss(db, user.username_key);
-                return fail('WRONG_PASSWORD', 'That isn’t the current password.', 403);
+                return fail('WRONG_PASSWORD', 'Incorrect current password.', 403);
             }
             const recovery = recoveryOf(b);
-            if (!recovery) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!recovery) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const rc = await credentials(recovery.auth, recovery.key);
             await db
                 .prepare('UPDATE users SET recovery_salt = ?, recovery_hash = ?, recovery_wrapped_key = ? WHERE id = ?')
@@ -786,12 +786,12 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
         if (path === '/api/account' && method === 'DELETE') {
             if (!(await allowed(env.RL_AUTH, `password:${user.id}`))) return TOO_MANY();
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const locked = await lockedFor(db, user.username_key);
             if (locked) return LOCKED(locked);
             if (!(await matches(user, b.auth))) {
                 await miss(db, user.username_key);
-                return fail('WRONG_PASSWORD', 'That isn’t the password.', 403);
+                return fail('WRONG_PASSWORD', 'Incorrect password.', 403);
             }
             await db.batch(deleteAccount(db, user, 'self'));
             return ok(null, 204);
@@ -803,10 +803,10 @@ export async function handleApi(request: Request, env: ApiEnv): Promise<Response
             return await adminRoute(path, method, url, request, env, db, user, sid);
         }
 
-        return fail('NOT_FOUND', 'Nothing here.', 404);
+        return fail('NOT_FOUND', 'Not found.', 404);
     } catch (e) {
         console.error('api', path, e);
-        return fail('SERVER_ERROR', 'Something went wrong on the server. Try again in a moment.', 500);
+        return fail('SERVER_ERROR', 'Server error. Please try again later.', 500);
     }
 }
 
@@ -828,10 +828,10 @@ async function watchRoute(db: D1Database, env: ApiEnv, request: Request, path: s
     if (path === '/api/watch' && method === 'POST') {
         if (!(await allowed(env.RL_AUTH, `watch:${ip}`))) return TOO_MANY();
         const b = await body(request);
-        if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+        if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
         const { id, token, data } = b;
         const hours = typeof b.hours === 'number' && b.hours > 0 ? Math.min(MAX_WATCH_HOURS, b.hours) : 12;
-        if (typeof id !== 'string' || !WATCH_ID.test(id) || !isKey(token, 32) || typeof data !== 'string' || !WATCH_DATA.test(data)) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+        if (typeof id !== 'string' || !WATCH_ID.test(id) || !isKey(token, 32) || typeof data !== 'string' || !WATCH_DATA.test(data)) return fail('BAD_REQUEST', 'Invalid request.', 400);
         if (data.length > MAX_WATCH) return fail('TOO_LARGE', 'That is too much to share.', 413);
         // The ones that have run out go as new ones come.
         await db.prepare('DELETE FROM watches WHERE expires_at < ?').bind(t).run();
@@ -858,7 +858,7 @@ async function watchRoute(db: D1Database, env: ApiEnv, request: Request, path: s
         if (!(await allowed(env.RL_SYNC, `watch:${ip}`))) return TOO_MANY();
         const b = await body(request);
         const data = b?.data;
-        if (typeof data !== 'string' || !WATCH_DATA.test(data)) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+        if (typeof data !== 'string' || !WATCH_DATA.test(data)) return fail('BAD_REQUEST', 'Invalid request.', 400);
         if (data.length > MAX_WATCH) return fail('TOO_LARGE', 'That is too much to share.', 413);
         const wrote = await db.prepare('UPDATE watches SET data = ?, updated_at = ? WHERE id = ? AND token_hash = ? AND expires_at >= ?').bind(data, t, id, await tokenHash(), t).run();
         return wrote.meta?.changes ? ok({ updated: t * 1000 }) : GONE();
@@ -868,7 +868,7 @@ async function watchRoute(db: D1Database, env: ApiEnv, request: Request, path: s
         await db.prepare('DELETE FROM watches WHERE id = ? AND token_hash = ?').bind(id, await tokenHash()).run();
         return ok(null, 204);
     }
-    return fail('NOT_FOUND', 'Nothing here.', 404);
+    return fail('NOT_FOUND', 'Not found.', 404);
 }
 
 function deleteAccount(db: D1Database, user: UserRow, by: 'self' | 'admin'): D1PreparedStatement[] {
@@ -980,7 +980,7 @@ async function adminRoute(
     const m = /^\/api\/admin\/users\/([0-9a-f-]{36})(?:\/(sign-out|unlock|2fa))?$/.exec(path);
     if (m) {
         const target = await db.prepare('SELECT * FROM users WHERE id = ?').bind(m[1]).first<UserRow>();
-        if (!target) return fail('NOT_FOUND', 'There’s no such account.', 404);
+        if (!target) return fail('NOT_FOUND', 'Account not found.', 404);
 
         // Every device it's signed in on (but this one, for the admin's own).
         if (m[2] === 'sign-out' && method === 'POST') {
@@ -1001,12 +1001,12 @@ async function adminRoute(
             if (target.id === me.id) return fail('BAD_REQUEST', 'Change your own account from your account page.', 400);
             if (!(await allowed(env.RL_AUTH, `admin:${me.id}`))) return TOO_MANY();
             const b = await body(request);
-            if (!b) return fail('BAD_REQUEST', 'That request couldn’t be read.', 400);
+            if (!b) return fail('BAD_REQUEST', 'Invalid request.', 400);
             const locked = await lockedFor(db, me.username_key);
             if (locked) return LOCKED(locked);
             if (!(await matches(me, b.auth))) {
                 await miss(db, me.username_key);
-                return fail('WRONG_PASSWORD', 'That isn’t your password.', 403);
+                return fail('WRONG_PASSWORD', 'Incorrect password.', 403);
             }
             await clearMisses(db, me.username_key);
             if (m[2] === '2fa') {
@@ -1021,5 +1021,5 @@ async function adminRoute(
         }
     }
 
-    return fail('NOT_FOUND', 'Nothing here.', 404);
+    return fail('NOT_FOUND', 'Not found.', 404);
 }

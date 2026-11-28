@@ -17,7 +17,7 @@ export const inputCls = 'input-base text-sm w-full';
 export const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 export const USERNAME = /^[A-Za-z0-9_-]{3,30}$/;
 
-export const message = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : tr('Something went wrong. Try again.'));
+export const message = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : tr('An error occurred. Please try again.'));
 
 /** "just now", "5 min ago", "3 h ago", "on 4 Nov". */
 export function ago(t: number, now = Date.now()): string {
@@ -123,7 +123,7 @@ export function CodeField({ value, onChange, autoFocus = true }: { value: string
 
 const LEVEL_TEXT: Record<NewPasswordLevel, string> = {
     tooLong: 'Too long: at most 256 letters and digits.',
-    weak: 'Easy to guess: try something longer or less regular.',
+    weak: 'Easy to guess. Try something longer or less predictable.',
     fair: 'Okay. A little longer would be safer.',
     strong: 'Strong password.',
 };
@@ -263,8 +263,8 @@ export function RecoveryKeyShow({ code, username, fresh, onDone }: { code: strin
             <div>
                 <h2 className={`text-base font-semibold ${on}`}>{fresh ? tr('Your new recovery key') : tr('Your recovery key')}</h2>
                 <p className={`mt-1 text-sm leading-relaxed ${muted}`}>
-                    {tr('If you forget your password, this sets a new one. Keep it somewhere safe, away from this device: it’s shown only now.')}
-                    {fresh && tr(' The one before it no longer works.')}
+                    {tr('If you forget your password, use this to set a new one. Keep it somewhere safe, not on this device. It’s only shown once.')}
+                    {fresh && tr(' Your old one no longer works.')}
                 </p>
             </div>
             <p
@@ -305,7 +305,7 @@ export function BackupCodesShow({ codes, username, onDone }: { codes: string[]; 
             <div>
                 <h2 className={`text-base font-semibold ${on}`}>{tr('Your backup codes')}</h2>
                 <p className={`mt-1 text-sm leading-relaxed ${muted}`}>
-                    {tr('If your phone isn’t to hand, each of these signs you in once in place of a code. Keep them somewhere safe: they’re shown only now.')}
+                    {tr('If you don’t have your phone, each of these can be used once instead of a code. Keep them somewhere safe. They’re only shown once.')}
                 </p>
             </div>
             <ol className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-[var(--radius-md)] bg-[var(--surface-muted)] px-5 py-4 font-mono text-[0.9375rem] font-medium tracking-[0.06em] text-[var(--text)] select-all">
@@ -317,7 +317,7 @@ export function BackupCodesShow({ codes, username, onDone }: { codes: string[]; 
                 text={codes.join('\n')}
                 file={() => [
                     `oyama-journal-backup-codes-${username}.txt`,
-                    [tr('Oyama Journal backup codes'), '', tr('Username: {0}', { 0: username }), '', ...codes, '', tr('Each one signs you in once, in place of a code from your authenticator app.'), ''].join('\n'),
+                    [tr('Oyama Journal backup codes'), '', tr('Username: {0}', { 0: username }), '', ...codes, '', tr('Each one can be used once instead of a code from your authenticator app.'), ''].join('\n'),
                 ]}
             />
             <KeptIt onDone={onDone} what={tr('I’ve kept them somewhere safe')} />

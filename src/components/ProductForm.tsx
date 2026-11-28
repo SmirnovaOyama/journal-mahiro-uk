@@ -130,7 +130,7 @@ export function ProductForm({
                     />
                 </div>
                 <div>
-                    <span className={label}>{tr('One of it is a')}</span>
+                    <span className={label}>{tr('Comes as')}</span>
                     <div className="flex flex-wrap gap-2">
                         {PERS.map(p => (
                             <button type="button" key={p} className={chip(draft.per === p)} aria-pressed={draft.per === p} onClick={() => setDraft({ ...draft, per: p })}>
@@ -148,7 +148,7 @@ export function ProductForm({
                                 <button
                                     type="button"
                                     className="btn-ghost !size-8 !p-0"
-                                    aria-label={tr('Take {0} off', { 0: partName(p) })}
+                                    aria-label={tr('Remove {0}', { 0: partName(p) })}
                                     onClick={() => setDraft({ ...draft, parts: draft.parts.filter((_, i) => i !== k) })}
                                 >
                                     <Close size={16} />
@@ -192,7 +192,7 @@ export function ProductForm({
                         </div>
                     )}
                     <p className="mt-3 text-xs text-[var(--text-muted)]">
-                        {tr('Each active ingredient and its amount are on the box or the leaflet. What’s in a product differs from one country to the next, so none comes filled in.')}
+                        {tr('Each active ingredient and its amount are listed on the box or leaflet. Products differ from country to country, so nothing is filled in for you.')}
                     </p>
                 </div>
                 <div className="flex items-center gap-3 pt-1">
@@ -348,8 +348,8 @@ export function ProductForm({
                             {apapTotal > PARACETAMOL_DAY_MG && <Alert size={16} className="mt-0.5 shrink-0" />}
                             <span>
                                 {apapTotal > PARACETAMOL_DAY_MG
-                                    ? tr('With this dose, {0} of paracetamol in 24 hours: more than the 4 g an adult should take. Too much can damage the liver: get medical advice now.', { 0: gramsText(apapTotal) })
-                                    : tr('With this dose, {0} of paracetamol in 24 hours. The limit for an adult is 4 g.', { 0: gramsText(apapTotal) })}{' '}
+                                    ? tr('With this dose, you’d have {0} of paracetamol in 24 hours, more than the 4 g limit for adults. Too much can damage your liver. Get medical advice now.', { 0: gramsText(apapTotal) })
+                                    : tr('With this dose: {0} of paracetamol in 24 hours. The adult limit is 4 g.', { 0: gramsText(apapTotal) })}{' '}
                                 <a href={PARACETAMOL_SOURCE.href} target="_blank" rel="noopener noreferrer" className="text-xs underline underline-offset-[3px]">
                                     {PARACETAMOL_SOURCE.name}
                                 </a>

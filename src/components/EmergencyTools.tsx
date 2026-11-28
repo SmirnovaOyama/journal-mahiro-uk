@@ -129,7 +129,7 @@ export function CrewCard({ byId }: { byId?: Map<string, IndexEntry> }) {
                     {tr('Show it large')}
                 </button>
             </div>
-            <p className={`text-sm ${muted} mt-0.5 mb-2`}>{tr('From the journal on this device, for the last 24 hours: to show the crew, or to read out on the call.')}</p>
+            <p className={`text-sm ${muted} mt-0.5 mb-2`}>{tr('Your journal from the last 24 hours on this device, to show paramedics or read out on the call.')}</p>
             {body(false)}
             {large && (
                 <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--bg)] text-[var(--text)]" role="dialog" aria-modal="true" aria-labelledby="crew-card-large">
@@ -192,7 +192,7 @@ export function Metronome() {
     return (
         <span className="mt-2 flex items-center gap-3">
             <button type="button" className={toolButton} aria-pressed={on} onClick={() => setOn(o => !o)}>
-                {on ? tr('Stop the beat') : tr('Keep the beat for me')}
+                {on ? tr('Stop the beat') : tr('Play the beat')}
             </button>
             {on && (
                 <>
@@ -274,10 +274,10 @@ export function Position() {
             )}
             {state === 'failed' && (
                 <p className={`mt-2 text-sm ${muted}`} role="status">
-                    {tr('The device wouldn’t say where it is.')}
+                    {tr('Couldn’t get your location.')}
                 </p>
             )}
-            <p className={`mt-1 text-xs ${muted}`}>{tr('Your position as two numbers, to read out if you can’t say where you are. Read on this device and sent nowhere.')}</p>
+            <p className={`mt-1 text-xs ${muted}`}>{tr('Your coordinates, to read out if you don’t know where you are. They stay on this device and aren’t sent anywhere.')}</p>
         </div>
     );
 }

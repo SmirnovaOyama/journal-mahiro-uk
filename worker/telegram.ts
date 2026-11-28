@@ -75,7 +75,7 @@ function help(): string {
         '',
         `/mix mdma tramadol — ${tr('What are the risks of taking these together?')}`,
         `/dose ketamine — ${tr('A common dose, and how long it lasts')}`,
-        `/emergency — ${tr('When to call, the number, and what to do until help comes')}`,
+        `/emergency — ${tr('When to call, which number, and what to do until help arrives')}`,
         '',
         tr('Information, not medical advice.'),
         SITE.origin,
@@ -112,7 +112,7 @@ function mixText(chosen: IndexEntry[], pairs: PairResult[]): string {
         if (pairs.length > 1) lines.push('', `${esc(nameOf(p.a))} + ${esc(nameOf(p.b))}: ${b(tr(VERDICT[p.verdict].label))}`);
         if (p.note && p.note.length < 400) lines.push(esc(p.note));
     }
-    lines.push('', link(`/mix/${chosen.map(e => encodeURIComponent(e.id)).join('+')}`, tr('Where this comes from, and the rest')), esc(tr('Information, not medical advice.')));
+    lines.push('', link(`/mix/${chosen.map(e => encodeURIComponent(e.id)).join('+')}`, tr('Sources and more')), esc(tr('Information, not medical advice.')));
     return lines.join('\n');
 }
 
@@ -137,11 +137,11 @@ async function answer(tools: TelegramTools, index: IndexEntry[], names: string[]
     }
     tools.speak(lang);
     if (missing.length) {
-        const text = tr('Nothing called “{0}”.', { 0: missing.join(', ') });
+        const text = tr('No results for “{0}”.', { 0: missing.join(', ') });
         return { text: esc(text), title: text, says: '' };
     }
     if (mix) {
-        const text = tr('Add one more to see how they mix.');
+        const text = tr('Add another substance to check the combination.');
         return { text: esc(text), title: text, says: '' };
     }
     const e = chosen[0];

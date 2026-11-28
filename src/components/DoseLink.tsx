@@ -35,7 +35,7 @@ export function DoseLink({ i }: { i: Ingestion }) {
             {open && (
                 <div className="m-appear mt-3">
                     <p className={`text-xs ${muted}`}>
-                        {tr('Opening it fills the dose form in, with the time set to now; nothing is logged until Log it is pressed. It can be kept as a bookmark or a Shortcut, or written to an NFC sticker on the box.')}
+                        {tr('Opening it fills in the dose form with the time set to now. Nothing is logged until you tap Log it. It can be saved as a bookmark or a Shortcut, or written to an NFC sticker on the box.')}
                     </p>
                     <div className="mt-3 flex items-center gap-4">
                         <div className="shrink-0 rounded-[var(--radius-md)] bg-white p-2.5">

@@ -28,7 +28,7 @@ function EmergencyRow() {
             <Link to={{ page: 'emergency' }} className={`w-full min-h-14 flex items-center gap-3 py-2.5 text-start no-underline ${rowBleed}`}>
                 <span className="flex-1 min-w-0">
                     <span className="block text-sm font-medium text-[var(--text)]">{tr('In an emergency')}</span>
-                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{tr('When to call, the number, and what to do until help comes')}</span>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{tr('When to call, which number, and what to do until help arrives')}</span>
                 </span>
                 <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)] opacity-70" />
             </Link>
@@ -119,7 +119,7 @@ export function Home({ index, byId }: { index: IndexEntry[] | null; byId: Map<st
                             // After the check-in, "nothing called that" would only be cold.
                             !care && !n55 && !help && <div className="py-8">
                                 <p className="text-sm font-semibold">
-                                    {tr('Nothing called “{0}”', { 0: q.trim() })}
+                                    {tr('No results for “{0}”', { 0: q.trim() })}
                                 </p>
                                 <p className="text-sm text-[var(--text-muted)] mt-1">
                                     {tr('Try another spelling, a street name, or the family it belongs to, like “tryptamine”.')}

@@ -28,7 +28,7 @@ export function Absorption({ rows, roa, onPick }: { rows: DoseRow[]; roa: string
     return (
         <section className="mt-7" aria-labelledby="absorption-title">
             <h3 id="absorption-title" className="group-heading mb-2">
-                {tr('How much gets in')}
+                {tr('How much is absorbed')}
             </h3>
             <p className="text-sm leading-relaxed">
                 {cur?.absorbed ? (
@@ -45,7 +45,7 @@ export function Absorption({ rows, roa, onPick }: { rows: DoseRow[]; roa: string
             </p>
 
             {known.length > 1 && (
-                <div className="mt-4 space-y-2.5" role="radiogroup" aria-label={tr('Routes, by how much gets in')}>
+                <div className="mt-4 space-y-2.5" role="radiogroup" aria-label={tr('Absorption by route')}>
                     {known.map(r => {
                         const a = r.absorbed!;
                         const chosen = r.roa === roa;
@@ -77,7 +77,7 @@ export function Absorption({ rows, roa, onPick }: { rows: DoseRow[]; roa: string
 
             <p className={`mt-3 text-xs leading-relaxed ${muted}`}>
                 {known.length > 1 || rows.length > 1
-                    ? tr('So the same amount isn’t the same dose by another route: go by each route’s own doses. ')
+                    ? tr('So the same amount isn’t the same dose by another route. Use each route’s own doses. ')
                     : ''}
                 {tr('From {0}.', { 0: sources.join('; ') })}
             </p>

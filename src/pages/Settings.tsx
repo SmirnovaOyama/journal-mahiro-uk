@@ -109,7 +109,7 @@ const ClearRow: React.FC<{ label: string; count: number; countText: string; onCl
             </button>
             {asking && count > 0 && (
                 <div className="m-appear flex items-center justify-between gap-3 pb-3.5">
-                    <span className="text-sm">{warn ?? tr('This can’t be undone.')}</span>
+                    <span className="text-sm">{warn ?? tr('This action can’t be undone.')}</span>
                     <span className="flex gap-2">
                         <button className="btn-secondary btn-sm" onClick={() => setAsking(false)} autoFocus>
                             {tr('Keep it')}
@@ -176,7 +176,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             return e ? { id: e.id, name: e.name } : undefined;
         });
         if (!parsed) {
-            setImportNote(tr('That file isn’t a journal from here or from PsychonautWiki Journal.'));
+            setImportNote(tr('This file isn’t a journal exported from here or from PsychonautWiki Journal.'));
             return;
         }
         const { next, added, addedWeights } = merge(journal.data, parsed);
@@ -192,7 +192,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
             added ? (added === 1 ? tr('1 dose') : tr('{0} doses', { 0: added })) : '',
             addedWeights ? (addedWeights === 1 ? tr('1 weight') : tr('{0} weights', { 0: addedWeights })) : '',
         ].filter(Boolean);
-        setImportNote(parts.length ? tr('Added {0}.', { 0: phraseList(parts) }) : tr('Nothing new: everything in it is already here.'));
+        setImportNote(parts.length ? tr('Added {0}.', { 0: phraseList(parts) }) : tr('Nothing new to import: everything in it is already here.'));
     };
 
     useEffect(() => {
@@ -294,7 +294,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                 <NavRow label={tr('Features')} value={features.off ? tr('{0} off', { 0: features.off }) : tr('All on')} onClick={() => open('features')} />
                 <NavRow label={tr('Lock and privacy')} value={lockState() === 'open' ? tr('Locked') : undefined} onClick={() => open('privacy')} />
             </div>
-            {features.on('medicines') && <p className={`text-xs ${muted} mt-2`}>{tr('Your medicines are counted as already taken in every mix check and in the dose form.')}</p>}
+            {features.on('medicines') && <p className={`text-xs ${muted} mt-2`}>{tr('Your medicines are treated as already taken in every mix check and in the dose form.')}</p>}
         </div>
     );
 
@@ -336,14 +336,14 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         count={count}
                         countText={count === 1 ? tr('1 dose') : tr('{0} doses', { 0: count })}
                         onClear={journal.clear}
-                        warn={account ? tr('From every device signed in to your account too. This can’t be undone.') : undefined}
+                        warn={account ? tr('It will also be deleted from every device signed in to your account. This action can’t be undone.') : undefined}
                     />
                     <ClearRow
                         label={tr('Delete body weight')}
                         count={wCount}
                         countText={wCount === 1 ? tr('1 weight') : tr('{0} weights', { 0: wCount })}
                         onClear={weights.clear}
-                        warn={account ? tr('From every device signed in to your account too. This can’t be undone.') : undefined}
+                        warn={account ? tr('It will also be deleted from every device signed in to your account. This action can’t be undone.') : undefined}
                     />
                 </div>
                 {importNote && (
@@ -353,8 +353,8 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                 )}
                 <p className={`text-xs ${muted} mt-2`}>
                     {account
-                        ? tr('The journal is kept in this browser and, encrypted, in your account, so it’s the same on each device you sign in on.')
-                        : tr('The journal is kept in this browser only. Export it to keep a copy, or make an account to keep it in sync across devices.')}
+                        ? tr('Your journal is stored in this browser and, encrypted, in your account, so it’s the same on every device you sign in on.')
+                        : tr('Your journal is stored only in this browser. Export it to keep a copy, or create an account to sync it across devices.')}
                 </p>
             </div>
             <div>
@@ -371,17 +371,17 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                         count={saved.ids.length}
                         countText={tr('{0} substances', { 0: saved.ids.length })}
                         onClear={saved.clear}
-                        warn={account ? tr('On every device signed in to your account too.') : undefined}
+                        warn={account ? tr('This also clears it on every device signed in to your account.') : undefined}
                     />
                 </div>
                 <p className={`text-xs ${muted} mt-2`}>
                     {account
-                        ? tr('Saved substances sync with your account. What you looked at stays in this browser.')
-                        : tr('Everything stays in this browser. Nothing is ever sent anywhere.')}
+                        ? tr('Saved substances sync with your account. Your browsing history stays in this browser.')
+                        : tr('Everything stays in this browser and is never sent anywhere.')}
                 </p>
                 {keepsOffline() && (
                     <p className={`text-xs ${muted} mt-2`}>
-                        {tr('Without a connection, search, the mix checker, the journal and the emergency page still open, and so does every substance you’ve opened, saved or logged on this device.')}
+                        {tr('Offline, you can still use search, the mix checker, the journal and the emergency page, plus any substance you’ve opened, saved or logged on this device.')}
                     </p>
                 )}
             </div>
@@ -522,7 +522,7 @@ export function Settings({ sub }: { sub?: SettingsSub }) {
                 <PageHeader backTo title={tr('Disclaimer')} />
                 <div className={`${PAGE_COLUMN} mt-3 space-y-4 text-sm leading-relaxed`}>
                     <p>
-                        {tr('This site gathers public harm-reduction information about psychoactive substances: doses, how long they last, and which combinations are risky. It is information, not medical advice, and it is no reason to take anything.')}
+                        {tr('This site collects public harm-reduction information about psychoactive substances: doses, durations and risky combinations. It’s information, not medical advice, and not a reason to take anything.')}
                     </p>
                     <p>
                         {tr('Doses and timings are typical ranges from PsychonautWiki and TripSit. Your body, your tolerance, the medicines you take and what is really in a pill or powder can all change them. Start low, test what you have, and don’t use alone.')}

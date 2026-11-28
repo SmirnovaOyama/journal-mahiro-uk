@@ -124,8 +124,8 @@ bot's name and a question in any chat. See [Telegram](#telegram).
 the notes from last time, limits, the daily medicines, drugs still at work,
 products, paracetamol's total, the Now screen, days in a row, a dose's
 address, watching over a night, the card for the crew, the emergency
-page's beat, reading aloud and position, measuring in a liquid, and the
-link to report a mistake.
+page's beat, reading aloud and position, measuring in a liquid, a night's picture,
+and the link to report a mistake.
 All are on to begin with. Off, a feature is hidden and does nothing, and
 what it kept stays for when it's turned back on (`src/lib/features.ts`).
 The lock, the other code and the plain name have their own switches under
@@ -164,6 +164,31 @@ its reader speaks, and is answered in English; `?lang=` on the address says
 it instead: `/s/ketamine?lang=zh-Hans`, `zh-Hant`, `zh-HK` or `en`, or `cn`,
 `tw`, `hk` for short. The page itself still opens in its reader's own
 language.
+
+**Keep a night as a picture.** On a night in the journal, Save as a
+picture is one tap: on a phone the share sheet opens with it (to keep it
+in Photos or send it), elsewhere it's saved as a file. It is 1080 by 1440,
+drawn on the device, in the reader's language (`src/lib/picture.ts`), in
+the design system's tokens at twice their size. The night is drawn one of
+two ways, chosen in Settings, Features:
+
+- **Timeline**, the default. The session chart just as the app draws it,
+  in the light theme and as flat as on a phone, under the date as a
+  reading: each dose's curve in its colour over a faint fill, a hollow ring
+  where it was taken, the clock times under, "now" a dotted upright.
+- **Clock.** In the dark theme, a dial that runs through the night alone,
+  from its start at the top round to its end. Each dose has its own ring,
+  the first innermost, and along it from the time it was taken a ribbon in
+  its substance's colour as wide as the effect is strong. Each dose's name,
+  time and amount stand in one of two columns beside the dial, a hairline
+  from where it was taken. The date is in the middle.
+
+Both are the session chart's curve (`src/lib/curve.ts`). Under the night,
+each substance is drawn as its structure in the brand's terracotta, its
+name in its curve's colour and what it came to; then what didn't mix, each
+status in words; the rating; and at the foot the logo and the site.
+Never the notes. The night isn't uploaded to draw it: the picture is drawn
+quietly while the page is open, so the tap can hand it over at once.
 
 ## Pages
 
@@ -523,6 +548,7 @@ and the files of the build before it are let go.
   - `ProfileHeader`: the top of the account page.
   - `Absorption`: how much gets in, by route.
   - `Volumetric`: measuring a dose too small to weigh in a liquid.
+  - `PictureExport`: a night's Save as a picture button.
 - `src/lib/`:
   - `data.ts`, `mix.ts`: the data and the mix checker.
   - `journal.ts`: the journal's store, sessions, import, export and merging.
@@ -540,6 +566,9 @@ and the files of the build before it are let go.
   - `alcohol.ts`: blood alcohol, roughly, from the body weight.
   - `volumetric.ts`: which doses are too small to weigh, and a liquid's
     strength.
+  - `picture.ts`: a night drawn as a picture on a canvas, loaded only when
+    one is first drawn; `curve.ts`: the shape of a night, for the chart and
+    the picture alike.
   - `keys.ts`: the keys, and encrypting the journal.
   - `password.ts`: how guessable a new password is.
   - `molsvg.ts`: skeletal formulas from 2D coordinates.

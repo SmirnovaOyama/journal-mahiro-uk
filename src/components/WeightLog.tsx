@@ -333,7 +333,7 @@ export function WeightLog() {
                         <Doodle name="notebook" size={4.5} />
                         <p className={`mt-4 text-sm font-medium ${on}`}>{tr('No weight logged yet')}</p>
                         <p className={`mt-1 text-sm ${muted} max-w-xs`}>
-                            {tr('Log your weight now and then to see it over time. It’s kept with the journal: on this device, and in your account if you sync. The newest one is also your body weight in Settings.')}
+                            {tr('Log your weight from time to time to see how it changes. It’s saved with your journal, on this device and in your account if you sync. The latest entry is used as your body weight in Settings.')}
                         </p>
                     </div>
                 )

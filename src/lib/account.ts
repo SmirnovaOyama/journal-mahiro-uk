@@ -169,7 +169,7 @@ async function api<T>(path: string, init: { method?: string; body?: unknown; sig
             cache: 'no-store',
         });
     } catch {
-        throw new ApiError('OFFLINE', navigator.onLine === false ? tr('You’re offline.') : tr('Couldn’t reach the server.'));
+        throw new ApiError('OFFLINE', navigator.onLine === false ? tr('No internet connection.') : tr('Couldn’t connect to the server.'));
     }
     if (res.status === 204) return undefined as T;
     if (!(res.headers.get('content-type') ?? '').includes('application/json'))
@@ -181,7 +181,7 @@ async function api<T>(path: string, init: { method?: string; body?: unknown; sig
         /* an empty answer */
     }
     if (!res.ok) {
-        const err = new ApiError(String(body.error ?? `HTTP_${res.status}`), serverSays(String(body.message ?? tr('Something went wrong. Try again.'))), res.status, body);
+        const err = new ApiError(String(body.error ?? `HTTP_${res.status}`), serverSays(String(body.message ?? tr('An error occurred. Please try again.'))), res.status, body);
         if (err.code === 'SIGNED_OUT' && signedIn && token && token === state.account?.token) void lostSession();
         throw err;
     }
@@ -192,7 +192,7 @@ async function api<T>(path: string, init: { method?: string; body?: unknown; sig
  *  in English (worker/api.ts); one of them carries a number. */
 function serverSays(message: string): string {
     const locked = message.match(/^Too many wrong tries for this account\. Try again in (\d+) min\.$/);
-    return locked ? tr('Too many wrong tries for this account. Try again in {0} min.', { 0: locked[1] }) : tr(message);
+    return locked ? tr('Too many incorrect attempts. Please try again in {0} min.', { 0: locked[1] }) : tr(message);
 }
 
 /** The server no longer knows this device (signed out elsewhere, or by a
@@ -207,11 +207,11 @@ async function lostSession() {
 
 function need(): Stored {
     const a = state.account;
-    if (!a) throw new ApiError('SIGNED_OUT', tr('Sign in first.'));
+    if (!a) throw new ApiError('SIGNED_OUT', tr('Please sign in first.'));
     return a;
 }
 
-const wrongPassword = (current = false) => new ApiError('WRONG_PASSWORD', current ? tr('That isn’t the current password.') : tr('That isn’t the password.'), 403);
+const wrongPassword = (current = false) => new ApiError('WRONG_PASSWORD', current ? tr('Incorrect current password.') : tr('Incorrect password.'), 403);
 
 /* ── signing up, in and out ─────────────────────────────────────────── */
 
@@ -269,7 +269,7 @@ export async function signIn(username: string, password: string, code?: string):
     try {
         key = await unwrap(res.key, pk.kek);
     } catch {
-        throw new ApiError('KEY', tr('Signed in, but the journal key wouldn’t open. Try again.'));
+        throw new ApiError('KEY', tr('Signed in, but couldn’t unlock your journal. Please try again.'));
     }
     await begin(res.token, res.user, key);
 }
@@ -349,7 +349,7 @@ export async function recover(username: string, code: string, password: string, 
     try {
         journalKey = await unwrap(start.key, rk.kek, true);
     } catch {
-        throw new ApiError('INVALID_RECOVERY', tr('That username and recovery key don’t go together.'));
+        throw new ApiError('INVALID_RECOVERY', tr('That username and recovery key don’t match.'));
     }
     const pk = await passwordKeys(username, password);
     const next = newRecoveryCode();
@@ -612,7 +612,7 @@ async function syncOnce() {
                 try {
                     remote = readVault(await unseal(got.data, key, a.user.id));
                 } catch {
-                    throw new ApiError('UNREADABLE', tr('The copy in your account couldn’t be opened on this device.'));
+                    throw new ApiError('UNREADABLE', tr('Couldn’t open your synced journal on this device.'));
                 }
                 merged = {
                     v: 1,
@@ -641,7 +641,7 @@ async function syncOnce() {
                 throw e;
             }
         }
-        throw new ApiError('BUSY', tr('Another device kept syncing at the same time. Trying again soon.'));
+        throw new ApiError('BUSY', tr('Another device was syncing at the same time. Retrying soon.'));
     } catch (e) {
         const err = e instanceof ApiError ? e : new ApiError('ERROR', tr('Sync failed.'));
         if (err.code === 'SIGNED_OUT') return;

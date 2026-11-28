@@ -162,7 +162,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
             : s === 'TripSit'
               ? tr('Documented by TripSit')
               : s === 'Guess'
-                ? tr('Not documented for this exact pair. A cautious guess from what kind of drug each one is')
+                ? tr('No data on this exact combination. This is a cautious estimate based on each drug’s class')
                 : tr('No source covers this pair');
 
     return (
@@ -197,13 +197,13 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                         <Link to={{ page: 'settings', sub: 'medicines' }} className="underline underline-offset-[3px]">
                             {tr('Add the medicines you take every day')}
                         </Link>
-                        {tr(', and every check counts them in.')}
+                        {tr(', and every check will include them.')}
                     </p>
                 )}
 
                 {activeOff.length > 0 && (
-                    <section className="mb-4" aria-label={tr('Still working, from your journal')}>
-                        <h2 className="group-heading mb-2">{tr('Still working, from your journal')}</h2>
+                    <section className="mb-4" aria-label={tr('Still active, from your journal')}>
+                        <h2 className="group-heading mb-2">{tr('Still active, from your journal')}</h2>
                         <ul className="flex flex-wrap gap-2">
                             {activeOff.map(e => (
                                 <li key={e.id}>
@@ -222,7 +222,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                 )}
 
                 {chosen.length > 0 && (
-                    <ul className="flex flex-wrap gap-2 mb-4" aria-label={tr('On the table')}>
+                    <ul className="flex flex-wrap gap-2 mb-4" aria-label={tr('Added')}>
                         {chosen.map(e => (
                             <li
                                 key={e.id}
@@ -238,7 +238,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                 <button
                                     type="button"
                                     className="btn-ghost !size-8 !p-0"
-                                    aria-label={tr('Take {0} off', { 0: nameOf(e) })}
+                                    aria-label={tr('Remove {0}', { 0: nameOf(e) })}
                                     onClick={() => remove(e.id)}
                                 >
                                     <Close size={18} />
@@ -275,7 +275,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                             ))
                         ) : (
                             <p className="text-sm text-[var(--text-muted)] py-3">
-                                {tr('Nothing called “{0}”.', { 0: q.trim() })}
+                                {tr('No results for “{0}”.', { 0: q.trim() })}
                             </p>
                         )}
                     </div>
@@ -313,7 +313,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
 
                 {chosen.length === 1 && !enough && (
                     <p className="text-sm text-[var(--text-muted)] mt-5">
-                        {tr('Add one more to see how they mix.')}
+                        {tr('Add another substance to check the combination.')}
                     </p>
                 )}
 
@@ -341,7 +341,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                         </p>
                         <p className="verdict-says">
                             {top.unchecked
-                                ? tr('This needs a connection: nothing is kept on this device for {0}. Until it’s checked, don’t take it as safe.', { 0: namesOf(top.without!) })
+                                ? tr('Checking this needs a connection, because {0} isn’t saved on this device. Don’t assume it’s safe until it’s checked.', { 0: namesOf(top.without!) })
                                 : tr(VERDICT[top.verdict].meaning)}
                         </p>
 
@@ -371,8 +371,8 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
                                         {p.without && (
                                             <p className="text-xs text-[var(--text-muted)] mt-1">
                                                 {p.unchecked
-                                                    ? tr('Nothing is kept on this device for {0}, so this pair needs a connection to check.', { 0: namesOf(p.without) })
-                                                    : tr('Read without a connection, and without the page for {0}: there may be more to it.', { 0: namesOf(p.without) })}
+                                                    ? tr('{0} isn’t saved on this device, so checking this combination needs a connection.', { 0: namesOf(p.without) })
+                                                    : tr('Checked offline without the page for {0}, so this may be incomplete.', { 0: namesOf(p.without) })}
                                             </p>
                                         )}
                                     </div>

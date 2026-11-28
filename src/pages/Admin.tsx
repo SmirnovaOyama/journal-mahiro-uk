@@ -33,7 +33,7 @@ const muted = 'text-[var(--text-muted)]';
 const on = 'text-[var(--text)]';
 const rowBase = 'w-full min-h-14 flex items-center justify-between gap-4 py-3.5 text-start';
 
-const message = (e: unknown) => (e instanceof Error ? e.message : tr('Something went wrong. Try again.'));
+const message = (e: unknown) => (e instanceof Error ? e.message : tr('An error occurred. Please try again.'));
 
 export function formatBytes(n: number): string {
     if (n < 1024) return `${n} B`;
@@ -212,8 +212,8 @@ function AccountRow({ u, me, open, onToggle, onChanged }: { u: AdminUser; me: st
                         >
                             <p className="text-sm leading-relaxed">
                                 {confirming === 'delete'
-                                    ? tr('Deletes {0} and the encrypted copy it keeps, for good. Their devices keep their own journals and stop syncing.', { 0: u.username })
-                                    : tr('For someone who lost their phone and their backup codes: {0} signs in with their password alone until they turn it on again. Only do this once you know it’s them.', { 0: u.username })}
+                                    ? tr('Permanently deletes {0} and its encrypted journal. Their devices keep their journals but stop syncing.', { 0: u.username })
+                                    : tr('For someone who lost their phone and backup codes: {0} can sign in with just a password until they turn it back on. Only do this once you’re sure it’s them.', { 0: u.username })}
                             </p>
                             <div className="space-y-1.5">
                                 <label htmlFor={pwId} className="block text-xs font-semibold text-[var(--text-muted)]">
@@ -275,7 +275,7 @@ function AdminHeader({ stats }: { stats: AdminStats | null }) {
             <p className={`mt-5 flex items-start gap-2 text-xs leading-relaxed ${muted}`}>
                 <Lock size={13} className="mt-0.5 shrink-0" />
                 <span>
-                    {tr('Every journal is encrypted on its owner’s devices, with a key that never reaches the server. This page sees accounts, devices and sizes; nobody here can read what’s in a journal, the admin included, or reset a password.')}
+                    {tr('Every journal is encrypted on its owner’s devices with a key that never reaches the server. This page shows accounts, devices and sizes. No one, including the admin, can read a journal or reset a password.')}
                 </span>
             </p>
         </div>
@@ -296,7 +296,7 @@ function Overview({ stats, buckets }: { stats: AdminStats; buckets: Bucket[] }) 
                 <StackedBars
                     buckets={buckets}
                     names={() => tr('Sign-ups')}
-                    idle={tr('A bar a day. Tap one to read it.')}
+                    idle={tr('One bar per day. Tap a bar for details.')}
                     count={n => (n === 1 ? tr('1 sign-up') : tr('{0} sign-ups', { 0: n }))}
                     what={tr('Sign-ups a day')}
                     empty={''}
@@ -434,7 +434,7 @@ export function AdminPage({ sub = 'admin' }: { sub?: SettingsSub }) {
                         </span>
                         <p className={`text-base font-semibold ${on}`}>{tr('Two-step sign-in first')}</p>
                         <p className={`text-sm leading-relaxed ${muted}`}>
-                            {tr('The admin’s account can sign out, unlock and delete every other one, so the admin page opens only once it asks for a code from your phone as well as your password.')}
+                            {tr('The admin account can sign out, unlock and delete every other account, so the admin page only opens once two-step sign-in is on.')}
                         </p>
                         <button type="button" className="btn-primary w-full" onClick={() => go({ page: 'settings', sub: 'two-factor' })}>
                             {tr('Set up two-step sign-in')}

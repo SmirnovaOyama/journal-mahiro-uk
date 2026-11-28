@@ -119,7 +119,7 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
         beep();
         if (alerts)
             try {
-                new Notification(tr('A check-in was missed'), { body: tr('Last answered at {0}.', { 0: clock(night!.checked) }), tag: 'watch-missed' });
+                new Notification(tr('A check-in was missed'), { body: tr('Last checked in at {0}.', { 0: clock(night!.checked) }), tag: 'watch-missed' });
             } catch {
                 /* the page itself still says so */
             }
@@ -140,16 +140,16 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                             : state === 'key'
                               ? tr('This link is incomplete.')
                               : state === 'offline'
-                                ? tr('Couldn’t reach the server.')
+                                ? tr('Couldn’t connect to the server.')
                                 : tr('Opening…')}
                     </p>
                     <p className={`mt-1 text-sm ${muted}`}>
                         {state === 'gone'
-                            ? tr('The person who shared it stopped sharing, or its 12 hours ran out. A phone call is the way to reach them now.')
+                            ? tr('They stopped sharing, or the 12 hours are up. A phone call is the way to reach them now.')
                             : state === 'key'
-                              ? tr('The part after the # is the key that opens it, and it is missing here. The whole link is needed.')
+                              ? tr('The part after the # is the key, and it’s missing. The full link is needed.')
                               : state === 'offline'
-                                ? tr('There is no connection, or the server didn’t answer. This page tries again every half minute.')
+                                ? tr('No connection, or the server didn’t respond. This page retries every 30 seconds.')
                                 : ''}
                     </p>
                     <p className="mt-6">
@@ -170,14 +170,14 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                     {due != null && (
                         <p className={`text-xl font-semibold ${missed ? 'text-[var(--danger)]' : 'text-[var(--text)]'}`}>
                             {missed
-                                ? tr('Missed a check-in. Last answered at {0}, {1} ago.', { 0: clock(night.checked), 1: formatMinutes(Math.max(1, Math.round((now - night.checked) / 60000))) })
+                                ? tr('Missed a check-in. Last checked in at {0}, {1} ago.', { 0: clock(night.checked), 1: formatMinutes(Math.max(1, Math.round((now - night.checked) / 60000))) })
                                 : tr('Checked in at {0}. The next is due by {1}.', { 0: clock(night.checked), 1: clock(due) })}
                         </p>
                     )}
                     <p className={quiet ? 'font-semibold text-[var(--warning)]' : muted}>
                         {quiet
-                            ? tr('Nothing from their device for {0}. Its page may be closed, the screen off, or the signal gone.', { 0: formatMinutes(Math.round((now - night.sent) / 60000)) })
-                            : tr('Their device last spoke at {0}.', { 0: clock(night.sent) })}
+                            ? tr('No updates from their device for {0}. The page may be closed, the screen off, or the signal lost.', { 0: formatMinutes(Math.round((now - night.sent) / 60000)) })
+                            : tr('Last update from their device: {0}.', { 0: clock(night.sent) })}
                         {state === 'offline' && ` ${tr('This device has no connection now.')}`}
                     </p>
                     {(missed || quiet) && <p>{tr('Call them, or go to them. If they can’t be woken or aren’t breathing normally, call an ambulance.')}</p>}
@@ -191,7 +191,7 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                             </button>
                         )}
                     </p>
-                    {due != null && <p className={`text-xs ${muted}`}>{tr('This page sounds a tone when a check-in is missed, for as long as it stays open.')}</p>}
+                    {due != null && <p className={`text-xs ${muted}`}>{tr('While this page is open, it plays a sound when a check-in is missed.')}</p>}
                 </section>
 
                 <section className="mt-8">
@@ -214,7 +214,7 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                             ))}
                         </ul>
                     ) : (
-                        <p className={`text-sm ${muted}`}>{tr('Nothing logged yet tonight.')}</p>
+                        <p className={`text-sm ${muted}`}>{tr('Nothing logged in this session yet.')}</p>
                     )}
                     {night.medicines.length > 0 && (
                         <div className="mt-3 text-sm">
@@ -248,11 +248,11 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                                     const end = d.time + d.course!.over * 60_000;
                                     return (
                                         <p key={d.id} className="text-sm text-[var(--text)]">
-                                            {now >= end ? tr('{0} is over', { 0: d.label ?? '' }) : tr('{0}: {1}, over around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) })}
+                                            {now >= end ? tr('{0} is over', { 0: d.label ?? '' }) : tr('{0}: {1}, ends around {2}', { 0: d.label ?? '', 1: phaseAt(d, now), 2: clock(end) })}
                                         </p>
                                     );
                                 })}
-                            <p className={`text-xs ${muted}`}>{tr('Times are estimates from typical durations; theirs can differ.')}</p>
+                            <p className={`text-xs ${muted}`}>{tr('Times are estimates based on typical durations and may differ for them.')}</p>
                         </div>
                     </section>
                 )}
@@ -264,7 +264,7 @@ export function Watch({ id, byId }: { id: string; byId: Map<string, IndexEntry> 
                 )}
 
                 <p className={`mt-10 text-xs ${muted}`}>
-                    {tr('Read on this device with the key in the link. The server that passes it on can’t read it, and this page keeps none of it.')}
+                    {tr('Decrypted on this device with the key in the link. The server that relays it can’t read it, and this page doesn’t store any of it.')}
                 </p>
             </div>
         </div>
