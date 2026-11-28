@@ -170,7 +170,7 @@ picture is one tap: on a phone the share sheet opens with it (to keep it
 in Photos or send it), elsewhere it's saved as a file. It is 1080 by 1440,
 drawn on the device, in the reader's language (`src/lib/picture.ts`), in
 the design system's dark theme, its tokens at twice their size. The night
-is drawn one of two ways, chosen in Settings, Features:
+is drawn one of three ways, chosen in Settings, Features:
 
 - **Clock.** A dial that runs through the night alone, from its start at
   the top round to its end. Each dose has its own ring, the first
@@ -182,8 +182,12 @@ is drawn one of two ways, chosen in Settings, Features:
   date as a reading. Each dose's name, time and amount stand in rows over
   the chart, a hairline straight down to where its curve levels out, laid
   out so no hairline crosses any words.
+- **One line.** The night as a single fine line, left to right, that
+  swells into a band where something is at work, as thick as all of it
+  together: each dose a layer in its colour, the first at the bottom. The
+  words stand in rows over it, as on the timeline.
 
-Both shapes are the session chart's curve (`src/lib/curve.ts`). Under the
+All three shapes are the session chart's curve (`src/lib/curve.ts`). Under the
 night, each substance is drawn as its structure in the brand's terracotta
 with what it came to; then what didn't mix, each status in words; the
 rating; and at the foot the logo and the site. Never the notes. The night
