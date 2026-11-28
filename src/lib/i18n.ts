@@ -105,6 +105,14 @@ export function dataText(raw: string): string {
     return /\d/.test(raw) ? spanText(raw) : raw;
 }
 
+/** A whole line of the catalogue's in the reader's language, or '' where
+ *  its words have none: for a passage written by hand in English (a
+ *  summary), which mustn't be taken apart a phrase at a time. */
+export function dataWhole(raw: string): string {
+    if (lang === 'en' || !raw || !data) return '';
+    return data.get(loose(raw)) ?? '';
+}
+
 export const currentLang = () => lang;
 export const isZh = () => lang === 'zh-Hant' || lang === 'zh-Hans';
 

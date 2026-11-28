@@ -41,7 +41,7 @@ import { Timeline } from '../components/Timeline';
 import { Alert, ChevronRight, Clover, External, Heart, Info, Plus } from '../components/icons';
 import { Waiting } from '../components/Waiting';
 import { Linked } from '../components/Linked';
-import { currentLang, dataText, dateLocale, isZh, roaName, termText, tr } from '../lib/i18n';
+import { currentLang, dataText, dataWhole, dateLocale, isZh, roaName, termText, tr } from '../lib/i18n';
 
 /** A link's line. The sync writes a handful of these, in English. */
 const linkSays = (d: string) => {
@@ -382,9 +382,12 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
     // In Chinese, zh.wikipedia's opening in that writing where it has one;
     // else the English sources'; else, where none has any, an AI's words.
     const zhSummary = (isZh() && (hans ? detail.summaryZhHans ?? detail.summaryZh : detail.summaryZh)) || '';
+    // Else, for an entry written by hand (water), its summary as the
+    // catalogue's words put it in Chinese.
+    const handSummary = !zhSummary && detail.summary ? dataWhole(detail.summary) : '';
     const ai = detail.ai;
     const aiSummary = !zhSummary && !detail.summary ? aiSays(ai?.summary) : '';
-    const summary = zhSummary || detail.summary || aiSummary;
+    const summary = zhSummary || handSummary || detail.summary || aiSummary;
     const whatItIs = describe(
         { category: detail.category, chemicalClass: detail.chemicalClass ?? entry?.chemicalClass ?? '' },
     );
@@ -639,11 +642,14 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                         <Linked text={sentence(dataText(detail.doseBasis.replace(/^Note:\s*/i, '')))} />
                                     </p>
                                 )}
-                                <p>
-                                    {tooSmall
-                                        ? tr('A milligram scale is too coarse for a dose of this, so it’s measured as a liquid. Start with a light dose, especially with a new batch.')
-                                        : tr('Use a milligram scale. Eyeballing powder is how people get hurt. Start with a light dose, especially with a new batch.')}
-                                </p>
+                                {/* Not for a dose measured some other way than by weight (water, in mL). */}
+                                {(!dose || /^(g|mg|μg|µg)\b/.test(dose.unit)) && (
+                                    <p>
+                                        {tooSmall
+                                            ? tr('A milligram scale is too coarse for a dose of this, so it’s measured as a liquid. Start with a light dose, especially with a new batch.')
+                                            : tr('Use a milligram scale. Eyeballing powder is how people get hurt. Start with a light dose, especially with a new batch.')}
+                                    </p>
+                                )}
                                 <p className="text-xs">
                                     {tr('Doses from ')}
                                     {dose?.source ?? 'PsychonautWiki'}
@@ -760,7 +766,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     return first.length < summary.trim().length - 2 ? first : undefined;
                                 })()}
                             >
-                                <p className="text-sm max-w-prose" lang={zhSummary || aiSummary ? undefined : 'en'}><Linked text={summary} /></p>
+                                <p className="text-sm max-w-prose" lang={zhSummary || handSummary || aiSummary ? undefined : 'en'}><Linked text={summary} /></p>
                                 {aiSummary ? (
                                     <AiNote />
                                 ) : zhSummary ? (
