@@ -427,12 +427,15 @@ A push to main is built and deployed by Cloudflare (Workers Builds) within a
 minute. That build has no link preview cards, which are drawn with a Mac's
 fonts and aren't in the repository, and only the sitemap as it was last
 committed. So a Mac that is left on follows it with the full deploy
-(`scripts/local/deploy.sh`): every two minutes it looks at origin/main, and
-once that has moved and then stood still for three minutes, it runs
+(`scripts/local/deploy.sh`): every minute it looks at origin/main, and once
+that has moved and then stood still for a minute and a half, it runs
 `npm run deploy` on it, from a checkout of its own under
 `~/Library/Application Support/journal-mahiro-uk`, never from the folder the
-site is worked on in. What it did is in `deploy.log` there; a deploy that
-fails raises a notification and is tried again half an hour later.
+site is worked on in. So for a few minutes after a push, a shared link shows
+no card. Every ten minutes it also checks that the site still has its cards,
+and deploys again if something took them away. What it did is in
+`deploy.log` there; a deploy that fails raises a notification and is tried
+again half an hour later.
 
 ```bash
 scripts/local/install.sh            # this Mac deploys main on its own (launchd)
