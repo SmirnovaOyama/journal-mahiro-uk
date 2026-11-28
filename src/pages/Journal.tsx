@@ -645,12 +645,12 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const live = now < sessionEnd(s, details) + 60 * 60_000;
 
     /* The night as a picture (lib/picture.ts), drawn on this device: its
-       date, its substances' structures, its curve over most of it with each
-       dose written on its own curve, what didn't mix, and the rating. Not the notes, which
+       doses round a 24-hour dial, each written at its tip, the date in the
+       middle; its substances' structures; what didn't mix, and the rating. Not the notes, which
        are written for oneself. The picture names the site, but not this
        page: its address is of no use to anyone else. */
     const picture = (): Picture => {
-        const date = new Date(s.start).toLocaleDateString(dateLocale(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const day = new Date(s.start);
         const span = `${clock(s.start)}${s.end - s.start > 60_000 ? `–${clock(s.end)}` : ''}`;
         const toneOf: Record<string, Status> = { danger: 'danger', warning: 'warning', info: 'info', positive: 'positive', neutral: 'muted' };
         const doses = [...s.ingestions].sort((a, b) => a.time - b.time);
@@ -658,26 +658,29 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
             const e = byId.get(id);
             return (e && shownName(e)) || fallback;
         };
-        const substances = [...new Map(doses.map(i => [i.substance, { id: i.substance, name: nameOf(i.substance, i.name), color: color(i.substance) }])).values()];
+        const substances = [...new Map(doses.map(i => [i.substance, i])).values()]
+            .filter(i => byId.has(i.substance))
+            .map(i => {
+                const t = totals.get(i.substance);
+                return { id: i.substance, name: nameOf(i.substance, i.name), color: color(i.substance), total: t && t.sum && !t.mixed ? `${fmtDose(t.sum)} ${t.unit}` : undefined };
+            });
         const bad = pairsOf(s, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution);
-        const day = new Date(s.start);
         const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
         return {
-            title: meta.title || date,
-            sub: meta.title ? `${date}, ${span}` : span,
-            substances: substances.filter(x => byId.has(x.id)),
-            // Each dose is written on its own curve, not listed apart.
+            title: meta.title || undefined,
+            month: day.toLocaleDateString(dateLocale(), { year: 'numeric', month: 'long' }),
+            day: String(day.getDate()),
+            weekday: day.toLocaleDateString(dateLocale(), { weekday: 'long' }),
+            span,
+            substances,
+            // Each dose is written at its own petal, not listed apart.
             doses: chartDoses(s, details, color).map(d => {
                 const i = doses.find(x => x.id === d.id)!;
                 return { ...d, name: nameOf(i.substance, i.name), detail: `${clock(i.time)}  ${amountOf(i)}` };
             }),
             now: live ? { at: Date.now(), label: tr('now') } : undefined,
             pairs: bad.length
-                ? {
-                      heading: tr('Together'),
-                      rows: bad.map(p => ({ label: `${shownName(p.a)} + ${shownName(p.b)}`, word: tr(VERDICT[p.verdict].label), status: toneOf[VERDICT[p.verdict].tone] })),
-                      more: n => tr('And {0} more', { 0: n }),
-                  }
+                ? bad.map(p => ({ label: `${shownName(p.a)} + ${shownName(p.b)}`, word: tr(VERDICT[p.verdict].label), status: toneOf[VERDICT[p.verdict].tone] }))
                 : undefined,
             rating: meta.rating ? tr('{0}: {1}', { 0: tr('Shulgin rating'), 1: `${meta.rating} ${tr(SHULGIN[meta.rating])}` }) : undefined,
             file: `night-${stamp}`,

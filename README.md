@@ -168,18 +168,18 @@ language.
 **Keep a night as a picture.** On a night in the journal, Save as a
 picture is one tap: on a phone the share sheet opens with it (to keep it
 in Photos or send it), elsewhere it's saved as a file. It is 1080 by 1440,
-drawn on the device, in the reader's language (`src/lib/picture.ts`), and
-set as the link preview cards are, in the design system's tokens at twice
-their size: on the white page, the date in the display face and its times
-in a muted line; each substance of the night drawn as its structure, all
-at one scale, in the brand's terracotta, its name under it in its curve's
-colour; then the night's curve over the room that's left (the session
-chart's own shapes, `src/lib/curve.ts`, with "now" on a night still going),
-each dose written on its own curve: its name, its time and amount; then
-what didn't mix, as rows under a heading with each status in words, and
-the rating; and at the foot the logo and the site. Never the notes. The
-night isn't uploaded to draw it: the picture is drawn quietly while the page
-is open, so the tap can hand it over at once.
+drawn on the device, in the reader's language (`src/lib/picture.ts`), in
+the design system's dark theme, its tokens at twice their size. The night
+is drawn on its own dial, running from its start at the top round to its
+end: each dose has its own ring, the first innermost, and along it from
+the time it was taken a ribbon in its substance's colour as wide as the
+effect is strong (the session chart's curve, `src/lib/curve.ts`), with its
+name, time and amount beside the dial; the date sits in the middle. Under
+the dial, each substance drawn as its structure in the brand's terracotta
+with what it came to; what didn't mix, each status in words; the rating;
+and at the foot the logo and the site. Never the notes. The night isn't
+uploaded to draw it: the picture is drawn quietly while the page is open,
+so the tap can hand it over at once.
 
 ## Pages
 
