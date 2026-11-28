@@ -17,7 +17,7 @@ import hansWords from '../src/lib/zh-Hans';
 import hansData, { terms as hansTerms } from '../src/lib/zh-Hans-data';
 import { checkPair, worst, type PairResult } from '../src/lib/mix';
 import { SITE, essayPreview, kindPreview, mixPreview, pagePreview, sitePreview, substancePreview, xunxunPreview, type Preview } from '../src/lib/preview';
-import { parse } from '../src/lib/routes';
+import { addressLang, parse } from '../src/lib/routes';
 import { XUNXUN_ID } from '../src/lib/xunxun';
 import { handleApi, type ApiEnv } from './api';
 import { handleTelegram, type TelegramEnv } from './telegram';
@@ -251,9 +251,18 @@ export default {
         const legacy = url.searchParams.get('substance');
         if (legacy) return Response.redirect(`${url.origin}/s/${encodeURIComponent(legacy)}`, 301);
 
-        const lang = langOf(request);
+        /* The language the address itself asks for (?lang=zh-Hans, or cn, tw,
+           hk for short) comes before the one the request says: a chat app
+           fetching a link says none, and this is how whoever shares it does. */
+        const asked = addressLang(url.searchParams.get('lang'));
+        const lang = asked?.lang ?? langOf(request);
+        const tag = asked?.tag ?? pageTag(lang, request);
         const [shell, page] = await Promise.all([env.ASSETS.fetch(new Request(url.origin + '/')), pageFor(env, url, lang)]);
         const canonical = SITE.origin + page.path;
+        /* What a shared link is known by keeps its language: an app that
+           fetches the page again by this address gets the same words. A
+           search engine is given the one address without it. */
+        const shared = asked ? `${canonical}?lang=${asked.param}` : canonical;
         // Always https: some previewers won't fetch a picture over http.
         const image = `https://${url.host}${page.image}`;
         const content = (value: string) => ({
@@ -265,7 +274,7 @@ export default {
         const res = new HTMLRewriter()
             .on('html', {
                 element(el) {
-                    el.setAttribute('lang', pageTag(lang, request));
+                    el.setAttribute('lang', tag);
                 },
             })
             // Hong Kong and Macau get zh_HK, as their page gets their typeface.
@@ -275,7 +284,7 @@ export default {
                     lang === 'zh-Hans'
                         ? 'zh_CN'
                         : lang === 'zh-Hant'
-                          ? pageTag(lang, request) === 'zh-Hant-HK'
+                          ? tag === 'zh-Hant-HK'
                               ? 'zh_HK'
                               : 'zh_TW'
                           : 'en_US',
@@ -292,7 +301,7 @@ export default {
                     el.setAttribute('href', canonical);
                 },
             })
-            .on('meta[property="og:url"]', content(canonical))
+            .on('meta[property="og:url"]', content(shared))
             .on('meta[property="og:title"]', content(page.title))
             .on('meta[property="og:description"]', content(page.shareDescription ?? page.description))
             .on('meta[property="og:image"]', content(image))
