@@ -53,6 +53,7 @@ const TAIWAN = {
     zolpidem: '佐沛眠',
     methylphenidate: '派醋甲酯',
     buprenorphine: '丁基原啡因',
+    water: '水',
 };
 
 /* And what the mainland calls them, where the same holds: Wikidata's label
@@ -65,6 +66,7 @@ const MAINLAND = {
     alcohol: '酒精',
     nitrous: '笑气',
     nicotine: '尼古丁',
+    water: '水',
 };
 
 const CJK = /[㐀-鿿]/;

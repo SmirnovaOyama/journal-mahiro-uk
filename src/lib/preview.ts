@@ -10,7 +10,7 @@ import {
     type DoseRow,
     type IndexEntry,
 } from './data';
-import { currentLang, dataText, isZh, phraseList, roaName, spaced, termText, tr } from './i18n';
+import { currentLang, dataText, dataWhole, isZh, phraseList, roaName, spaced, termText, tr } from './i18n';
 import { RANK, VERDICT, type Verdict } from './mix';
 import { formatSpan, parseSpan } from './time';
 import { XUNXUN_ID, xunxunName, xunxunWhat } from './xunxun';
@@ -136,7 +136,7 @@ const saysSomething = (text?: string): text is string =>
  *  there with a line saying so, and a shared link has no room for that
  *  line, so it stays on the page. */
 function whatItIs(d: Detail): string {
-    const zh = isZh() ? (currentLang() === 'zh-Hans' ? d.summaryZhHans ?? d.summaryZh : d.summaryZh) : '';
+    const zh = isZh() ? (currentLang() === 'zh-Hans' ? d.summaryZhHans ?? d.summaryZh : d.summaryZh) || dataWhole(d.summary) : '';
     return [zh, d.summary, d.pharmacology?.text, d.uses?.text].find(saysSomething) ?? '';
 }
 

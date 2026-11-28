@@ -1145,6 +1145,10 @@ const passages: Record<string, string> = {
     'National Medical Products Administration, announcement 54 of 2024': '国家药品监督管理局 2024 年第 54 号公告',
     'A Part 1 poison: sold only at a registered pharmacy, by the pharmacist or with the pharmacist there. Some products also need a doctor’s prescription.': '属第一部毒药：只能在注册药房由药剂师售出，或在药剂师在场的情况下售出。部分产品还需要医师处方。',
     'Department of Health, 18 October 2023': '卫生署，2023 年 10 月 18 日',
+    // Water, written by hand (scripts/sync-substances.mjs, OTHER_ENTRIES)
+    'Water is what most of the body is made of: about 60% of an adult’s weight. It carries what the blood carries, keeps body temperature steady through sweat, and leaves mostly as urine. An adult needs about 2 to 2.5 litres a day from everything drunk and eaten, food giving about a fifth of it, and more in heat, with exercise or with a fever.': '水是人体最主要的成分，约占成人体重的 60%。它运送血液里的一切，靠出汗让体温保持稳定，主要随尿液离开身体。成人一天大约需要 2 到 2.5 升的水，算上所有喝的和吃的，其中约五分之一来自食物；天热、运动或发烧时需要更多。',
+    'Too much water, too fast, dilutes the sodium in the blood (hyponatremia, or water intoxication). It starts with a headache, nausea, vomiting and confusion, can go on to seizures and coma, and can kill. MDMA makes the body hold on to water: sip no more than about 500 mL an hour while dancing, less while resting. Someone who is confused or vomiting after drinking a lot of water needs an ambulance, not more water.': '水喝太多、太快，会稀释血液中的钠（低钠血症，也就是水中毒）。一开始是头痛、恶心、呕吐与意识混乱，接着可能癫痫发作、昏迷，甚至致命。MDMA 会让身体留住水分：跳舞时小口喝，每小时不要超过约 500 mL，休息时更少。喝了很多水之后意识混乱或呕吐的人，需要的是救护车，不是更多水。',
+    'Amounts are for one hour. Healthy kidneys pass about 0.8 to 1 litre an hour at most, so drinking more than that, hour after hour, waters down the blood.': '以一小时计。健康的肾脏每小时最多排出约 0.8 到 1 升，一小时接一小时喝得比这更多，血液就会被稀释。',
 };
 
 const zhData: Record<string, string> = { ...effects, ...combos, ...families, ...phrases, ...advice, ...passages };

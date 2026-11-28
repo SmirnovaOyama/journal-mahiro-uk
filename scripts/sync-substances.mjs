@@ -902,6 +902,53 @@ const ENDOCRINE_ENTRIES = [
   },
 ];
 
+// Water, written by hand: what it is, how much the body can handle in an
+// hour, and the one way it harms, for a journal that logs a night's water
+// beside what else was taken. Its words in 正體中文 and 简体中文 are in
+// src/lib/zh-Hant-data.ts and src/lib/zh-Hans-data.ts, under `passages`.
+const OTHER_ENTRIES = [
+  {
+    id: 'water',
+    name: 'Water',
+    aliases: 'H2O, aqua, drinking water',
+    category: 'Other',
+    form: 'dropper',
+    status: 'Documented',
+    summarySources: 'EFSA, FRANK',
+    summary:
+      'Water is what most of the body is made of: about 60% of an adult’s weight. It carries what the blood carries, keeps body temperature steady through sweat, and leaves mostly as urine. An adult needs about 2 to 2.5 litres a day from everything drunk and eaten, food giving about a fifth of it, and more in heat, with exercise or with a fever.',
+    advisory:
+      'Too much water, too fast, dilutes the sodium in the blood (hyponatremia, or water intoxication). It starts with a headache, nausea, vomiting and confusion, can go on to seizures and coma, and can kill. MDMA makes the body hold on to water: sip no more than about 500 mL an hour while dancing, less while resting. Someone who is confused or vomiting after drinking a lot of water needs an ambulance, not more water.',
+    doseBasis:
+      'Amounts are for one hour. Healthy kidneys pass about 0.8 to 1 litre an hour at most, so drinking more than that, hour after hour, waters down the blood.',
+    doseMaxTick: 1500,
+    doseUnit: 'mL',
+    doseRows: [
+      {
+        roa: 'Oral',
+        source: 'EFSA, FRANK',
+        unit: 'mL',
+        light: '100–250 mL',
+        common: '250–500 mL',
+        strong: '500–1000 mL',
+        heavy: '1000 mL+',
+        commonEstimate: 375,
+        band: { low: 250, high: 500 },
+        domain: [80, 1350],
+        segments: { light: [100, 250], common: [250, 500], strong: [500, 1000], heavy: [1000, 1296] },
+      },
+    ],
+    durationRows: [],
+    combinations: [],
+    formula: 'H2O',
+    molarMass: 18.02,
+    helpfulLinks: [
+      { title: 'Wikipedia', description: 'Encyclopedia article', url: 'https://en.wikipedia.org/wiki/Water' },
+      { title: 'Wikipedia: Water intoxication', description: 'Encyclopedia article', url: 'https://en.wikipedia.org/wiki/Water_intoxication' },
+    ],
+  },
+];
+
 async function main() {
   console.log('Fetching TripSit drugs.json, combos.json, and PsychonautWiki GraphQL...');
   const [tsDrugsRes, tsCombosRes, pwRes] = await Promise.all([
@@ -1286,6 +1333,11 @@ async function main() {
       citations: [],
       _richness: 18,
     });
+  }
+
+  // 4. And the hand-written ones that fit no group (water)
+  for (const entry of OTHER_ENTRIES) {
+    mergedMap.set(entry.id, { ...entry, subjectiveEffects: [], citations: [], _richness: 10 });
   }
 
   // Write files
