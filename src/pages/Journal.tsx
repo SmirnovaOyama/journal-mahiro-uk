@@ -39,7 +39,7 @@ import { rowBleed } from '../components/SettingsListItem';
 import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
 import { currentLang, dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
 import { SavePicture, usePictures } from '../components/PictureExport';
-import type { Block, Ink, Picture } from '../lib/picture';
+import type { NightPicture as Picture, Status } from '../lib/picture';
 
 /* The journal, as PsychonautWiki Journal lays its own out, in Oyama's hand:
    the page's title with Log on the right and the form folding open under
@@ -645,43 +645,43 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const live = now < sessionEnd(s, details) + 60 * 60_000;
 
     /* The night as a picture (lib/picture.ts), drawn on this device: its
-       date, its curve over most of it with each dose written on its own
-       curve, what didn't mix, and the rating. Not the notes, which
+       date, its substances' structures, its curve over most of it with each
+       dose written on its own curve, what didn't mix, and the rating. Not the notes, which
        are written for oneself. The picture names the site, but not this
        page: its address is of no use to anyone else. */
     const picture = (): Picture => {
         const date = new Date(s.start).toLocaleDateString(dateLocale(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const span = `${clock(s.start)}${s.end - s.start > 60_000 ? `–${clock(s.end)}` : ''}`;
-        const toneInk: Record<string, Ink> = { danger: 'danger', warning: 'warning', info: 'info', positive: 'positive', neutral: 'muted' };
+        const toneOf: Record<string, Status> = { danger: 'danger', warning: 'warning', info: 'info', positive: 'positive', neutral: 'muted' };
         const doses = [...s.ingestions].sort((a, b) => a.time - b.time);
-        const more = (n: number) => tr('And {0} more', { 0: n });
-        const blocks: Block[] = [
-            { t: 'head', eyebrow: meta.title ? `${date}, ${span}` : span, title: meta.title || date },
-            // Each dose is written on its own curve, not listed apart.
-            {
-                t: 'chart',
-                doses: chartDoses(s, details, color).map(d => {
-                    const i = doses.find(x => x.id === d.id)!;
-                    return { ...d, name: d.label ?? i.name, detail: `${clock(i.time)}  ${amountOf(i)}` };
-                }),
-                now: live ? { at: Date.now(), label: tr('now') } : undefined,
-            },
-        ];
+        const nameOf = (id: string, fallback: string) => {
+            const e = byId.get(id);
+            return (e && shownName(e)) || fallback;
+        };
+        const substances = [...new Map(doses.map(i => [i.substance, { id: i.substance, name: nameOf(i.substance, i.name), color: color(i.substance) }])).values()];
         const bad = pairsOf(s, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution);
-        if (bad.length)
-            blocks.push(
-                { t: 'heading', text: tr('Together') },
-                {
-                    t: 'grid',
-                    cols: 1,
-                    cells: bad.map(p => ({ label: `${shownName(p.a)} + ${shownName(p.b)}`, value: tr(VERDICT[p.verdict].label), valueInk: toneInk[VERDICT[p.verdict].tone] })),
-                    more,
-                },
-            );
-        if (meta.rating) blocks.push({ t: 'text', text: tr('{0}: {1}', { 0: tr('Shulgin rating'), 1: `${meta.rating} ${tr(SHULGIN[meta.rating])}` }), ink: 'muted', size: 26 });
         const day = new Date(s.start);
         const stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-        return { field: [...new Set(doses.map(i => i.substance))].filter(id => byId.has(id)), blocks, file: `night-${stamp}` };
+        return {
+            title: meta.title || date,
+            sub: meta.title ? `${date}, ${span}` : span,
+            substances: substances.filter(x => byId.has(x.id)),
+            // Each dose is written on its own curve, not listed apart.
+            doses: chartDoses(s, details, color).map(d => {
+                const i = doses.find(x => x.id === d.id)!;
+                return { ...d, name: nameOf(i.substance, i.name), detail: `${clock(i.time)}  ${amountOf(i)}` };
+            }),
+            now: live ? { at: Date.now(), label: tr('now') } : undefined,
+            pairs: bad.length
+                ? {
+                      heading: tr('Together'),
+                      rows: bad.map(p => ({ label: `${shownName(p.a)} + ${shownName(p.b)}`, word: tr(VERDICT[p.verdict].label), status: toneOf[VERDICT[p.verdict].tone] })),
+                      more: n => tr('And {0} more', { 0: n }),
+                  }
+                : undefined,
+            rating: meta.rating ? tr('{0}: {1}', { 0: tr('Shulgin rating'), 1: `${meta.rating} ${tr(SHULGIN[meta.rating])}` }) : undefined,
+            file: `night-${stamp}`,
+        };
     };
     // What the picture is drawn from: it's drawn again when any of it changes.
     const pictureSignature = JSON.stringify([

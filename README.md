@@ -169,16 +169,17 @@ language.
 picture is one tap: on a phone the share sheet opens with it (to keep it
 in Photos or send it), elsewhere it's saved as a file. It is 1080 by 1440,
 drawn on the device, in the reader's language (`src/lib/picture.ts`), and
-holds the date, then the night's curve over most of it (the session
-chart's own shapes, `src/lib/curve.ts`, each substance in its colour, with
-"now" on a night still going), each dose written on its own curve rather
-than listed apart: its name in the curve's colour, its time and amount;
-then what didn't mix, and the rating; never the notes. The night isn't uploaded to draw it:
-the picture is drawn quietly while the page is open, so the tap can hand it
-over at once. Behind it is a field of the night's own substances' skeletal
-formulas in the terracotta, set on a turned lattice with two large ones
-behind, flat and faint. At the foot are the logo and the site on one card
-and a QR code to it on another.
+set as the link preview cards are, in the design system's tokens at twice
+their size: on the white page, the date in the display face and its times
+in a muted line; each substance of the night drawn as its structure, all
+at one scale, in the brand's terracotta, its name under it in its curve's
+colour; then the night's curve over the room that's left (the session
+chart's own shapes, `src/lib/curve.ts`, with "now" on a night still going),
+each dose written on its own curve: its name, its time and amount; then
+what didn't mix, as rows under a heading with each status in words, and
+the rating; and at the foot the logo and the site. Never the notes. The
+night isn't uploaded to draw it: the picture is drawn quietly while the page
+is open, so the tap can hand it over at once.
 
 ## Pages
 

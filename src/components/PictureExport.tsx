@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from '../lib/eggs';
 import { useFeature } from '../lib/features';
 import { tr } from '../lib/i18n';
-import type { Picture } from '../lib/picture';
+import type { NightPicture as Picture } from '../lib/picture';
 import { ImagePlus } from './icons';
 import { headerAction } from './PageHeader';
 import { WaitMark } from './Waiting';
