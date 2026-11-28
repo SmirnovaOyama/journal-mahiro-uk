@@ -29,6 +29,16 @@ const AT_LEAST: [string, string, Verdict][] = [
     ['heroin', 'alcohol', 'Dangerous'],
     ['diazepam', 'methadone', 'Dangerous'],
     ['alcohol', 'ketamine', 'Dangerous'],
+    // The sleeping pills, once filed as psychedelics for the hallucinations
+    // they can bring, which left zolpidem with alcohol "Not documented".
+    ['zolpidem', 'alcohol', 'Dangerous'],
+    ['zopiclone', 'alcohol', 'Dangerous'],
+    ['eszopiclone', 'alcohol', 'Dangerous'],
+    ['zolpidem', 'oxycodone', 'Dangerous'],
+    ['zopiclone', 'heroin', 'Dangerous'],
+    ['zolpidem', 'ghb', 'Dangerous'],
+    ['zolpidem', 'diazepam', 'Dangerous'],
+    ['gaboxadol', 'alcohol', 'Dangerous'],
     // Serotonin: an MAOI with a releaser, tramadol or DXM with either.
     ['mdma', 'moclobemide', 'Dangerous'],
     ['mdma', 'tramadol', 'Dangerous'],
@@ -65,6 +75,12 @@ test('a pair no source covers is Unknown, never a kind of safe', () => {
 
 test('without the substances’ own pages, a depressant with an opioid is still Dangerous', () => {
     assert.equal(check('alprazolam', 'oxycodone', false).verdict, 'Dangerous');
+});
+
+test('a sleeping pill is a depressant, whatever else its classes say', () => {
+    for (const id of ['zolpidem', 'zopiclone', 'eszopiclone', 'gaboxadol']) assert.equal(byId.get(id)?.category, 'Depressant', id);
+    // Without either page, the kind alone still says it.
+    assert.equal(check('zolpidem', 'alcohol', false).verdict, 'Dangerous');
 });
 
 test('worst picks the most serious', () => {
