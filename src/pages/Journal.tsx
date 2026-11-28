@@ -645,8 +645,8 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
     const live = now < sessionEnd(s, details) + 60 * 60_000;
 
     /* The night as a picture (lib/picture.ts), drawn on this device: its
-       date, its curve over most of it, each dose with its name in its
-       curve's colour, what didn't mix, and the rating. Not the notes, which
+       date, its curve over most of it with each dose written on its own
+       curve, what didn't mix, and the rating. Not the notes, which
        are written for oneself. The picture names the site, but not this
        page: its address is of no use to anyone else. */
     const picture = (): Picture => {
@@ -657,15 +657,14 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
         const more = (n: number) => tr('And {0} more', { 0: n });
         const blocks: Block[] = [
             { t: 'head', eyebrow: meta.title ? `${date}, ${span}` : span, title: meta.title || date },
-            { t: 'chart', doses: chartDoses(s, details, color), now: live ? { at: Date.now(), label: tr('now') } : undefined },
+            // Each dose is written on its own curve, not listed apart.
             {
-                t: 'grid',
-                cols: 1,
-                cells: doses.map(i => {
-                    const e = byId.get(i.substance);
-                    return { lead: clock(i.time), label: (e && shownName(e)) || i.name, color: color(i.substance), value: `${amountOf(i)}${isZh() ? '，' : ', '}${roaName(i.route)}` };
+                t: 'chart',
+                doses: chartDoses(s, details, color).map(d => {
+                    const i = doses.find(x => x.id === d.id)!;
+                    return { ...d, name: d.label ?? i.name, detail: `${clock(i.time)}  ${amountOf(i)}` };
                 }),
-                more,
+                now: live ? { at: Date.now(), label: tr('now') } : undefined,
             },
         ];
         const bad = pairsOf(s, byId, details, matrix).filter(p => RANK[p.verdict] >= RANK.Caution);

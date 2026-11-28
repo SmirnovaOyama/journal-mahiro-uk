@@ -43,6 +43,14 @@ const C = {
     positive: '#0f7c55',
 };
 
+/** A dose on the night's curve, and what's written on it. */
+export interface ChartDose extends CurveDose {
+    color: string;
+    name: string;
+    /** Its time and amount, under the name. */
+    detail: string;
+}
+
 /** One line of a grid: a time before it, a name in its own colour, and
  *  a value after it. */
 export interface Cell {
@@ -61,8 +69,9 @@ export type Block =
     | { t: 'heading'; text: string }
     | { t: 'text'; text: string; size?: number; ink?: Ink }
     /** A night's curve: each dose as the session chart draws it, in its
-     *  substance's colour. `h` is set when the picture is laid out. */
-    | { t: 'chart'; doses: (CurveDose & { color: string })[]; now?: { at: number; label: string }; h?: number }
+     *  substance's colour, and written on it: its name, and under that its
+     *  time and amount. `h` is set when the picture is laid out. */
+    | { t: 'chart'; doses: ChartDose[]; now?: { at: number; label: string }; h?: number }
     /** Lines in one or two columns; with `more`, the last give way, when
      *  there isn't room, to a line saying how many are left out. */
     | { t: 'grid'; cells: Cell[]; cols: 1 | 2; more?: (n: number) => string }
@@ -314,8 +323,8 @@ function colour(css: string): string {
 }
 
 /** The chart's height when there's room for nothing else, and at most. */
-const CHART_MIN = 380;
-const CHART_MAX = 660;
+const CHART_MIN = 420;
+const CHART_MAX = 820;
 
 function lay(ctx: CanvasRenderingContext2D, b: Block, first: boolean, inner: number): Laid {
     switch (b.t) {
@@ -406,13 +415,104 @@ function lay(ctx: CanvasRenderingContext2D, b: Block, first: boolean, inner: num
     }
 }
 
+/** Each dose written on its curve: its name in the curve's colour, and
+ *  under it its time and amount, near where the curve levels out at its
+ *  peak. Of the spots along and over that peak (and just under it), each
+ *  takes the one that covers the least: least of the labels already
+ *  placed, then least of any curve's line, then nearest its own peak. A
+ *  dose with no timing is written over its ring. Each is edged in white,
+ *  so a line it does cross doesn't cut through it. */
+function labels(
+    ctx: CanvasRenderingContext2D,
+    b: Extract<Block, { t: 'chart' }>,
+    x: (t: number) => number,
+    y: (level: number) => number,
+    x0: number,
+    y0: number,
+    w: number,
+    base: number,
+) {
+    type Box = { x: number; y: number; w: number; h: number; away: number };
+    const NAME = 28,
+        DETAIL = 24;
+    const boxH = NAME * 1.25 + DETAIL * 1.3;
+    const placed: Box[] = [];
+    const overlap = (a: Box, c: Box) =>
+        Math.max(0, Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x) + 12) * Math.max(0, Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y) + 6);
+    const clampX = (v: number, bw: number) => Math.min(Math.max(v, x0), x0 + w - bw);
+
+    // Points along every curve, to tell how much of them a label would cover.
+    const points: [number, number][] = [];
+    for (const d of b.doses) {
+        if (!d.course) continue;
+        for (const p of curvePieces(d, x, y)) {
+            if ('line' in p) {
+                const [[ax, ay], [bx, by]] = p.line;
+                for (let k = 0; k <= 12; k++) points.push([ax + ((bx - ax) * k) / 12, ay + ((by - ay) * k) / 12]);
+            } else {
+                const [a, c1, c2, e] = p.cubic;
+                for (let k = 0; k <= 24; k++) {
+                    const t = k / 24,
+                        u = 1 - t;
+                    points.push([
+                        u * u * u * a[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * e[0],
+                        u * u * u * a[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * e[1],
+                    ]);
+                }
+            }
+        }
+    }
+    const covers = (c: Box) => points.filter(([px, py]) => px > c.x - 6 && px < c.x + c.w + 6 && py > c.y - 4 && py < c.y + c.h + 4).length;
+
+    for (const d of [...b.doses].sort((p, q) => p.time - q.time)) {
+        ctx.font = font(NAME, 650);
+        const nameW = ctx.measureText(d.name).width;
+        ctx.font = font(DETAIL, 500);
+        const bw = Math.max(nameW, ctx.measureText(d.detail).width);
+        const spots: Box[] = [];
+        if (d.course) {
+            const lvl = Math.min(1.15, Math.max(0.35, d.strength)) / 1.15;
+            const from = x(d.time + d.course.peakStart * 60_000);
+            const to = x(d.time + d.course.peakEnd * 60_000);
+            const room = Math.max(0, to - from - bw);
+            for (const k of [0, 0.33, 0.66, 1]) {
+                const sx = clampX(from + 6 + room * k, bw);
+                for (let lift = 0; lift < 5; lift++) spots.push({ x: sx, y: y(lvl) - 14 - boxH - lift * (boxH + 10), w: bw, h: boxH, away: lift * 2 + k });
+                spots.push({ x: sx, y: y(lvl) + 16, w: bw, h: boxH, away: 1.5 + k });
+                spots.push({ x: sx, y: y(lvl) + 16 + boxH + 10, w: bw, h: boxH, away: 3.5 + k });
+            }
+        } else {
+            for (let lift = 0; lift < 4; lift++) spots.push({ x: clampX(x(d.time) - bw / 2, bw), y: y(0) - 24 - boxH - lift * (boxH + 10), w: bw, h: boxH, away: lift * 2 });
+        }
+        const inside = spots.filter(c => c.y >= y0 - 4 && c.y + c.h <= base - 8);
+        const score = (c: Box) => placed.reduce((sum, o) => sum + overlap(c, o), 0) * 100 + covers(c) * 40 + c.away * 30;
+        const best = [...(inside.length ? inside : spots)].sort((p, q) => score(p) - score(q))[0];
+        placed.push(best);
+
+        const draw = (text: string, ty: number, size: number, weight: number, fill: string) => {
+            ctx.font = font(size, weight);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = C.panel;
+            ctx.strokeText(text, best.x, ty);
+            ctx.fillStyle = fill;
+            ctx.fillText(text, best.x, ty);
+        };
+        draw(d.name, best.y + (NAME * 1.25) / 2, NAME, 650, colour(d.color));
+        draw(d.detail, best.y + NAME * 1.25 + (DETAIL * 1.3) / 2, DETAIL, 500, C.muted);
+    }
+}
+
 /** A night's curve in `w` × `h`: three gridlines, each dose's curve filled
  *  faintly and drawn in its colour, a ring on the baseline where it was
  *  taken, the clock times under, and "now" if the night is going on. */
 function chart(ctx: CanvasRenderingContext2D, b: Extract<Block, { t: 'chart' }>, x0: number, y0: number, w: number, h: number) {
     if (!b.doses.length) return;
     const span = nightSpan(b.doses, b.now?.at ?? null);
-    const top = y0 + 30;
+    // Room above the tallest curve for what's written on it.
+    const top = y0 + 92;
     const base = y0 + h - 58;
     const x = (t: number) => x0 + ((t - span.start) / (span.end - span.start)) * w;
     const y = (level: number) => base - level * (base - top);
@@ -460,6 +560,8 @@ function chart(ctx: CanvasRenderingContext2D, b: Extract<Block, { t: 'chart' }>,
         ctx.strokeStyle = colour(d.color);
         ctx.stroke();
     }
+
+    labels(ctx, b, x, y, x0, y0, w, base);
 
     // The clock times, as many as sit apart at this size.
     ctx.fillStyle = C.muted;

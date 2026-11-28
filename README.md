@@ -169,10 +169,11 @@ language.
 picture is one tap: on a phone the share sheet opens with it (to keep it
 in Photos or send it), elsewhere it's saved as a file. It is 1080 by 1440,
 drawn on the device, in the reader's language (`src/lib/picture.ts`), and
-holds the date, the night's curve over most of it (the session chart's own
-shapes, `src/lib/curve.ts`, each substance in its colour, with "now" on a
-night still going), each dose with its time, amount and route, what didn't
-mix, and the rating; never the notes. The night isn't uploaded to draw it:
+holds the date, then the night's curve over most of it (the session
+chart's own shapes, `src/lib/curve.ts`, each substance in its colour, with
+"now" on a night still going), each dose written on its own curve rather
+than listed apart: its name in the curve's colour, its time and amount;
+then what didn't mix, and the rating; never the notes. The night isn't uploaded to draw it:
 the picture is drawn quietly while the page is open, so the tap can hand it
 over at once. Behind it is a field of the night's own substances' skeletal
 formulas in the terracotta, set on a turned lattice with two large ones
