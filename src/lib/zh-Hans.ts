@@ -732,6 +732,17 @@ const zh: Record<string, string> = {
     'Step {0} of {1}': '第 {0} 步，共 {1} 步',
     'Back': '返回',
     'Get started': '开始使用',
+    'Choose your language.': '选择语言',
+    'You can change it any time in Settings.': '之后随时可以在设置中更改。',
+    'Before you start': '开始之前',
+    'Please read this.': '请先阅读',
+    'This site is harm-reduction and educational information only. It is not medical advice and not legal advice.': '本站仅提供减害与教育信息，不构成医疗建议，也不构成法律意见。',
+    'Nothing here encourages, promotes or helps anyone to get or use an illegal drug, and it is not a reason to take anything.': '本站内容不鼓励、不宣扬也不协助任何人获取或使用非法药物，也不是使用任何物质的理由。',
+    'Many of these substances are controlled by law, including in mainland China, Hong Kong and Taiwan. You are responsible for following the law where you are.': '本站提及的许多物质受法律管制，包括在中国大陆、香港及台湾地区。遵守所在地的法律是您自己的责任。',
+    'Doses, durations and mix warnings come from public sources such as TripSit and PsychonautWiki, and some are AI’s estimates. Any of them can be wrong.': '剂量、持续时间与混用警示来自 TripSit、PsychonautWiki 等公开资料，部分为 AI 估算，任何一项都可能有误。',
+    'Your journal is your own record. It stays on this device unless you turn on encrypted sync, and what you log is your own responsibility.': '日志是您自己的记录，除非开启加密同步，否则只保存在这台设备上；记录的内容由您自行负责。',
+    'I have read and understood this, and I will follow the law where I am.': '我已阅读并理解以上内容，并会遵守所在地的法律。',
+    'Agree and start': '同意并开始',
     'Next': '下一步',
 
     // pages/Report.tsx
