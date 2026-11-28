@@ -952,6 +952,91 @@ const OTHER_ENTRIES = [
       { title: 'Wikipedia: Water intoxication', description: 'Encyclopedia article', url: 'https://en.wikipedia.org/wiki/Water_intoxication' },
     ],
   },
+  // Oxygen and air, written by hand to be read about, not logged (`learn`):
+  // the page has no doses, no curve and no mixing, and the journal's forms
+  // don't offer them. Their words in Chinese are in the same `passages`.
+  {
+    id: 'oxygen',
+    name: 'Oxygen',
+    aliases: 'O2, dioxygen, medical oxygen, canned oxygen, oxygen bar',
+    category: 'Other',
+    form: 'spray',
+    status: 'Documented',
+    learn: true,
+    summarySources: 'NHS',
+    summary:
+      'Oxygen (O₂) is the gas the body runs on, about 21% of the air. The lungs pass it into the blood, where haemoglobin carries it to every cell to release the energy in food, and without it the brain is harmed within minutes. It has no colour, smell or taste. A healthy person’s blood is already 95 to 100% full of it on ordinary air, so breathing extra oxygen does nothing for them.',
+    uses: {
+      text: 'Medical oxygen, from a cylinder or a concentrator and measured in litres a minute, is given when the blood is short of it: in pneumonia, COPD and severe asthma, after a heart attack or near drowning, and for carbon monoxide poisoning. In hospitals and ambulances nitrous oxide is given mixed with it (Entonox is half and half), so the gas never leaves the lungs short of oxygen. Climbers above about 8,000 m breathe it because the thin air holds too little, and divers breathe air with extra oxygen in it (nitrox), within a depth limit. Canned oxygen and oxygen bars, sold for energy, hangovers or recovery, give a few breaths that are gone from the blood a minute later: there’s no good evidence they do anything for a healthy person.',
+      source: 'NHS, BOC',
+    },
+    advisory:
+      'Nitrous oxide breathed straight from a balloon takes the place of oxygen in the lungs. Breathing it again and again with no air in between, from a bag or a mask over the face, or in a car or a small closed room can starve the brain of oxygen: people have passed out and died this way. Sit down, take a few normal breaths of air between balloons, and never put anything over the face. Medical nitrous is never given with less than 30% oxygen for this reason.',
+    warnings: [
+      {
+        text: 'Too much, for too long, harms. Near pure oxygen breathed for more than about a day can inflame the lungs, and under pressure, in a dive deeper than the gas allows or a hyperbaric chamber, it can bring on a seizure with no warning. Some people with COPD breathe less on high-flow oxygen and build up carbon dioxide, so oxygen at home is breathed at the rate it’s prescribed, not more.',
+        source: 'From the NHS.',
+        url: 'https://www.nhs.uk/conditions/home-oxygen/',
+      },
+      {
+        text: 'Oxygen doesn’t burn, but everything burns faster and hotter in it, and hair, clothes and bedding soaked in it catch fire easily. No smoking, vaping, candles or gas cookers near a cylinder or concentrator, no oil or grease on its fittings, and water-based creams instead of petroleum jelly under a mask.',
+        source: 'From the NHS.',
+        url: 'https://www.nhs.uk/conditions/home-oxygen/#safety',
+      },
+    ],
+    doseUnit: '',
+    doseRows: [],
+    durationRows: [],
+    combinations: [],
+    formula: 'O2',
+    molarMass: 32.0,
+    helpfulLinks: [
+      { title: 'Wikipedia', description: 'Encyclopedia article', url: 'https://en.wikipedia.org/wiki/Oxygen' },
+      { title: 'Wikipedia: Oxygen toxicity', description: 'Encyclopedia article', url: 'https://en.wikipedia.org/wiki/Oxygen_toxicity' },
+      { title: 'NHS: Home oxygen', description: 'Health service guide', url: 'https://www.nhs.uk/conditions/home-oxygen/' },
+    ],
+  },
+  {
+    id: 'air',
+    name: 'Air',
+    aliases: 'atmosphere, atmospheric air, fresh air',
+    category: 'Other',
+    form: 'spray',
+    status: 'Documented',
+    learn: true,
+    summarySources: 'NOAA, NHS',
+    summary:
+      'Air is the mixture of gases around the Earth. Dry air is about 78% nitrogen, 21% oxygen, 0.93% argon and 0.04% carbon dioxide, with traces of neon, helium, methane and others, and it holds up to about 4% water vapour as well, depending on the weather. Of all of it the body uses only the oxygen: a resting adult breathes 6 to 8 litres a minute, keeps about a quarter of the oxygen in each breath and breathes out a little carbon dioxide in its place.',
+    // A mixture has no one structure: what dry air is made of, by volume.
+    parts: [
+      { name: 'Nitrogen', zh: '氮氣', zhHans: '氮气', formula: 'N2', share: 78.08 },
+      { id: 'oxygen', name: 'Oxygen', zh: '氧氣', zhHans: '氧气', formula: 'O2', share: 20.95 },
+      { name: 'Argon', zh: '氬氣', zhHans: '氩气', formula: 'Ar', share: 0.93 },
+      { name: 'Carbon dioxide', zh: '二氧化碳', zhHans: '二氧化碳', formula: 'CO2', share: 0.04 },
+    ],
+    advisory:
+      'Any gas breathed in place of air leaves less oxygen in each breath: nitrous from a balloon, helium, butane, aerosols or solvents. Breathe air between hits, never with a bag over the head or a mask over the face, and get anyone who faints out to fresh air at once. Canned “compressed air” for dusting keyboards isn’t air: it’s a liquefied gas such as difluoroethane, and breathing it in can stop the heart, even the first time.',
+    warnings: [
+      {
+        text: 'Up a mountain the air is still 21% oxygen, but thinner: at 2,500 m each breath carries about a quarter less of it, and at 5,500 m half. Above about 2,500 m altitude sickness can start, with a headache, nausea and poor sleep, and going higher with it can lead to fluid on the lungs or the brain. Climb slowly, skip alcohol and sleeping pills up there, and go down if it gets worse.',
+        source: 'From the NHS.',
+        url: 'https://www.nhs.uk/conditions/altitude-sickness/',
+      },
+      {
+        text: 'Carbon monoxide, from a faulty boiler or heater, a car engine, or a barbecue or charcoal burning indoors, has no colour or smell and can kill in a closed room. A headache, dizziness and nausea that ease outside are the sign: get out into fresh air and call for help.',
+        source: 'From the NHS.',
+        url: 'https://www.nhs.uk/conditions/carbon-monoxide-poisoning/',
+      },
+    ],
+    doseUnit: '',
+    doseRows: [],
+    durationRows: [],
+    combinations: [],
+    helpfulLinks: [
+      { title: 'Wikipedia', description: 'Encyclopedia article', url: 'https://en.wikipedia.org/wiki/Atmosphere_of_Earth' },
+      { title: 'FRANK: Solvents and gases', description: 'Drug information', url: 'https://www.talktofrank.com/drug/solvents' },
+    ],
+  },
 ];
 
 async function main() {
@@ -1340,7 +1425,7 @@ async function main() {
     });
   }
 
-  // 4. And the hand-written ones that fit no group (water)
+  // 4. And the hand-written ones that fit no group (water, oxygen, air)
   for (const entry of OTHER_ENTRIES) {
     mergedMap.set(entry.id, { ...entry, subjectiveEffects: [], citations: [], _richness: 10 });
   }
@@ -1391,6 +1476,8 @@ async function main() {
           }
         : null,
       richness: _richness,
+      // To read about, not to log (oxygen, air).
+      ...(clean.learn ? { learn: true } : {}),
     });
   }
 

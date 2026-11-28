@@ -72,7 +72,7 @@ export function ProductForm({
     const [time, setTime] = useState(Date.now());
 
     const product = chosen ? person.products[chosen] : undefined;
-    const hits = useMemo(() => (index && q.trim() ? search(index, q, 5) : []), [index, q]);
+    const hits = useMemo(() => (index && q.trim() ? search(index, q, 7).filter(h => !h.entry.learn).slice(0, 5) : []), [index, q]);
     const label = 'block text-xs font-medium text-[var(--text-muted)] mb-1.5';
     const chip = (active: boolean) =>
         `chip ${active ? 'bg-[var(--accent-subtle)] text-[var(--accent-ink)]' : 'chip-static text-[var(--text-muted)] hover:text-[var(--text)]'}`;

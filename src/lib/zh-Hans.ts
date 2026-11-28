@@ -848,6 +848,8 @@ const zh: Record<string, string> = {
     'Little is known about this one. Treat any dose as stronger than you expect.': '此物质的资料很少。任何剂量都请当作比预期更强。',
     'Read the full report': '阅读完整报告',
     'Reference entry from Wikidata and Wikipedia: what it is, how it works, what it’s used for and known interactions. No doses are given here. If it’s prescribed to you, follow your prescription.': '参考条目，资料来自 Wikidata 和 Wikipedia：它是什么、如何作用、用途和已知交互作用。这里不提供剂量；如果是处方药，请依处方使用。',
+    'Here to read about, not to log: there’s no dose of it to measure and no curve to draw.': '这一条只供阅读，不能记录：它没有可量的剂量，也画不出曲线。',
+    'Dry air, by volume.': '干燥空气，按体积计。',
     'How much': '用量',
     'Use a milligram scale. Eyeballing powder is how people get hurt. Start with a light dose, especially with a new batch.': '请用毫克秤秤量，目测粉末很容易出事。从轻度剂量开始，换新一批时尤其如此。',
     'Doses from ': '剂量资料来自 ',

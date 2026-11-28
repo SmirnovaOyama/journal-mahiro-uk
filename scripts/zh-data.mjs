@@ -54,6 +54,8 @@ const TAIWAN = {
     methylphenidate: '派醋甲酯',
     buprenorphine: '丁基原啡因',
     water: '水',
+    oxygen: '氧氣',
+    air: '空氣',
 };
 
 /* And what the mainland calls them, where the same holds: Wikidata's label
@@ -67,6 +69,24 @@ const MAINLAND = {
     nitrous: '笑气',
     nicotine: '尼古丁',
     water: '水',
+    oxygen: '氧气',
+    air: '空气',
+};
+
+/* The other names, by hand, of an entry Wikidata isn't asked about (one
+   written by hand in scripts/sync-substances.mjs): what a search finds it
+   by, and what its page names under the one it leads with. */
+const HAND_OTHER = {
+    oxygen: {
+        search: '氧, 醫用氧, 医用氧, 罐裝氧氣, 罐装氧气, 氧氣瓶, 氧气瓶, 製氧機, 制氧机, 吸氧, 氧吧',
+        hant: '氧, 醫用氧, 罐裝氧氣',
+        hans: '氧, 医用氧, 罐装氧气',
+    },
+    air: {
+        search: '大氣, 大气, 新鮮空氣, 新鲜空气',
+        hant: '大氣',
+        hans: '大气',
+    },
 };
 
 const CJK = /[㐀-鿿]/;
@@ -195,6 +215,12 @@ for (const e of index) {
         }
         const h = MAINLAND[e.id] ?? (TAIWAN[e.id] && cnForm(TAIWAN[e.id]));
         if (h) e.zhHans = d.zhHans = h;
+        const other = HAND_OTHER[e.id];
+        if (other) {
+            e.zhAliases = other.search;
+            d.zhOther = other.hant;
+            d.zhHansOther = other.hans;
+        }
     }
     await fs.writeFile(file, JSON.stringify(d));
 }
