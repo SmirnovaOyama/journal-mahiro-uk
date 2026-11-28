@@ -369,10 +369,11 @@ const zh: Record<string, string> = {
     'Both lower blood pressure. Standing up quickly can make you dizzy or faint.': '兩者都會降低血壓，突然站起來可能頭暈或昏倒。',
     'Both make bleeding more likely. Watch for easy bruising, nosebleeds or black stools.': '兩者都會增加出血風險，留意容易瘀青、流鼻血或黑便。',
     'Both are hard on the liver.': '兩者都會加重肝臟負擔。',
-    'Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. A drink or two with a meal is usually fine: don’t binge, and skip metformin if you’ve been sick.': '酒精會讓二甲雙胍引起乳酸中毒更容易發生，空腹喝很多還可能讓血糖降低。隨餐喝一兩杯通常沒問題：不要狂飲，喝到吐的話先停用二甲雙胍。',
+    'Anti-inflammatory painkillers can strain the kidneys, and metformin builds up when they slow. The NHS lists them among what may not mix well with it: ask a pharmacist before taking them for more than a day or two.': '消炎止痛藥可能加重腎臟負擔，而腎臟一慢下來，二甲雙胍就會累積。英國國民保健署把它們列為可能和二甲雙胍相衝的藥：要連吃超過一兩天前，先問藥師。',
+    'Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. Keep it low and with a meal, don’t binge, and if you’ve been sick, ask a pharmacist whether to pause metformin.': '酒精會讓二甲雙胍引起乳酸中毒更容易發生，空腹喝很多還可能讓血糖降低。少喝、隨餐喝、不要狂飲；喝到吐的話，問藥師要不要先暫停二甲雙胍。',
     'Both can make the blood more acidic, and together that adds up. Watch for fast deep breathing, unusual tiredness or stomach pain.': '兩者都可能讓血液變得更酸，一起用會疊加。留意呼吸又快又深、異常疲倦或腹痛。',
-    'A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.': '用了它玩一整晚，又熱又沒喝多少水，身體會脫水、加重腎臟負擔，而腎臟一慢下來，二甲雙胍就會累積。記得吃東西、穩定地小口喝水，嘔吐的話先停用二甲雙胍。',
-    'Metformin doesn’t act on the brain and isn’t broken down by the liver, so it isn’t known to change how this one works. If either makes you vomit or stop eating and drinking, skip metformin until you’re eating again.': '二甲雙胍不作用於大腦，也不經肝臟代謝，所以目前不知道它會改變另一種的作用。如果任何一種讓你嘔吐或吃不下、喝不下，先停用二甲雙胍，等能正常吃東西再恢復。',
+    'A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and if you’re vomiting, ask a pharmacist whether to pause metformin.': '用了它玩一整晚，又熱又沒喝多少水，身體會脫水、加重腎臟負擔，而腎臟一慢下來，二甲雙胍就會累積。記得吃東西、穩定地小口喝水；嘔吐的話，問藥師要不要先暫停二甲雙胍。',
+    'Metformin doesn’t act on the brain and isn’t broken down by the liver, so it isn’t known to change how this one works. If either makes you vomit or stop eating and drinking, ask a pharmacist whether to pause metformin until you’re eating again.': '二甲雙胍不作用於大腦，也不經肝臟代謝，所以目前不知道它會改變另一種的作用。如果任何一種讓你嘔吐或吃不下、喝不下，問藥師要不要先暫停二甲雙胍，等能正常吃東西再恢復。',
     'extended release': '緩釋',
 
     // lib/time.ts

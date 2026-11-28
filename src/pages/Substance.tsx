@@ -941,7 +941,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     !side || aiSide
                                         ? firstSentence(side?.text || aiSide)
                                         : side.text
-                                        ? firstSentence(side.text)
+                                        ? firstSentence(dataWhole(side.text) || side.text)
                                         : [side.addiction && tr('Addiction: {0}', { 0: dataText(side.addiction) }), side.dependence && tr('Dependence: {0}', { 0: dataText(side.dependence) })].filter(Boolean).join(tr('. '))
                                 }
                             >

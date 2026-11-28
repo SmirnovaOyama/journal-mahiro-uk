@@ -105,6 +105,8 @@ const BY_AI: [string, string, Verdict][] = [
     ['metformin', 'alcohol', 'Caution'],
     ['metformin', 'mdma', 'Caution'],
     ['metformin', 'topiramate', 'Caution'],
+    // The NHS lists anti-inflammatory painkillers among what may not mix well with it.
+    ['metformin', 'ibuprofen', 'Caution'],
     // And with what it isn't known to touch, low risk, with what to watch.
     ['metformin', 'cannabis', 'Low risk'],
     ['metformin', 'sertraline', 'Low risk'],
