@@ -938,7 +938,12 @@ const OTHER_ENTRIES = [
         segments: { light: [100, 250], common: [250, 500], strong: [500, 1000], heavy: [1000, 1296] },
       },
     ],
-    durationRows: [],
+    // How long a glass takes: in the blood within minutes, the blood at its
+    // thinnest after about half an hour, and the kidneys done with it in two
+    // or three hours.
+    durationRows: [
+      { roa: 'Oral', onset: '5–15 min', comeup: '10–20 min', peak: '20–40 min', offset: '1–2 h', afterEffects: '—', total: '2–3 h' },
+    ],
     combinations: [],
     formula: 'H2O',
     molarMass: 18.02,

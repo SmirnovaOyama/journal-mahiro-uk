@@ -95,8 +95,10 @@ export function molToSvg(mol: Mol): string {
     }
     // A hydrogen drawn on a wedge sits a quarter closer in, so two at a ring
     // fusion (a steroid's) don't run into each other or into the next bond.
+    // Not in a molecule with no carbon (water), where every bond is to a hydrogen.
+    const organic = atoms.some(a => a.el === 'C');
     for (const a of atoms) {
-        if (a.el !== 'H' || a.nb.length !== 1) continue;
+        if (!organic || a.el !== 'H' || a.nb.length !== 1) continue;
         const o = atoms[a.nb[0]];
         a.x = o.x + (a.x - o.x) * 0.75;
         a.y = o.y + (a.y - o.y) * 0.75;
