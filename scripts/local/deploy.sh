@@ -1,14 +1,15 @@
 #!/bin/bash
 # Deploys main in full, from a Mac that is left on.
 #
-# A push to main is built and deployed by Cloudflare within a minute, but
-# that build has no link preview cards (public/og/ isn't in the repository:
-# they are drawn with this Mac's fonts by `npm run og`) and only the
-# sitemap as it was last committed. So after every push the full deploy
-# (`npm run deploy`: cards, sitemap, build, upload) had to be run by hand.
-# This does it: each time it runs it looks at origin/main, and when that
-# has moved and then stood still for a few minutes (Cloudflare's own build
-# has had its turn, so this one lands last), it deploys it.
+# Cloudflare builds and deploys every push to main, and since the link
+# preview cards have been drawn from fonts kept in the repository
+# (scripts/og/), that build makes them and the sitemap itself: nothing has
+# to follow it. This script is from before, when the cards were drawn with
+# a Mac's own fonts and Cloudflare's build went without them. It still
+# works, as a way to deploy main from a Mac: each time it runs it looks at
+# origin/main, and when that has moved and then stood still for a few
+# minutes (Cloudflare's own build has had its turn, so this one lands
+# last), it deploys it (`npm run deploy`: cards, sitemap, build, upload).
 #
 # It never touches the folder the site is worked on in, which may hold
 # someone's unfinished edits. It keeps a checkout of its own under
