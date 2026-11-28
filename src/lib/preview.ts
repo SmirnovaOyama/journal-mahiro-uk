@@ -24,7 +24,8 @@ import { XUNXUN_ID, xunxunName, xunxunWhat } from './xunxun';
    in the line under it, short, in the language the visitor's browser asked
    for: the Worker settles that before it words any of this (lib/i18n.ts).
    The picture cards are drawn in English, as the catalogue writes the
-   names. */
+   names, in Inter and Source Han Sans (scripts/og/fonts), which is not the
+   face the site itself is read in: that is the reader's system's. */
 
 export const SITE = {
     name: 'Oyama Journal',
@@ -185,7 +186,7 @@ export function substancePreview(d: Detail, entry?: IndexEntry, index?: IndexEnt
 
 /** A substance's card. The number is the cards' drawing: raise it when they
  *  are redrawn, so an app that kept the old picture fetches the new one. */
-export const substanceCard = (id: string, variant = '') => `/og/s/${encodeURIComponent(id)}${variant}.png?v=2`;
+export const substanceCard = (id: string, variant = '') => `/og/s/${encodeURIComponent(id)}${variant}.png?v=3`;
 
 /** 寻寻's page (lib/xunxun.ts), shared as a substance's is: its name, the
  *  line that says what it is, and its own card with its picture where a

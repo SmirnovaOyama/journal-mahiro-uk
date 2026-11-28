@@ -387,7 +387,7 @@ npm run dev
 | `npx wrangler dev` | The Worker with the account API and a local database, at localhost:8787; `npm run dev` sends `/api/` to it |
 | `npx wrangler d1 migrations apply oyama-journal --local` | Make the account tables in the local database (`--remote` for the real one) |
 | `node scripts/admin-key.mjs <username>` | The admin's key hash, from its password (see [Admin](#admin)) |
-| `npm run build` | Type-check and build into `dist/` |
+| `npm run build` | Type-check and build into `dist/`, drawing the link preview cards first if there are none |
 | `npm test` | The tests in `tests/`: the mix checker against the catalogue, the journal's merging, what the journal says back, the lock, the Telegram bot |
 | `node scripts/data-diff.mjs` | Every dose, timing and combination a data sync changed, against the last commit |
 | `node scripts/plain-icons.mjs` | Draw the plain icon into `public/` |
@@ -396,16 +396,21 @@ npm run dev
 | `node scripts/absorption.mjs` | How much of a dose gets in, by route: PsychonautWiki's figures, and Wikipedia's drug infoboxes where the route is named |
 | `node scripts/check-doses.mjs` | Checks every route's doses rise in order on their rail, mends rows whose ranges change unit, and fails on any left |
 | `node scripts/sync-wikidata.mjs --write` | Rebuild the reference entries from the cache in `scripts/.cache/`, without fetching |
-| `npm run og` | Draw the link preview cards into `public/og/`, one per substance, and list any whose name doesn't fit its card (`-- --out=<folder>` draws them elsewhere to look at first) |
+| `npm run og` | Draw the link preview cards into `public/og/`, one per substance, and list any whose name doesn't fit its card (`-- --out=<folder>` draws them elsewhere to look at first). About half a minute |
 | `npm run sitemap` | Write `public/sitemap.xml` |
-| `npm run deploy` | Cards, sitemap, build, and deploy to Cloudflare |
-| `scripts/local/install.sh` | Have this Mac run that on its own after each push to main (see [Who deploys](#who-deploys)) |
+| `npm run deploy` | Cards, sitemap, build, and deploy to Cloudflare, by hand: a push to main does all of it (see [Who deploys](#who-deploys)) |
 | `python3 scripts/icons.py` | Cut the favicon and app icons from `design/logo.jpg` |
 
-The cards are drawn in Chromium through playwright-core, so it needs a
-Playwright Chromium (`npx playwright install chromium`). The icons need
-Pillow. Deploying needs `wrangler login` to the Cloudflare account that owns
-the Worker.
+The cards need nothing of the machine: each is an SVG (`scripts/og/card.mjs`)
+that resvg draws in the fonts kept in `scripts/og/fonts/` (Inter and Source
+Han Sans, both under the SIL Open Font License, their licences beside them),
+its lines measured from those same fonts (`scripts/og/type.mjs`). No browser
+and no system font, so they come out the same on any machine. A picture a
+card holds has to be a PNG, JPEG or GIF: one kept as WebP needs a PNG of the
+same name in `scripts/og/pictures/`, and the script stops if there is none.
+The plain icon is drawn in Chromium through playwright-core
+(`npx playwright install chromium`). The icons need Pillow. Deploying needs
+`wrangler login` to the Cloudflare account that owns the Worker.
 
 ## How it's deployed
 
@@ -423,25 +428,20 @@ Shared nights are in the same database (`migrations/0004_watch.sql`).
 
 ### Who deploys
 
-A push to main is built and deployed by Cloudflare (Workers Builds) within a
-minute. That build has no link preview cards, which are drawn with a Mac's
-fonts and aren't in the repository, and only the sitemap as it was last
-committed. So a Mac that is left on follows it with the full deploy
-(`scripts/local/deploy.sh`): every two minutes it looks at origin/main, and
-once that has moved and then stood still for three minutes, it runs
-`npm run deploy` on it, from a checkout of its own under
-`~/Library/Application Support/journal-mahiro-uk`, never from the folder the
-site is worked on in. What it did is in `deploy.log` there; a deploy that
-fails raises a notification and is tried again half an hour later.
+A push to main is built and deployed by Cloudflare (Workers Builds), and
+what it deploys is whole. The link preview cards and a sitemap dated today
+aren't in the repository; the build makes them itself (`vite.config.ts`
+runs `scripts/og/render.mjs` and `scripts/sitemap.mjs` before the files are
+gathered), which it can because the cards are drawn from fonts kept in the
+repository rather than a machine's own.
 
-```bash
-scripts/local/install.sh            # this Mac deploys main on its own (launchd)
-scripts/local/install.sh --remove   # no more
-scripts/local/deploy.sh --now       # deploy origin/main at once, by hand
-```
+That build takes about three minutes, two of them drawing the cards. Until
+it has finished the site is as it was, cards and all; if it fails, nothing
+is deployed. No machine of ours follows a push: for a while a Mac that was
+left on did, because the cards were drawn in its own fonts and Cloudflare's
+build went without them.
 
-It deploys with that account's `wrangler login`. Tables are still changed by
-hand, before the push that needs them.
+Tables are still changed by hand, before the push that needs them.
 
 Cloudflare also builds every other branch, as a preview
 (`npx wrangler preview`). A preview has none of production's bindings

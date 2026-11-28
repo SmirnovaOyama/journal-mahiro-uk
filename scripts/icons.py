@@ -7,7 +7,8 @@ the circle inside it, as on mahiro.uk: her cat ears sit right on the
 circle's edge, and the corners are see-through.
 The apple-touch icon and the maskable one are full squares, since iOS and
 Android cut them to their own shape. The in-app logos (pwa-192x192.png,
-logo.png) stay rounded rectangles, as the pages frame them that way."""
+logo.png) stay rounded rectangles, as the pages frame them that way, and so
+does the small one the link preview cards carry (scripts/og/pictures)."""
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -68,4 +69,8 @@ small(rounded(whole, 192)).save(OUT / 'pwa-192x192.png', optimize=True)
 small(rounded(whole, 256)).save(OUT / 'logo.png', optimize=True)
 small(whole.resize((180, 180), Image.LANCZOS)).save(OUT / 'apple-touch-icon.png', optimize=True)
 small(whole.resize((512, 512), Image.LANCZOS)).save(OUT / 'app-icon-512-maskable.png', optimize=True)
+# The logo at the foot of a link preview card (scripts/og), at the 40 pixels
+# it is drawn there. The cards' renderer scales a picture down without
+# smoothing it first: from the 256-pixel logo it came out speckled.
+rounded(whole, 40).save(ROOT / 'scripts/og/pictures/logo.png', optimize=True)
 print('icons written')
