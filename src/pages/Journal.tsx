@@ -36,7 +36,7 @@ import { SessionChart, phaseAt, type ChartDose } from '../components/SessionChar
 import { ToleranceChart } from '../components/ToleranceChart';
 import { SessionMark } from '../components/SessionMark';
 import { rowBleed } from '../components/SettingsListItem';
-import { ChevronDown, ChevronRight, Heart, Plus } from '../components/icons';
+import { ChevronDown, ChevronRight, Close, Heart, Plus } from '../components/icons';
 import { currentLang, dateLocale, isZh, phraseList, roaName, tr } from '../lib/i18n';
 import { SavePicture, usePictureStyle, usePictures } from '../components/PictureExport';
 import type { NightPicture as Picture, Status } from '../lib/picture';
@@ -444,7 +444,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     setProduct(false);
                                 }}
                             >
-                                <Plus size={16} />
+                                {adding ? <Close size={16} /> : <Plus size={16} />}
                                 {adding ? tr('Close') : tr('Log')}
                             </button>
                         )}
@@ -722,7 +722,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                             <span className="max-sm:hidden">{tr('Favourite')}</span>
                         </button>
                         <button type="button" className={`${adding ? headerAction : headerActionAccent} tap-target`} aria-expanded={adding} onClick={() => setAdding(a => !a)}>
-                            <Plus size={16} />
+                            {adding ? <Close size={16} /> : <Plus size={16} />}
                             {adding ? tr('Close') : tr('Add')}
                         </button>
                         {picturesOn && <SavePicture make={picture} signature={pictureSignature} />}
@@ -849,7 +849,7 @@ function SessionPage({ id, index, byId }: { id: string; index: IndexEntry[] | nu
                         now={now}
                         days={Number(tolDays)}
                         colors={color}
-                        names={x => byId.get(x)?.name ?? before.find(i => i.substance === x)?.name ?? x}
+                        names={x => nameOf(x, before, byId)}
                     />
                 </section>
             </div>

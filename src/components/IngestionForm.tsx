@@ -115,6 +115,8 @@ export function IngestionForm({
 
     const entry = substance ? byId.get(substance) : undefined;
     const name = entry?.name ?? custom.trim();
+    /** The name as the reader reads it; `name` is what's logged. */
+    const shown = entry ? nameOf(entry) : name;
     const { detail, loading } = useDetail(entry ? entry.id : null);
     // The ways this substance is taken, once its page has arrived: null until
     // then. The general list is only for what has no routes of its own (a
@@ -211,7 +213,7 @@ export function IngestionForm({
                 out.push({
                     key: 'limit-max',
                     tone: 'warning',
-                    text: tr('You set {0} {1} of {2} as the most for one night. With this dose it comes to {3} {1}.', { 0: fmtAmount(limit.max), 1: limit.unit, 2: name, 3: fmtAmount(total) }),
+                    text: tr('You set {0} {1} of {2} as the most for one night. With this dose it comes to {3} {1}.', { 0: fmtAmount(limit.max), 1: limit.unit, 2: shown, 3: fmtAmount(total) }),
                 });
         }
         if (key && limit?.gap) {
@@ -220,7 +222,7 @@ export function IngestionForm({
                 out.push({
                     key: 'limit-gap',
                     tone: 'warning',
-                    text: tr('You set {0} days between nights of {1}. The last was {2} ago.', { 0: limit.gap, 1: name, 2: formatMinutes(Math.max(1, Math.round((time - last) / 60000))) }),
+                    text: tr('You set {0} days between nights of {1}. The last was {2} ago.', { 0: limit.gap, 1: shown, 2: formatMinutes(Math.max(1, Math.round((time - last) / 60000))) }),
                 });
         }
         if (paracetamol && paracetamol.mg > PARACETAMOL_DAY_MG)
@@ -300,20 +302,23 @@ export function IngestionForm({
                 });
             });
         return out;
-    }, [entry, recent, time, detail, byId, others, matrix, meds, still, key, limit, paracetamol, data.ingestions, editing?.id, dose, doseOk, unit, name]);
+    }, [entry, recent, time, detail, byId, others, matrix, meds, still, key, limit, paracetamol, data.ingestions, editing?.id, dose, doseOk, unit, shown]);
 
     // What was written the last night this was taken, shown before it's taken again.
     const last = useMemo(() => (key && !editing && feat.on('lastTime') ? lastTime(data, key, time) : null), [key, editing, data, time, feat.on]);
 
     const hits = useMemo(() => (index && q.trim() ? search(index, q, 6) : []), [index, q]);
-    // What's been logged lately, to pick again in one tap.
+    // What's been logged lately, each with the amount it was last logged
+    // at: one tap fills the form in as it was then (the time is now), and
+    // Log it logs it again.
     const lately = useMemo(() => {
         const seen = new Set<string>();
-        const out: { substance: string; name: string }[] = [];
+        const out: { substance: string; name: string; last: Ingestion }[] = [];
         for (const i of [...data.ingestions].sort((a, b) => b.time - a.time)) {
             if (seen.has(i.substance)) continue;
             seen.add(i.substance);
-            out.push({ substance: i.substance, name: byId.get(i.substance)?.name ?? i.name });
+            const known = byId.get(i.substance);
+            out.push({ substance: i.substance, name: known ? nameOf(known) : i.name, last: i });
             if (out.length >= 8) break;
         }
         return out;
@@ -354,7 +359,7 @@ export function IngestionForm({
                     <div className="flex items-center gap-3 min-h-11">
                         {entry && <Molecule id={entry.id} form={entry.form} size="sm" />}
                         <span className="flex-1 min-w-0">
-                            <span className="block text-sm font-medium text-[var(--text)]">{name}</span>
+                            <span className="block text-sm font-medium text-[var(--text)]">{shown}</span>
                             {!entry && <span className="block text-xs text-[var(--text-muted)]">{tr('Not in the catalogue')}</span>}
                         </span>
                         {!editing && (
@@ -389,15 +394,23 @@ export function IngestionForm({
                                     <button
                                         type="button"
                                         key={l.substance}
-                                        className="chip chip-static text-[var(--text)] hover:bg-[var(--surface-hover)]"
+                                        className="chip chip-static gap-1.5 text-[var(--text)] hover:bg-[var(--surface-hover)]"
                                         onClick={() => {
                                             if (byId.get(l.substance)) setSubstance(l.substance);
-                                            else setCustom(l.name);
-                                            setRoute('');
-                                            setUnit('');
+                                            else setCustom(l.last.name);
+                                            setRoute(l.last.route);
+                                            setDoseText(l.last.dose != null ? String(l.last.dose) : '');
+                                            setUnit(l.last.unit);
+                                            setEstimate(l.last.estimate);
                                         }}
                                     >
                                         {l.name}
+                                        {l.last.dose != null && (
+                                            <span className="font-normal tabular-nums text-[var(--text-muted)]">
+                                                {l.last.estimate ? '~' : ''}
+                                                {fmtAmount(l.last.dose)} {l.last.unit}
+                                            </span>
+                                        )}
                                     </button>
                                 ))}
                             </div>
@@ -578,7 +591,7 @@ export function IngestionForm({
                     {key && !editing && feat.on('limits') && !limit?.max && !limit?.gap && (
                         <p className="-mt-2 text-xs text-[var(--text-muted)]">
                             <Link to={{ page: 'journal', substance: key }} className="underline underline-offset-[3px]">
-                                {tr('Set a limit for {0}', { 0: name })}
+                                {tr('Set a limit for {0}', { 0: shown })}
                             </Link>
                         </p>
                     )}
