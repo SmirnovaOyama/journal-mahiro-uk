@@ -167,6 +167,39 @@ function Formula({ of }: { of: string }) {
     );
 }
 
+/** What a mixture with no one structure is made of (air): each part, its
+ *  formula and its share, over a bar of the shares. */
+function Parts({ parts }: { parts: NonNullable<Detail['parts']> }) {
+    const hans = currentLang() === 'zh-Hans';
+    const named = (p: (typeof parts)[number]) => (isZh() ? (hans ? p.zhHans ?? p.zh : p.zh) : '') || p.name;
+    const share = (n: number) => `${n.toLocaleString(dateLocale(), { maximumFractionDigits: 2 })}%`;
+    return (
+        <div className="mt-2">
+            <p className="text-sm text-[var(--text)]">
+                {parts.map((p, k) => (
+                    <React.Fragment key={p.formula}>
+                        {k > 0 && tr(', ')}
+                        {p.id ? <Link to={{ page: 'substance', id: p.id }}>{named(p)}</Link> : named(p)}{' '}
+                        <span className="text-xs text-[var(--text-muted)]">
+                            <Formula of={p.formula} /> {share(p.share)}
+                        </span>
+                    </React.Fragment>
+                ))}
+            </p>
+            <div className="mt-1.5 flex h-1.5 w-full max-w-60 overflow-hidden rounded-full bg-[var(--border)]" aria-hidden="true">
+                {parts.map((p, k) => (
+                    <span
+                        key={p.formula}
+                        style={{ width: `${p.share}%`, minWidth: 2, opacity: 1 - k * 0.22 }}
+                        className="h-full bg-[var(--accent)] first:bg-[var(--text-muted)] border-r border-[var(--bg)] last:border-r-0"
+                    />
+                ))}
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{tr('Dry air, by volume.')}</p>
+        </div>
+    );
+}
+
 /** A row of facts: what it's about, a smaller word under it, and what's said. */
 function Fact({ about, sub, children }: { about: string; sub?: string; children: React.ReactNode }) {
     return (
@@ -204,6 +237,8 @@ function AiNote({ fact }: { fact?: boolean }) {
  *  rows beside it are from (`figures`: a Wikipedia article's infobox), if
  *  that's somewhere else. */
 function QuotedFrom({ q, figures, also }: { q: Quoted; figures?: string; also?: React.ReactNode }) {
+    // Words written by hand for the catalogue (oxygen's), from the sources named.
+    if (q.text && q.source && !q.page) return <p className="footnote">{tr('From {0}.', { 0: q.source })}</p>;
     const what = q.source === 'PsychonautWiki' ? tr('PsychonautWiki’s page on {0}', { 0: q.page ?? '' }) : tr('Wikipedia’s article on {0}', { 0: q.page ?? '' });
     const same = !!q.text && q.source === 'Wikipedia' && q.page === figures;
     if (!q.text && !figures && !also) return null;
@@ -448,6 +483,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                 backTo
                 actions={
                     <>
+                        {/* Nothing to log of one that's only read about (oxygen, air). */}
+                        {!detail.learn && (
                         <button
                             type="button"
                             className={`${headerActionAccent} tap-target`}
@@ -465,6 +502,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             <Plus size={16} />
                             {tr('Log')}
                         </button>
+                        )}
                         <button
                             type="button"
                             className={`${isSaved ? headerActionAccent : headerAction} tap-target max-sm:w-9 max-sm:justify-center max-sm:px-0`}
@@ -517,7 +555,8 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     {detail.molarMass != null && <span className={`text-xs ${muted}`}>{tr(', {0} g/mol', { 0: detail.molarMass })}</span>}
                                 </p>
                             )}
-                            {!detail.formula && ai?.contains && ai.contains.length > 0 && (
+                            {detail.parts && detail.parts.length > 0 && <Parts parts={detail.parts} />}
+                            {!detail.formula && !detail.parts && ai?.contains && ai.contains.length > 0 && (
                                 <p className="text-sm text-[var(--text)] mt-1">
                                     {tr('Mainly ')}
                                     {ai.contains.map((c, k) => (
@@ -614,7 +653,13 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
 
                     {/* Title row: the title unfolds what the numbers rest on;
                         the route is chosen on the right. */}
-                    {!reference && (
+                    {detail.learn && (
+                        <p className={`mt-5 text-sm leading-relaxed ${muted} max-w-prose`}>
+                            {tr('Here to read about, not to log: there’s no dose of it to measure and no curve to draw.')}
+                        </p>
+                    )}
+
+                    {!reference && !detail.learn && (
                     <>
                     <div className="mt-6 flex items-center justify-between gap-3 mb-4">
                         <button
@@ -696,7 +741,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
             </header>
 
             <main className={`${PAGE_COLUMN} pt-5 pb-10 md:pb-32 flex flex-col gap-10`}>
-                {time ? (
+                {detail.learn ? null : time ? (
                     <Timeline key={`${detail.id}-${roa}`} row={time} />
                 ) : (
                     <div>
@@ -707,6 +752,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                     </div>
                 )}
 
+                {!detail.learn && (
                 <section>
                     <SectionTitle title={tr('Mixing')} />
                     {combos.length === 0 ? (
@@ -753,6 +799,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                         </div>
                     )}
                 </section>
+                )}
 
                 <section>
                     <SectionTitle title={tr('More about {0}', { 0: nameOf(detail) })} />
@@ -860,7 +907,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                                     !uses || aiUses
                                         ? firstSentence(uses?.text || aiUses)
                                         : uses.text
-                                        ? firstSentence(uses.text)
+                                        ? firstSentence(dataWhole(uses.text) || uses.text)
                                         : uses.treats
                                           ? cap(uses.treats.slice(0, 4).map(termText).join(tr(', ')))
                                           : uses.brands
@@ -870,7 +917,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             >
                                 {aiUses && <p className="text-sm max-w-prose">{aiUses}</p>}
                                 {uses && (<>
-                                {uses.text && <p className="text-sm max-w-prose">{uses.text}</p>}
+                                {uses.text && <p className="text-sm max-w-prose">{dataWhole(uses.text) || uses.text}</p>}
                                 {uses.recreational && <p className="text-sm max-w-prose mt-3">{uses.recreational}</p>}
                                 {(uses.treats || uses.brands || uses.routes) && (
                                     <dl className={uses.text || aiUses ? 'mt-2' : undefined}>
@@ -898,7 +945,7 @@ export function Substance({ id, index, byId }: { id: string; index: IndexEntry[]
                             >
                                 {aiSide && <p className="text-sm max-w-prose">{aiSide}</p>}
                                 {side && (<>
-                                {side.text && <p className="text-sm max-w-prose">{side.text}</p>}
+                                {side.text && <p className="text-sm max-w-prose">{dataWhole(side.text) || side.text}</p>}
                                 {(side.addiction || side.dependence) && (
                                     <dl className={side.text || aiSide ? 'mt-2' : undefined}>
                                         {side.addiction && (

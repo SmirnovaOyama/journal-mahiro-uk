@@ -67,6 +67,9 @@ export interface IndexEntry {
   src?: 'wd';
   /** What its row says instead of its kind and family (lib/xunxun.ts). */
   says?: string;
+  /** To read about, not to log (oxygen, air): the journal's forms and the
+   *  mix checker don't offer it. */
+  learn?: true;
 }
 
 export interface DoseRow {
@@ -234,6 +237,11 @@ export interface Detail {
   combinations: Combination[];
   citations: { title: string; url?: string }[];
   helpfulLinks: { title: string; description: string; url: string }[];
+  /** To read about, not to log (oxygen, air): no doses, timing or mixing. */
+  learn?: true;
+  /** For a mixture with no one structure (air): what it's made of, by
+   *  volume, in percent, written by hand. `id` where the part has a page. */
+  parts?: { id?: string; name: string; zh?: string; zhHans?: string; formula: string; share: number }[];
 }
 
 export type ComboMatrix = Record<string, Record<string, { status: string; note?: string }>>;

@@ -307,7 +307,8 @@ export function IngestionForm({
     // What was written the last night this was taken, shown before it's taken again.
     const last = useMemo(() => (key && !editing && feat.on('lastTime') ? lastTime(data, key, time) : null), [key, editing, data, time, feat.on]);
 
-    const hits = useMemo(() => (index && q.trim() ? search(index, q, 6) : []), [index, q]);
+    // Not one that's only read about (oxygen, air).
+    const hits = useMemo(() => (index && q.trim() ? search(index, q, 8).filter(h => !h.entry.learn).slice(0, 6) : []), [index, q]);
     // What's been logged lately, each with the amount it was last logged
     // at: one tap fills the form in as it was then (the time is now), and
     // Log it logs it again.

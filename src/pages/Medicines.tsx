@@ -57,7 +57,7 @@ export function MedicinesPage() {
     const meds = useMemo(() => medicinesOf(person), [person]);
     const entries = useMemo(() => meds.map(m => byId.get(m.id)).filter((e): e is IndexEntry => !!e), [meds, byId]);
     const pairs = useMedicinePairs(entries);
-    const hits = useMemo(() => (index && q.trim() ? search(index, q, 30).filter(h => !meds.some(m => m.id === h.entry.id)).slice(0, 6) : []), [index, q, meds]);
+    const hits = useMemo(() => (index && q.trim() ? search(index, q, 30).filter(h => !h.entry.learn && !meds.some(m => m.id === h.entry.id)).slice(0, 6) : []), [index, q, meds]);
     useEffect(() => setActive(0), [q]);
     const add = (e: IndexEntry) => {
         setMedicine(e.id, e.name, true);

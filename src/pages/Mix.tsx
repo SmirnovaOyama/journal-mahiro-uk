@@ -117,7 +117,7 @@ export function Mix({ ids, index, byId }: { ids: string[]; index: IndexEntry[] |
     }, [wanted, details, tries]);
 
     const hits = useMemo(
-        () => (index ? search(index, q, 30).filter(h => !ids.includes(h.entry.id)).slice(0, 6) : []),
+        () => (index ? search(index, q, 30).filter(h => !h.entry.learn && !ids.includes(h.entry.id)).slice(0, 6) : []),
         [index, q, ids],
     );
     useEffect(() => setActive(0), [q]);
