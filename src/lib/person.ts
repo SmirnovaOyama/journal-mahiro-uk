@@ -10,7 +10,9 @@ import { kv } from './kv';
      the days to leave between two nights of it, which the dose form says
      back when a dose would cross one;
    - products with more than one ingredient (a cold medicine), as read off
-     the box, so so many tablets are logged as so much of each.
+     the box, so so many tablets are logged as so much of each; and liquids
+     a dose too small to weigh was dissolved in (components/Volumetric.tsx),
+     a product of one part taken by the mL.
 
    Each entry carries when it last changed, and one taken away stays as a
    mark that it was, so two devices merge to the later of the two. */
@@ -46,6 +48,9 @@ export interface Product {
     /** What one of it is: 'tablet', 'capsule', 'mL', 'sachet'. */
     per: string;
     parts: ProductPart[];
+    /** How it's taken, where that isn't swallowed: a liquid held under the
+     *  tongue is logged as sublingual. */
+    route?: string;
     at: number;
     gone?: boolean;
 }
@@ -87,7 +92,15 @@ export function cleanPerson(raw: unknown): Person {
         const parts = (Array.isArray(x.parts) ? x.parts : []).filter(
             q => q && typeof q.substance === 'string' && typeof q.name === 'string' && num(q.amount) && q.amount > 0 && typeof q.unit === 'string',
         );
-        out.products[id] = { id, name: x.name, per: typeof x.per === 'string' ? x.per : 'tablet', parts, at: x.at, ...(x.gone ? { gone: true } : {}) };
+        out.products[id] = {
+            id,
+            name: x.name,
+            per: typeof x.per === 'string' ? x.per : 'tablet',
+            parts,
+            ...(typeof x.route === 'string' && x.route ? { route: x.route } : {}),
+            at: x.at,
+            ...(x.gone ? { gone: true } : {}),
+        };
     }
     return out;
 }

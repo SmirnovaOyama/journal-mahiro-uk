@@ -382,8 +382,9 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
     const [prefill] = useState<Prefill | null>(() => peekPrefill());
     useEffect(() => clearPrefill(), []);
     const [adding, setAdding] = useState(!!prefill);
-    // The form for a product with several ingredients, in the dose form's place.
-    const [product, setProduct] = useState(false);
+    // The form for a product with several ingredients, in the dose form's
+    // place: true, or the id of the one to open on (a liquid the form offered).
+    const [product, setProduct] = useState<boolean | string>(false);
     const [onlyStarred, setOnlyStarred] = useState(false);
     const nowOn = useFeature('now');
     const [matrix, setMatrix] = useState<ComboMatrix>();
@@ -465,6 +466,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                 <ProductForm
                                     index={index}
                                     byId={byId}
+                                    initial={typeof product === 'string' ? product : undefined}
                                     onLog={doses => {
                                         doses.forEach(d => add(d));
                                         setAdding(false);
@@ -480,7 +482,7 @@ function JournalHome({ index, byId, view }: { index: IndexEntry[] | null; byId: 
                                     index={index}
                                     byId={byId}
                                     initial={prefill ?? undefined}
-                                    onProduct={() => setProduct(true)}
+                                    onProduct={id => setProduct(id ?? true)}
                                     onSave={i => {
                                         add(i);
                                         if (isHrt(i.substance)) {

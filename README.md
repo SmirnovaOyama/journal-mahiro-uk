@@ -22,6 +22,13 @@ mass (2,949: a plant or a family of drugs has none of its own).
   what it mustn't be mixed with.
 - How much of a dose gets into the blood, by route, where it's known (110
   routes), so the same amount isn't mistaken for the same dose another way.
+- Where a dose is too small for a milligram scale, which is accurate to a
+  few milligrams (a common dose under 10 mg, swallowed, held in the mouth,
+  snorted or taken rectally: 182 substances, 65 of them under 1 mg), the
+  page says so and works it out in a liquid: how strong a liquid is from
+  what was weighed and how much liquid it went into, how much of it each
+  band of the rail is, and how it's made, in plain words from
+  PsychonautWiki's page on volumetric dosing (`src/lib/volumetric.ts`).
 - How it works, what it's used for and its side effects, each in a few
   sentences from its Wikipedia article (2,416, 2,200 and 560 substances).
   Beside the words, rows of facts: what kind of drug it is (1,022); what it
@@ -79,6 +86,9 @@ the device and sent nowhere, to say on the call.
   from its box and logged as so much of each. Nothing comes filled in: what
   is in a box differs by country. Paracetamol is added up over 24 hours
   against the NHS's 4 g, wherever it came from.
+- A liquid a dose was dissolved in is kept the same way, from the
+  substance's page, with the way it's taken. The dose form offers it for
+  that substance, and so many mL are logged as so much of the substance.
 - A drug that can't safely be stopped at once (a gabapentinoid, a
   benzodiazepine, an opioid, a Z-drug), logged seven days in a row, gets one
   note, in the NHS's words for its kind.
@@ -114,7 +124,8 @@ bot's name and a question in any chat. See [Telegram](#telegram).
 the notes from last time, limits, the daily medicines, drugs still at work,
 products, paracetamol's total, the Now screen, days in a row, a dose's
 address, watching over a night, the card for the crew, the emergency
-page's beat, reading aloud and position, and the link to report a mistake.
+page's beat, reading aloud and position, measuring in a liquid, and the
+link to report a mistake.
 All are on to begin with. Off, a feature is hidden and does nothing, and
 what it kept stays for when it's turned back on (`src/lib/features.ts`).
 The lock, the other code and the plain name have their own switches under
@@ -392,7 +403,7 @@ npm run dev
 | `npx wrangler d1 migrations apply oyama-journal --local` | Make the account tables in the local database (`--remote` for the real one) |
 | `node scripts/admin-key.mjs <username>` | The admin's key hash, from its password (see [Admin](#admin)) |
 | `npm run build` | Type-check and build into `dist/`, drawing the link preview cards first if there are none |
-| `npm test` | The tests in `tests/`: the mix checker against the catalogue, the journal's merging, what the journal says back, the lock, the Telegram bot |
+| `npm test` | The tests in `tests/`: the mix checker against the catalogue, the journal's merging, what the journal says back, the lock, the Telegram bot, measuring in a liquid |
 | `node scripts/data-diff.mjs` | Every dose, timing and combination a data sync changed, against the last commit |
 | `node scripts/plain-icons.mjs` | Draw the plain icon into `public/` |
 | `node scripts/telegram-webhook.mjs` | Point a Telegram bot at the site (see [Telegram](#telegram)) |
@@ -511,6 +522,7 @@ and the files of the build before it are let go.
   - `StackedBars`: the column charts, read by touch too.
   - `ProfileHeader`: the top of the account page.
   - `Absorption`: how much gets in, by route.
+  - `Volumetric`: measuring a dose too small to weigh in a liquid.
 - `src/lib/`:
   - `data.ts`, `mix.ts`: the data and the mix checker.
   - `journal.ts`: the journal's store, sessions, import, export and merging.
@@ -526,6 +538,8 @@ and the files of the build before it are let go.
   - `account.ts`: signing in and out, two-step sign-in, and syncing.
   - `eggs.ts`: a few things for whoever looks up estradiol.
   - `alcohol.ts`: blood alcohol, roughly, from the body weight.
+  - `volumetric.ts`: which doses are too small to weigh, and a liquid's
+    strength.
   - `keys.ts`: the keys, and encrypting the journal.
   - `password.ts`: how guessable a new password is.
   - `molsvg.ts`: skeletal formulas from 2D coordinates.
