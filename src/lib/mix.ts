@@ -300,7 +300,7 @@ const RULES: { when: (x: Set<Trait>, y: Set<Trait>) => boolean; verdict: ComboSt
   {
     when: (x, y) => (x.has('lactic') && y.has('ethanol')) || (y.has('lactic') && x.has('ethanol')),
     verdict: 'Caution',
-    note: () => tr('Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. A drink or two with a meal is usually fine: don’t binge, and skip metformin if you’ve been sick.'),
+    note: () => tr('Alcohol makes lactic acidosis from metformin more likely, and a lot of it without food can drop blood sugar. Keep it low and with a meal, don’t binge, and if you’ve been sick, ask a pharmacist whether to pause metformin.'),
   },
   {
     when: (x, y) => (x.has('lactic') && y.has('acidosis')) || (y.has('lactic') && x.has('acidosis')),
@@ -310,12 +310,17 @@ const RULES: { when: (x: Set<Trait>, y: Set<Trait>) => boolean; verdict: ComboSt
   {
     when: (x, y) => (x.has('lactic') && y.has('overheat')) || (y.has('lactic') && x.has('overheat')),
     verdict: 'Caution',
-    note: () => tr('A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and skip metformin if you’re vomiting.'),
+    note: () => tr('A long night on it, in the heat with little water, dries the body out and strains the kidneys, and metformin builds up when they slow. Eat, sip water steadily, and if you’re vomiting, ask a pharmacist whether to pause metformin.'),
+  },
+  {
+    when: (x, y) => (x.has('lactic') && y.has('nsaid')) || (y.has('lactic') && x.has('nsaid')),
+    verdict: 'Caution',
+    note: () => tr('Anti-inflammatory painkillers can strain the kidneys, and metformin builds up when they slow. The NHS lists them among what may not mix well with it: ask a pharmacist before taking them for more than a day or two.'),
   },
   {
     when: (x, y) => x.has('lactic') || y.has('lactic'),
     verdict: 'Low risk',
-    note: () => tr('Metformin doesn’t act on the brain and isn’t broken down by the liver, so it isn’t known to change how this one works. If either makes you vomit or stop eating and drinking, skip metformin until you’re eating again.'),
+    note: () => tr('Metformin doesn’t act on the brain and isn’t broken down by the liver, so it isn’t known to change how this one works. If either makes you vomit or stop eating and drinking, ask a pharmacist whether to pause metformin until you’re eating again.'),
   },
 ];
 
